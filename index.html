@@ -27,12 +27,15 @@
             <div class="explorer-header">
                 <h3>文件目录</h3>
                 <div class="explorer-controls">
+                    <button id="btn-new-file" class="btn btn-small" title="新建文件 (Ctrl+Shift+N)">📄 新建</button>
+                    <button id="btn-new-dir" class="btn btn-small" title="新建目录 (Ctrl+Shift+D)">📁 新建</button>
                     <button id="btn-refresh-files" class="btn btn-small">刷新</button>
                     <button id="btn-upload" class="btn btn-small">上传</button>
                 </div>
             </div>
             <div class="breadcrumb">
-                <span id="current-path">/</span>
+                <input type="text" id="current-path" class="path-input" value="/" placeholder="输入路径..." title="支持Tab自动完成，Ctrl+↑/↓浏览历史" />
+                <button id="btn-navigate" class="btn btn-small" title="前往指定路径 (Enter)">前往</button>
             </div>
             <div id="file-list" class="file-list">
                 <div class="empty-state">请先连接SSH服务器</div>
@@ -191,41 +194,103 @@
                 <!-- AI配置标签页 -->
                 <div id="ai-tab" class="tab-content active">
                     <h3>AI模型配置</h3>
-                    <form id="ai-config-form">
+                    
+                    <!-- AI聊天配置 -->
+                    <div class="ai-config-section">
+                        <h4>💬 AI聊天配置</h4>
+                        <form id="ai-chat-config-form">
+                            <div class="form-group">
+                                <label for="chat-provider">AI提供商:</label>
+                                <select id="chat-provider">
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic Claude</option>
+                                    <option value="ollama">Ollama (本地)</option>
+                                    <option value="custom">自定义API</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="chat-base-url">Base URL:</label>
+                                <input type="url" id="chat-base-url" placeholder="https://api.openai.com/v1">
+                            </div>
+                            <div class="form-group">
+                                <label for="chat-api-key">API Key:</label>
+                                <input type="password" id="chat-api-key" placeholder="输入您的API密钥">
+                            </div>
+                            <div class="form-group">
+                                <label for="chat-model">模型名称:</label>
+                                <input type="text" id="chat-model" placeholder="gpt-4, claude-3-sonnet, etc.">
+                            </div>
+                            <div class="form-group">
+                                <label for="chat-max-tokens">最大Token数:</label>
+                                <input type="number" id="chat-max-tokens" value="2000" min="100" max="8000">
+                            </div>
+                            <div class="form-group">
+                                <label for="chat-temperature">Temperature (0-1):</label>
+                                <input type="number" id="chat-temperature" value="0.7" min="0" max="1" step="0.1">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">💾 保存聊天配置</button>
+                                <button type="button" class="btn btn-secondary" id="btn-test-chat">🧪 测试连接</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 终端补全配置 -->
+                    <div class="ai-config-section">
+                        <h4>⚡ 终端补全配置</h4>
+                        <form id="ai-completion-config-form">
+                            <div class="form-group">
+                                <label for="completion-provider">AI提供商:</label>
+                                <select id="completion-provider">
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic Claude</option>
+                                    <option value="ollama">Ollama (本地)</option>
+                                    <option value="custom">自定义API</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="completion-base-url">Base URL:</label>
+                                <input type="url" id="completion-base-url" placeholder="https://api.openai.com/v1">
+                            </div>
+                            <div class="form-group">
+                                <label for="completion-api-key">API Key:</label>
+                                <input type="password" id="completion-api-key" placeholder="输入您的API密钥">
+                            </div>
+                            <div class="form-group">
+                                <label for="completion-model">模型名称:</label>
+                                <input type="text" id="completion-model" placeholder="gpt-3.5-turbo, claude-3-haiku, etc.">
+                            </div>
+                            <div class="form-group">
+                                <label for="completion-max-tokens">最大Token数:</label>
+                                <input type="number" id="completion-max-tokens" value="1000" min="100" max="4000">
+                            </div>
+                            <div class="form-group">
+                                <label for="completion-temperature">Temperature (0-1):</label>
+                                <input type="number" id="completion-temperature" value="0.3" min="0" max="1" step="0.1">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">💾 保存补全配置</button>
+                                <button type="button" class="btn btn-secondary" id="btn-test-completion">🧪 测试连接</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 快速配置 -->
+                    <div class="ai-config-section">
+                        <h4>⚙️ 快速配置</h4>
                         <div class="form-group">
-                            <label for="ai-provider">AI提供商:</label>
-                            <select id="ai-provider">
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic Claude</option>
-                                <option value="ollama">Ollama (本地)</option>
-                                <option value="custom">自定义API</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="ai-base-url">Base URL:</label>
-                            <input type="url" id="ai-base-url" placeholder="https://api.openai.com/v1">
-                        </div>
-                        <div class="form-group">
-                            <label for="ai-api-key">API Key:</label>
-                            <input type="password" id="ai-api-key" placeholder="输入您的API密钥">
-                        </div>
-                        <div class="form-group">
-                            <label for="ai-model">模型名称:</label>
-                            <input type="text" id="ai-model" placeholder="gpt-3.5-turbo, claude-3-sonnet, etc.">
-                        </div>
-                        <div class="form-group">
-                            <label for="ai-max-tokens">最大Token数:</label>
-                            <input type="number" id="ai-max-tokens" value="2000" min="100" max="8000">
-                        </div>
-                        <div class="form-group">
-                            <label for="ai-temperature">Temperature (0-1):</label>
-                            <input type="number" id="ai-temperature" value="0.7" min="0" max="1" step="0.1">
+                            <label>
+                                <input type="checkbox" id="sync-config"> 同步聊天和补全配置
+                            </label>
+                            <small style="color: #969696; display: block; margin-top: 4px;">
+                                勾选后，修改聊天配置时会自动同步到补全配置
+                            </small>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">💾 保存AI配置</button>
-                            <button type="button" class="btn btn-secondary" id="btn-test-ai">🧪 测试连接</button>
+                            <button type="button" class="btn btn-secondary" id="btn-copy-chat-to-completion">📋 聊天配置 → 补全配置</button>
+                            <button type="button" class="btn btn-secondary" id="btn-copy-completion-to-chat">📋 补全配置 → 聊天配置</button>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 <!-- 通用设置标签页 -->
@@ -329,7 +394,9 @@
     <script>
         // 设置Electron API
         const { ipcRenderer } = require('electron');
+        const path = require('path');
         window.ipcRenderer = ipcRenderer;
+        window.path = path;
         
         window.electronAPI = {
             saveSession: (data) => window.ipcRenderer.invoke('save-session', data),
@@ -342,7 +409,14 @@
             getConfig: () => window.ipcRenderer.invoke('getConfig'),
             saveConfig: (config) => window.ipcRenderer.invoke('saveConfig', config),
             testAIConnection: (config) => window.ipcRenderer.invoke('testAIConnection', config),
-            readSSHKey: (keyPath) => window.ipcRenderer.invoke('readSSHKey', keyPath)
+            readSSHKey: (keyPath) => window.ipcRenderer.invoke('readSSHKey', keyPath),
+            uploadFile: (id, localPath, remotePath) => window.ipcRenderer.invoke('uploadFile', id, localPath, remotePath),
+            uploadDroppedFile: (id, file, remotePath) => window.ipcRenderer.invoke('uploadDroppedFile', id, file, remotePath),
+            selectAndUploadFile: (id, remotePath) => window.ipcRenderer.invoke('selectAndUploadFile', id, remotePath),
+            downloadFile: (id, remotePath) => window.ipcRenderer.invoke('downloadFile', id, remotePath),
+            downloadAndOpenFile: (id, remotePath) => window.ipcRenderer.invoke('downloadAndOpenFile', id, remotePath),
+            startFileWatcher: (remotePath, localPath) => window.ipcRenderer.invoke('startFileWatcher', remotePath, localPath),
+            stopFileWatcher: (localPath) => window.ipcRenderer.invoke('stopFileWatcher', localPath)
         };
     </script>
     <script src="renderer/session-manager.js"></script>

@@ -45,9 +45,6 @@ class AIChat {
 
     // 初始化命令建议
     this.initializeCommandSuggestions();
-    
-    // 添加快速命令按钮
-    this.addQuickCommandButtons();
   }
 
   onSessionConnected(session) {
@@ -90,8 +87,8 @@ class AIChat {
     this.isProcessing = true;
 
     try {
-      // 获取AI配置
-      const aiConfig = window.settingsManager?.getAIConfig();
+      // 获取AI聊天配置
+      const aiConfig = window.settingsManager?.getChatAIConfig();
       if (!aiConfig || !aiConfig.apiKey) {
         this.isProcessing = false;
         return '请先在设置中配置AI模型信息（API Key、Base URL等）才能使用智能对话功能。';
@@ -323,7 +320,6 @@ class AIChat {
     const systemPrompt = `请分析以下命令的执行结果，提供简洁有用的解释和建议。
 
 命令: ${command}
-退出码: ${exitCode || '未知'}
 输出: ${output}
 
 请提供:
@@ -340,11 +336,11 @@ class AIChat {
     }
   }
 
-  formatCommandOutput(command, output, exitCode) {
+  formatCommandOutput(command, output, code) {
     let formatted = `**命令:** \`${command}\`\n`;
     
-    if (exitCode !== undefined) {
-      formatted += `**退出码:** ${exitCode}\n`;
+    if (code !== undefined) {
+      formatted += `**退出码:** ${code}\n`;
     }
     
     if (output) {
@@ -571,7 +567,7 @@ class AIChat {
   }
 
   generateDefaultResponse(message) {
-    const aiConfig = window.settingsManager?.getAIConfig();
+    const aiConfig = window.settingsManager?.getChatAIConfig();
     
     if (!aiConfig || !aiConfig.apiKey) {
       return `🤖 AI助手未配置
@@ -827,41 +823,7 @@ class AIChat {
     }, 3000);
   }
 
-  // 添加快速命令按钮
-  addQuickCommandButtons() {
-    const quickCommands = [
-      { icon: '📁', command: 'ls -la', tooltip: '列出文件' },
-      { icon: '📍', command: 'pwd', tooltip: '当前目录' },
-      { icon: '💾', command: 'df -h', tooltip: '磁盘使用' },
-      { icon: '🧠', command: 'free -h', tooltip: '内存使用' }
-    ];
 
-    const container = document.createElement('div');
-    container.className = 'quick-commands';
-    container.style.cssText = `
-      display: flex;
-      gap: 5px;
-      padding: 10px;
-      border-top: 1px solid #3e3e42;
-    `;
-
-    quickCommands.forEach(({ icon, command, tooltip }) => {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-small';
-      btn.innerHTML = icon;
-      btn.title = tooltip;
-      btn.addEventListener('click', () => {
-        this.input.value = command;
-        this.input.focus();
-      });
-      container.appendChild(btn);
-    });
-
-    const chatInputContainer = document.querySelector('.chat-input-container');
-    if (chatInputContainer) {
-      chatInputContainer.insertBefore(container, chatInputContainer.firstChild);
-    }
-  }
 }
 
 // 创建全局AI聊天实例

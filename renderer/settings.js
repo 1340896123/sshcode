@@ -28,12 +28,23 @@ class SettingsManager {
   getDefaultConfig() {
     return {
       ai: {
-        provider: 'openai',
-        baseUrl: 'https://api.openai.com/v1',
-        apiKey: '',
-        model: 'gpt-3.5-turbo',
-        maxTokens: 2000,
-        temperature: 0.7
+        chat: {
+          provider: 'openai',
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: '',
+          model: 'gpt-4',
+          maxTokens: 2000,
+          temperature: 0.7
+        },
+        completion: {
+          provider: 'openai',
+          baseUrl: 'https://api.openai.com/v1',
+          apiKey: '',
+          model: 'gpt-3.5-turbo',
+          maxTokens: 1000,
+          temperature: 0.3
+        },
+        syncConfig: false
       },
       general: {
         language: 'zh-CN',
@@ -68,10 +79,40 @@ class SettingsManager {
       });
     });
 
-    // AI配置表单
-    document.getElementById('ai-config-form').addEventListener('submit', (e) => {
+    // AI聊天配置表单
+    document.getElementById('ai-chat-config-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      this.saveAIConfig();
+      this.saveChatAIConfig();
+    });
+
+    // AI补全配置表单
+    document.getElementById('ai-completion-config-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveCompletionAIConfig();
+    });
+
+    // 测试连接按钮
+    document.getElementById('btn-test-chat').addEventListener('click', () => {
+      this.testAIConnection('chat');
+    });
+
+    document.getElementById('btn-test-completion').addEventListener('click', () => {
+      this.testAIConnection('completion');
+    });
+
+    // 快速配置按钮
+    document.getElementById('btn-copy-chat-to-completion').addEventListener('click', () => {
+      this.copyConfig('chat', 'completion');
+    });
+
+    document.getElementById('btn-copy-completion-to-chat').addEventListener('click', () => {
+      this.copyConfig('completion', 'chat');
+    });
+
+    // 同步配置复选框
+    document.getElementById('sync-config').addEventListener('change', (e) => {
+      this.config.ai.syncConfig = e.target.checked;
+      this.saveConfig();
     });
 
     // 通用设置表单
@@ -92,14 +133,14 @@ class SettingsManager {
       this.saveSecurityConfig();
     });
 
-    // AI提供商切换
-    document.getElementById('ai-provider').addEventListener('change', (e) => {
-      this.updateAIProviderDefaults(e.target.value);
+    // AI聊天提供商切换
+    document.getElementById('chat-provider').addEventListener('change', (e) => {
+      this.updateAIProviderDefaults(e.target.value, 'chat');
     });
 
-    // 测试AI连接
-    document.getElementById('btn-test-ai').addEventListener('click', () => {
-      this.testAIConnection();
+    // AI补全提供商切换
+    document.getElementById('completion-provider').addEventListener('change', (e) => {
+      this.updateAIProviderDefaults(e.target.value, 'completion');
     });
 
     // 关闭模态框
@@ -174,15 +215,39 @@ class SettingsManager {
     document.getElementById('confirm-dangerous-commands').checked = security.confirmDangerousCommands !== false;
   }
 
-  updateAIProviderDefaults(provider) {
+  renderAIConfig() {
+    const ai = this.config.ai || {};
+    
+    // 渲染聊天配置
+    this.renderAISection('chat', ai.chat || {});
+    
+    // 渲染补全配置
+    this.renderAISection('completion', ai.completion || {});
+    
+    // 渲染同步配置
+    document.getElementById('sync-config').checked = ai.syncConfig === true;
+  }
+
+  renderAISection(type, config) {
+    const prefix = type === 'chat' ? 'chat' : 'completion';
+    
+    document.getElementById(`${prefix}-provider`).value = config.provider || 'openai';
+    document.getElementById(`${prefix}-base-url`).value = config.baseUrl || '';
+    document.getElementById(`${prefix}-api-key`).value = config.apiKey || '';
+    document.getElementById(`${prefix}-model`).value = config.model || '';
+    document.getElementById(`${prefix}-max-tokens`).value = config.maxTokens || (type === 'chat' ? 2000 : 1000);
+    document.getElementById(`${prefix}-temperature`).value = config.temperature || (type === 'chat' ? 0.7 : 0.3);
+  }
+
+  updateAIProviderDefaults(provider, type) {
     const defaults = {
       openai: {
         baseUrl: 'https://api.openai.com/v1',
-        model: 'gpt-3.5-turbo'
+        model: type === 'chat' ? 'gpt-4' : 'gpt-3.5-turbo'
       },
       anthropic: {
         baseUrl: 'https://api.anthropic.com',
-        model: 'claude-3-sonnet-20240229'
+        model: type === 'chat' ? 'claude-3-sonnet-20240229' : 'claude-3-haiku-20240307'
       },
       ollama: {
         baseUrl: 'http://localhost:11434/v1',
@@ -195,67 +260,87 @@ class SettingsManager {
     };
 
     const providerDefaults = defaults[provider] || defaults.custom;
+    const prefix = type === 'chat' ? 'chat' : 'completion';
     
     if (provider !== 'custom') {
-      document.getElementById('ai-base-url').value = providerDefaults.baseUrl;
-      document.getElementById('ai-model').value = providerDefaults.model;
+      document.getElementById(`${prefix}-base-url`).value = providerDefaults.baseUrl;
+      document.getElementById(`${prefix}-model`).value = providerDefaults.model;
     }
   }
 
-  async saveAIConfig() {
-    const aiConfig = {
-      provider: document.getElementById('ai-provider').value,
-      baseUrl: document.getElementById('ai-base-url').value.trim(),
-      apiKey: document.getElementById('ai-api-key').value.trim(),
-      model: document.getElementById('ai-model').value.trim(),
-      maxTokens: parseInt(document.getElementById('ai-max-tokens').value) || 2000,
-      temperature: parseFloat(document.getElementById('ai-temperature').value) || 0.7
+  async saveChatAIConfig() {
+    const chatConfig = await this.saveAISection('chat');
+    if (chatConfig) {
+      this.config.ai.chat = chatConfig;
+      
+      // 如果开启同步，同步到补全配置
+      if (this.config.ai.syncConfig) {
+        this.config.ai.completion = { ...chatConfig };
+        this.renderAISection('completion', chatConfig);
+      }
+      
+      await this.saveConfig();
+      this.showNotification('AI聊天配置已保存', 'success');
+    }
+  }
+
+  async saveCompletionAIConfig() {
+    const completionConfig = await this.saveAISection('completion');
+    if (completionConfig) {
+      this.config.ai.completion = completionConfig;
+      
+      // 如果开启同步，同步到聊天配置
+      if (this.config.ai.syncConfig) {
+        this.config.ai.chat = { ...completionConfig };
+        this.renderAISection('chat', completionConfig);
+      }
+      
+      await this.saveConfig();
+      this.showNotification('AI补全配置已保存', 'success');
+    }
+  }
+
+  async saveAISection(type) {
+    const prefix = type === 'chat' ? 'chat' : 'completion';
+    
+    const config = {
+      provider: document.getElementById(`${prefix}-provider`).value,
+      baseUrl: document.getElementById(`${prefix}-base-url`).value.trim(),
+      apiKey: document.getElementById(`${prefix}-api-key`).value.trim(),
+      model: document.getElementById(`${prefix}-model`).value.trim(),
+      maxTokens: parseInt(document.getElementById(`${prefix}-max-tokens`).value) || (type === 'chat' ? 2000 : 1000),
+      temperature: parseFloat(document.getElementById(`${prefix}-temperature`).value) || (type === 'chat' ? 0.7 : 0.3)
     };
 
     // 验证必填字段
-    if (!aiConfig.baseUrl) {
+    if (!config.baseUrl) {
       this.showNotification('请填写Base URL', 'error');
-      document.getElementById('ai-base-url').focus();
-      return;
+      document.getElementById(`${prefix}-base-url`).focus();
+      return null;
     }
 
-    if (!aiConfig.apiKey) {
+    if (!config.apiKey) {
       this.showNotification('请填写API Key', 'error');
-      document.getElementById('ai-api-key').focus();
-      return;
+      document.getElementById(`${prefix}-api-key`).focus();
+      return null;
     }
 
-    if (!aiConfig.model) {
+    if (!config.model) {
       this.showNotification('请填写模型名称', 'error');
-      document.getElementById('ai-model').focus();
-      return;
+      document.getElementById(`${prefix}-model`).focus();
+      return null;
     }
 
     // 验证URL格式
     try {
-      new URL(aiConfig.baseUrl);
-    } catch (error) {
+      new URL(config.baseUrl);
+    } catch {
       this.showNotification('Base URL格式不正确', 'error');
-      document.getElementById('ai-base-url').focus();
-      return;
+      document.getElementById(`${prefix}-base-url`).focus();
+      return null;
     }
 
-    // 验证数值范围
-    if (aiConfig.maxTokens < 1 || aiConfig.maxTokens > 32000) {
-      this.showNotification('最大Token数必须在1-32000之间', 'error');
-      document.getElementById('ai-max-tokens').focus();
-      return;
-    }
-
-    if (aiConfig.temperature < 0 || aiConfig.temperature > 2) {
-      this.showNotification('Temperature必须在0-2之间', 'error');
-      document.getElementById('ai-temperature').focus();
-      return;
-    }
-
-    this.config.ai = aiConfig;
-    await this.saveConfig();
-    this.showNotification('AI配置保存成功', 'success');
+    return config;
   }
 
   async saveGeneralConfig() {
@@ -324,31 +409,60 @@ class SettingsManager {
     }
   }
 
-  async testAIConnection() {
+  async testAIConnection(type) {
+    const prefix = type === 'chat' ? 'chat' : 'completion';
+    const configName = type === 'chat' ? '聊天' : '补全';
+    
     const aiConfig = {
-      provider: document.getElementById('ai-provider').value,
-      baseUrl: document.getElementById('ai-base-url').value.trim(),
-      apiKey: document.getElementById('ai-api-key').value.trim(),
-      model: document.getElementById('ai-model').value.trim()
+      provider: document.getElementById(`${prefix}-provider`).value,
+      baseUrl: document.getElementById(`${prefix}-base-url`).value.trim(),
+      apiKey: document.getElementById(`${prefix}-api-key`).value.trim(),
+      model: document.getElementById(`${prefix}-model`).value.trim()
     };
 
     if (!aiConfig.baseUrl || !aiConfig.apiKey || !aiConfig.model) {
-      this.showNotification('请先填写完整的AI配置信息', 'error');
+      this.showNotification(`请先填写完整的AI${configName}配置信息`, 'error');
       return;
     }
 
     try {
-      this.showNotification('正在测试AI连接...', 'info');
+      this.showNotification(`正在测试AI${configName}连接...`, 'info');
       const result = await window.electronAPI.testAIConnection(aiConfig);
       
       if (result.success) {
-        this.showNotification('AI连接测试成功！', 'success');
+        this.showNotification(`AI${configName}连接测试成功！`, 'success');
       } else {
-        this.showNotification('AI连接测试失败: ' + result.error, 'error');
+        this.showNotification(`AI${configName}连接测试失败: ${result.error}`, 'error');
       }
     } catch (error) {
-      this.showNotification('AI连接测试失败: ' + error.message, 'error');
+      this.showNotification(`AI${configName}连接测试失败: ${error.message}`, 'error');
     }
+  }
+
+  copyConfig(fromType, toType) {
+    const fromPrefix = fromType === 'chat' ? 'chat' : 'completion';
+    const toPrefix = toType === 'chat' ? 'chat' : 'completion';
+    const fromName = fromType === 'chat' ? '聊天' : '补全';
+    const toName = toType === 'chat' ? '聊天' : '补全';
+
+    const config = {
+      provider: document.getElementById(`${fromPrefix}-provider`).value,
+      baseUrl: document.getElementById(`${fromPrefix}-base-url`).value,
+      apiKey: document.getElementById(`${fromPrefix}-api-key`).value,
+      model: document.getElementById(`${fromPrefix}-model`).value,
+      maxTokens: document.getElementById(`${fromPrefix}-max-tokens`).value,
+      temperature: document.getElementById(`${fromPrefix}-temperature`).value
+    };
+
+    // 复制配置到目标表单
+    document.getElementById(`${toPrefix}-provider`).value = config.provider;
+    document.getElementById(`${toPrefix}-base-url`).value = config.baseUrl;
+    document.getElementById(`${toPrefix}-api-key`).value = config.apiKey;
+    document.getElementById(`${toPrefix}-model`).value = config.model;
+    document.getElementById(`${toPrefix}-max-tokens`).value = config.maxTokens;
+    document.getElementById(`${toPrefix}-temperature`).value = config.temperature;
+
+    this.showNotification(`已将${fromName}配置复制到${toName}配置`, 'success');
   }
 
   showNotification(message, type = 'info') {
@@ -369,6 +483,14 @@ class SettingsManager {
 
   getAIConfig() {
     return this.config.ai || {};
+  }
+
+  getChatAIConfig() {
+    return this.config.ai?.chat || {};
+  }
+
+  getCompletionAIConfig() {
+    return this.config.ai?.completion || {};
   }
 }
 

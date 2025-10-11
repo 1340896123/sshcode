@@ -371,3 +371,290 @@ ipcMain.handle('readSSHKey', async (event, keyPath) => {
     return { success: false, error: error.message };
   }
 });
+
+// 文件上传功能
+ipcMain.handle('uploadFile', async (event, connectionId, localPath, remotePath) => {
+  const conn = sshConnections[connectionId];
+  const config = sshConnectionConfigs[connectionId];
+  
+  if (!conn || !config) {
+    return { success: false, error: 'SSH连接不存在或配置丢失' };
+  }
+
+  try {
+    const sftp = require('ssh2-sftp-client');
+    const sftpClient = new sftp();
+    
+    const connectConfig = {
+      host: config.host,
+      port: config.port || 22,
+      username: config.username
+    };
+
+    // 根据认证方式添加相应的认证信息
+    if (config.authType === 'key' && config.privateKey) {
+      connectConfig.privateKey = config.privateKey;
+    } else if (config.password) {
+      connectConfig.password = config.password;
+    }
+
+    await sftpClient.connect(connectConfig);
+    
+    const fileName = require('path').basename(localPath);
+    const remoteFilePath = remotePath === '/' ? `/${fileName}` : `${remotePath}/${fileName}`;
+    
+    await sftpClient.put(localPath, remoteFilePath);
+    await sftpClient.end();
+    
+    return { success: true };
+  } catch (err) {
+    console.error('文件上传失败:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+// 上传拖拽的文件
+ipcMain.handle('uploadDroppedFile', async (event, connectionId, file, remotePath) => {
+  const conn = sshConnections[connectionId];
+  const config = sshConnectionConfigs[connectionId];
+  
+  if (!conn || !config) {
+    return { success: false, error: 'SSH连接不存在或配置丢失' };
+  }
+
+  try {
+    const sftp = require('ssh2-sftp-client');
+    const sftpClient = new sftp();
+    
+    const connectConfig = {
+      host: config.host,
+      port: config.port || 22,
+      username: config.username
+    };
+
+    // 根据认证方式添加相应的认证信息
+    if (config.authType === 'key' && config.privateKey) {
+      connectConfig.privateKey = config.privateKey;
+    } else if (config.password) {
+      connectConfig.password = config.password;
+    }
+
+    await sftpClient.connect(connectConfig);
+    
+    // 从File对象获取文件路径
+    const filePath = file.path;
+    const fileName = file.name;
+    const remoteFilePath = remotePath === '/' ? `/${fileName}` : `${remotePath}/${fileName}`;
+    
+    await sftpClient.put(filePath, remoteFilePath);
+    await sftpClient.end();
+    
+    return { success: true };
+  } catch (err) {
+    console.error('文件上传失败:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+// 选择并上传文件
+ipcMain.handle('selectAndUploadFile', async (event, connectionId, remotePath) => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      title: '选择要上传的文件'
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const localPath = result.filePaths[0];
+      
+      // 调用上传文件处理函数
+      const conn = sshConnections[connectionId];
+      const config = sshConnectionConfigs[connectionId];
+      
+      if (!conn || !config) {
+        return { success: false, error: 'SSH连接不存在或配置丢失' };
+      }
+
+      const sftp = require('ssh2-sftp-client');
+      const sftpClient = new sftp();
+      
+      const connectConfig = {
+        host: config.host,
+        port: config.port || 22,
+        username: config.username
+      };
+
+      // 根据认证方式添加相应的认证信息
+      if (config.authType === 'key' && config.privateKey) {
+        connectConfig.privateKey = config.privateKey;
+      } else if (config.password) {
+        connectConfig.password = config.password;
+      }
+
+      await sftpClient.connect(connectConfig);
+      
+      const fileName = require('path').basename(localPath);
+      const remoteFilePath = remotePath === '/' ? `/${fileName}` : `${remotePath}/${fileName}`;
+      
+      await sftpClient.put(localPath, remoteFilePath);
+      await sftpClient.end();
+      
+      return { success: true };
+    }
+    
+    return { success: false, error: '用户取消选择' };
+  } catch (error) {
+    console.error('选择文件失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 下载文件
+ipcMain.handle('downloadFile', async (event, connectionId, remotePath) => {
+  const conn = sshConnections[connectionId];
+  const config = sshConnectionConfigs[connectionId];
+  
+  if (!conn || !config) {
+    return { success: false, error: 'SSH连接不存在或配置丢失' };
+  }
+
+  try {
+    const sftp = require('ssh2-sftp-client');
+    const sftpClient = new sftp();
+    
+    const connectConfig = {
+      host: config.host,
+      port: config.port || 22,
+      username: config.username
+    };
+
+    // 根据认证方式添加相应的认证信息
+    if (config.authType === 'key' && config.privateKey) {
+      connectConfig.privateKey = config.privateKey;
+    } else if (config.password) {
+      connectConfig.password = config.password;
+    }
+
+    await sftpClient.connect(connectConfig);
+    
+    // 选择保存位置
+    const fileName = require('path').basename(remotePath);
+    const saveResult = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: fileName,
+      title: '保存文件'
+    });
+
+    if (!saveResult.canceled) {
+      await sftpClient.get(remotePath, saveResult.filePath);
+      await sftpClient.end();
+      
+      return { success: true, localPath: saveResult.filePath };
+    } else {
+      await sftpClient.end();
+      return { success: false, error: '用户取消保存' };
+    }
+  } catch (err) {
+    console.error('文件下载失败:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+// 下载并打开文件
+ipcMain.handle('downloadAndOpenFile', async (event, connectionId, remotePath) => {
+  const conn = sshConnections[connectionId];
+  const config = sshConnectionConfigs[connectionId];
+  
+  if (!conn || !config) {
+    return { success: false, error: 'SSH连接不存在或配置丢失' };
+  }
+
+  try {
+    const sftp = require('ssh2-sftp-client');
+    const sftpClient = new sftp();
+    const os = require('os');
+    const path = require('path');
+    
+    const connectConfig = {
+      host: config.host,
+      port: config.port || 22,
+      username: config.username
+    };
+
+    // 根据认证方式添加相应的认证信息
+    if (config.authType === 'key' && config.privateKey) {
+      connectConfig.privateKey = config.privateKey;
+    } else if (config.password) {
+      connectConfig.password = config.password;
+    }
+
+    await sftpClient.connect(connectConfig);
+    
+    // 创建临时目录
+    const tempDir = path.join(os.tmpdir(), 'sshcode-files');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    
+    const fileName = path.basename(remotePath);
+    const localPath = path.join(tempDir, fileName);
+    
+    await sftpClient.get(remotePath, localPath);
+    await sftpClient.end();
+    
+    // 使用系统默认程序打开文件
+    const { shell } = require('electron');
+    await shell.openPath(localPath);
+    
+    return { success: true, localPath };
+  } catch (err) {
+    console.error('文件下载并打开失败:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+// 文件监听器
+const fileWatchers = new Map();
+
+ipcMain.handle('startFileWatcher', async (event, remotePath, localPath) => {
+  try {
+    const fs = require('fs');
+    
+    // 如果已经在监听这个文件，先停止
+    if (fileWatchers.has(localPath)) {
+      fileWatchers.get(localPath).close();
+    }
+    
+    // 创建文件监听器
+    const watcher = fs.watchFile(localPath, (curr, prev) => {
+      if (curr.mtime !== prev.mtime) {
+        // 文件发生变化，发送事件到渲染进程
+        mainWindow.webContents.send('fileChanged', {
+          remotePath,
+          localPath
+        });
+      }
+    });
+    
+    fileWatchers.set(localPath, watcher);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('启动文件监听失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('stopFileWatcher', async (event, localPath) => {
+  try {
+    if (fileWatchers.has(localPath)) {
+      const fs = require('fs');
+      fs.unwatchFile(localPath);
+      fileWatchers.delete(localPath);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('停止文件监听失败:', error);
+    return { success: false, error: error.message };
+  }
+});
