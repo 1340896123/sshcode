@@ -134,32 +134,47 @@ function Terminal({ tabId, isConnected, sessionData, onExecuteCommand, onShowNot
   };
 
   return (
-    <section className="terminal-section" data-tab-id={tabId}>
-      <div className="terminal-header">
-        <h3>终端</h3>
-        <div className="terminal-controls">
-          <button className="btn btn-small btn-clear-terminal" onClick={clearTerminal}>
+    <section className="flex-1 bg-[#1e1e1e] flex flex-col min-w-0 flex-shrink-1 flex-grow-1" data-tab-id={tabId}>
+      <div className="flex justify-between items-center px-4 py-2.5 bg-[#2d2d30] border-b border-[#3e3e42]">
+        <h3 className="text-sm text-[#cccccc]">终端</h3>
+        <div className="flex gap-1.5">
+          <button 
+            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px" 
+            onClick={clearTerminal}
+          >
             清空
           </button>
-          <button className="btn btn-small btn-copy-output" onClick={copyOutput}>
+          <button 
+            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px" 
+            onClick={copyOutput}
+          >
             复制
           </button>
         </div>
       </div>
-      <div className="terminal" data-tab-id={tabId}>
-        <div className="terminal-output" ref={outputRef}>
+      <div className="flex-1 px-4 font-['Consolas','Monaco',monospace] text-sm overflow-y-auto flex flex-col" data-tab-id={tabId}>
+        <div className="flex-1 mb-2.5 whitespace-pre-wrap word-wrap break-word" ref={outputRef}>
           {output.map(item => (
-            <div key={item.id} className={item.className}>
+            <div 
+              key={item.id} 
+              className={`${item.className} ${
+                item.className === 'command' ? 'text-[#4ec9b0] font-bold bg-[rgba(78,201,176,0.1)] border-l-3 border-[#4ec9b0] pl-2 my-1' : 
+                item.className === 'output' ? 'text-[#dcdcaa] bg-[rgba(220,220,170,0.05)] border-l-3 border-[#dcdcaa] pl-2 my-0.5 whitespace-pre-wrap' : 
+                item.className === 'error' ? 'text-[#d16969] bg-[rgba(209,105,105,0.1)] border-l-3 border-[#d16969] pl-2 my-0.5' : 
+                item.className === 'success' ? 'text-[#4ec9b0]' : 
+                item.className === 'info' ? 'text-[#007acc]' : ''
+              }`}
+            >
               {item.text}
             </div>
           ))}
         </div>
-        <div className="terminal-input-line">
-          <span className="terminal-prompt" data-tab-id={tabId}>$ </span>
+        <div className="flex items-center">
+          <span className="text-[#4ec9b0] mr-1.25" data-tab-id={tabId}>$ </span>
           <input
             ref={inputRef}
             type="text"
-            className="terminal-input"
+            className="flex-1 bg-transparent border-none text-[#d4d4d4] font-inherit text-sm outline-none disabled:text-[#666]"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

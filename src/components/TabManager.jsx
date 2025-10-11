@@ -162,21 +162,23 @@ function TabManager({ onSessionConnected, onSessionDisconnected, onShowNotificat
   return (
     <div className="tab-manager">
       {/* 标签页导航 */}
-      <div className="tabs-container">
-        <div className="tabs-nav">
-          <div className="tabs-list">
-            {Array.from(tabs.values()).map(tab => (
-              <TabItem
-                key={tab.id}
-                tab={tab}
-                isActive={tab.id === activeTabId}
-                onClick={() => switchToTab(tab.id)}
-                onClose={() => closeTab(tab.id)}
-              />
-            ))}
+      <div className="bg-[#2d2d30] border-b border-[#3e3e42]">
+        <div className="flex items-center px-2.5 h-10">
+          <div className="flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-[#5a5a5a] scrollbar-track-[#2d2d30]">
+            <div className="flex">
+              {Array.from(tabs.values()).map(tab => (
+                <TabItem
+                  key={tab.id}
+                  tab={tab}
+                  isActive={tab.id === activeTabId}
+                  onClick={() => switchToTab(tab.id)}
+                  onClose={() => closeTab(tab.id)}
+                />
+              ))}
+            </div>
           </div>
           <button 
-            className="btn btn-small btn-new-tab" 
+            className="min-w-8 h-8 m-1 p-0 flex items-center justify-center text-sm border-none rounded cursor-pointer font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px" 
             onClick={() => createNewTab()}
             title="新建SSH连接标签页"
           >
@@ -186,8 +188,8 @@ function TabManager({ onSessionConnected, onSessionDisconnected, onShowNotificat
       </div>
 
       {/* 主内容区域 */}
-      <main className="main-container">
-        <div className="tabs-content">
+      <main className="flex h-full overflow-hidden w-full">
+        <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
           {Array.from(tabs.values()).map(tab => (
             <TabContent
               key={tab.id}

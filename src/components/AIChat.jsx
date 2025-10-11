@@ -100,23 +100,39 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
   };
 
   return (
-    <section className="ai-chat" data-tab-id={tabId}>
-      <div className="chat-header">
-        <h3>AI助手</h3>
-        <div className="chat-controls">
-          <button className="btn btn-small btn-clear-chat" onClick={clearChat}>
+    <section className="w-[var(--ai-chat-width)] min-w-[var(--min-ai-chat-width)] max-w-[var(--max-ai-chat-width)] bg-[#252526] border-l border-[#3e3e42] flex flex-col relative resize-x overflow-auto flex-shrink-0" data-tab-id={tabId}>
+      <div className="flex justify-between items-center px-4 py-2.5 bg-[#2d2d30] border-b border-[#3e3e42]">
+        <h3 className="text-sm text-[#cccccc]">AI助手</h3>
+        <div className="flex gap-1.5">
+          <button 
+            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px" 
+            onClick={clearChat}
+          >
             清空
           </button>
-          <button className="btn btn-small btn-ai-settings">
+          <button 
+            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px"
+          >
             设置
           </button>
         </div>
       </div>
       
-      <div className="chat-messages">
+      <div className="flex-1 overflow-y-auto p-4">
         {messages.map((message) => (
-          <div key={message.id} className={`chat-message ${message.type}-message`}>
-            <div className="message-content">
+          <div 
+            key={message.id} 
+            className={`mb-4 flex flex-col ${
+              message.type === 'user' ? 'items-end' : 'items-start'
+            }`}
+          >
+            <div 
+              className={`max-w-[80%] p-3.75 rounded-xl text-sm leading-7 break-words ${
+                message.type === 'user' 
+                  ? 'bg-[#007acc] text-white rounded-br-md' 
+                  : 'bg-[#3e3e42] text-[#d4d4d4] rounded-bl-md'
+              }`}
+            >
               {message.content.split('\n').map((line, index) => (
                 <div key={index}>
                   {line}
@@ -124,9 +140,9 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
                 </div>
               ))}
             </div>
-            <div className="message-actions">
+            <div className="mt-1 flex gap-1">
               <button 
-                className="btn btn-small btn-copy-message" 
+                className="px-2 py-1 border-none rounded cursor-pointer text-[10px] font-inherit transition-all duration-200 outline-none bg-[#3e3e42] text-[#d4d4d4] hover:bg-[#5a5a5a] hover:opacity-80 active:translate-y-px min-w-5" 
                 onClick={() => copyMessage(message.content)}
                 title="复制消息"
               >
@@ -137,10 +153,12 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
         ))}
         
         {isLoading && (
-          <div className="chat-message ai-message">
-            <div className="message-content typing-indicator">
+          <div className="mb-4 flex flex-col items-start">
+            <div className="bg-[#3e3e42] text-[#d4d4d4] rounded-xl rounded-bl-md p-3.75 text-sm leading-7">
               <span>正在思考</span>
-              <span className="dots">...</span>
+              <span className="inline-block w-1 h-1 bg-[#d4d4d4] rounded-full animate-pulse ml-1"></span>
+              <span className="inline-block w-1 h-1 bg-[#d4d4d4] rounded-full animate-pulse ml-1" style={{animationDelay: '0.2s'}}></span>
+              <span className="inline-block w-1 h-1 bg-[#d4d4d4] rounded-full animate-pulse ml-1" style={{animationDelay: '0.4s'}}></span>
             </div>
           </div>
         )}
@@ -148,9 +166,9 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
         <div ref={messagesEndRef} />
       </div>
       
-      <div className="chat-input-container">
+      <div className="p-4 border-t border-[#3e3e42] flex gap-2.5 items-end">
         <textarea
-          className="chat-input"
+          className="flex-1 bg-[#3e3e42] border border-[#5a5a5a] text-[#d4d4d4] rounded px-3 py-2 font-inherit text-sm resize-none outline-none transition-colors duration-200 focus:border-[#007acc]"
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -159,7 +177,7 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
           disabled={!isConnected || isLoading}
         />
         <button 
-          className="btn btn-primary btn-send-message" 
+          className="px-3 py-1.5 border-none rounded cursor-pointer text-xs font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed" 
           onClick={sendMessage}
           disabled={!isConnected || isLoading || !input.trim()}
         >

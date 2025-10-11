@@ -15,7 +15,7 @@ function TabContent({
   if (!isActive) return null;
 
   return (
-    <div className="tab-content-panel" style={{ display: 'flex' }}>
+    <div className="flex-1 overflow-hidden flex" data-tab-id={tab.id}>
       {/* 左侧文件目录 */}
       <FileExplorer
         tabId={tab.id}
