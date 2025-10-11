@@ -7,15 +7,37 @@ class Terminal {
     this.commandHistory = [];
     this.historyIndex = -1;
     this.completionCache = new Map();
+    this.completionSuggestions = [];
+    this.selectedSuggestionIndex = -1;
+    this.isCompletionVisible = false;
+    this.completionPreview = null;
     this.init();
   }
 
   init() {
     this.input.addEventListener('keydown', (e) => this.handleKeyDown(e));
     
+    // 输入事件处理
+    this.input.addEventListener('input', (e) => {
+      // 如果用户在输入，隐藏补全建议和预览
+      if (this.isCompletionVisible) {
+        this.hideCompletionSuggestions();
+      } else {
+        // 即使没有补全建议可见，也要隐藏预览
+        this.hideCompletionPreview();
+      }
+    });
+    
     // 监听会话连接事件
     window.addEventListener('sessionConnected', (e) => {
       this.onSessionConnected(e.detail);
+    });
+
+    // 监听窗口大小改变，重新定位预览
+    window.addEventListener('resize', () => {
+      if (this.completionPreview) {
+        this.hideCompletionPreview();
+      }
     });
 
     // 清空终端按钮
@@ -34,6 +56,38 @@ class Terminal {
       return;
     }
 
+    // 如果补全建议可见，处理导航键
+    if (this.isCompletionVisible) {
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          this.navigateCompletionSuggestions(-1);
+          return;
+        case 'ArrowDown':
+          e.preventDefault();
+          this.navigateCompletionSuggestions(1);
+          return;
+        case 'Enter':
+          e.preventDefault();
+          this.selectCurrentSuggestion();
+          return;
+        case 'Escape':
+          e.preventDefault();
+          this.hideCompletionSuggestions();
+          return;
+        case 'Tab':
+          e.preventDefault();
+          // 如果有选中的建议，应用它
+          if (this.selectedSuggestionIndex >= 0) {
+            this.selectCurrentSuggestion();
+          } else {
+            // 否则尝试补全到共同前缀
+            this.handleTabCompletion();
+          }
+          return;
+      }
+    }
+
     switch (e.key) {
       case 'Enter':
         e.preventDefault();
@@ -50,6 +104,13 @@ class Terminal {
       case 'Tab':
         e.preventDefault();
         this.handleTabCompletion();
+        break;
+      case 'Escape':
+        // ESC键隐藏补全建议
+        if (this.isCompletionVisible) {
+          e.preventDefault();
+          this.hideCompletionSuggestions();
+        }
         break;
     }
   }
@@ -91,6 +152,11 @@ class Terminal {
   }
 
   navigateHistory(direction) {
+    // 如果补全建议可见，不处理历史导航
+    if (this.isCompletionVisible) {
+      return;
+    }
+    
     if (this.commandHistory.length === 0) return;
 
     this.historyIndex += direction;
@@ -386,10 +452,14 @@ class Terminal {
     const args = parts.slice(1);
     
     // 找到最后一个参数的开始位置
-    let lastArgStart = text.length;
+    let lastArgStart = 0; // 默认从开始位置替换
     if (args.length > 0) {
       const lastSpaceIndex = text.lastIndexOf(' ');
       lastArgStart = lastSpaceIndex + 1;
+    } else if (command) {
+      // 如果只有命令，光标在命令末尾，我们应该从命令开始位置替换
+      // 这样可以完全替换命令而不是追加
+      lastArgStart = 0;
     }
     
     return { command, args, lastArgStart };
@@ -416,9 +486,9 @@ class Terminal {
       'man', 'help', 'which', 'whereis', 'type', 'whatis'
     ];
 
-    // 过滤匹配的命令
+    // 过滤匹配的命令，排除完全匹配的当前输入
     let completions = commonCommands.filter(cmd => 
-      cmd.startsWith(partialCommand.toLowerCase())
+      cmd.startsWith(partialCommand.toLowerCase()) && cmd !== partialCommand.toLowerCase()
     ).map(cmd => ({ text: cmd, type: 'command' }));
 
     // 尝试从系统中获取可用命令
@@ -426,7 +496,7 @@ class Terminal {
       const result = await this.executeCommandForAI('compgen -c', { silent: true, showInTerminal: false });
       if (result.success && result.output) {
         const systemCommands = result.output.split('\n')
-          .filter(cmd => cmd.trim() && cmd.startsWith(partialCommand.toLowerCase()))
+          .filter(cmd => cmd.trim() && cmd.startsWith(partialCommand.toLowerCase()) && cmd.trim() !== partialCommand.toLowerCase())
           .map(cmd => ({ text: cmd.trim(), type: 'command' }));
         
         // 合并并去重
@@ -497,14 +567,19 @@ class Terminal {
 
   // 应用补全
   applyCompletion(textBeforeCursor, textAfterCursor, completion, lastArgStart) {
-    if (completion.type === 'partial') {
-      // 部分补全，只替换共同前缀部分
-      return textBeforeCursor + completion.text.substring(textBeforeCursor.length - lastArgStart) + textAfterCursor;
-    } else {
-      // 完整补全
-      const beforeLastArg = textBeforeCursor.substring(0, lastArgStart);
-      return beforeLastArg + completion.text + textAfterCursor;
+    // 对于命令补全，我们需要特殊处理
+    if (completion.type === 'command') {
+      const { command, args } = this.parseCommandInput(textBeforeCursor);
+      
+      // 如果只有命令没有参数，或者正在补全第一个参数位置，完全替换命令
+      if (args.length === 0) {
+        return completion.text + textAfterCursor;
+      }
     }
+    
+    // 对于其他类型的补全（文件、目录等）或命令的参数补全，正常处理
+    const beforeLastArg = textBeforeCursor.substring(0, lastArgStart);
+    return beforeLastArg + completion.text + textAfterCursor;
   }
 
   // 找到共同前缀
@@ -531,6 +606,20 @@ class Terminal {
 
   // 显示补全建议
   showCompletionSuggestions(completions, textBeforeCursor, textAfterCursor) {
+    // 先隐藏已存在的建议
+    this.hideCompletionSuggestions();
+    
+    // 保存补全数据
+    this.completionSuggestions = completions;
+    this.isCompletionVisible = true;
+    this.selectedSuggestionIndex = -1;
+    
+    // 保存当前输入状态作为原始状态
+    const currentValue = this.input.value;
+    const cursorPosition = this.input.selectionStart;
+    this.originalInputValue = currentValue;
+    this.originalCursorPosition = cursorPosition;
+    
     // 创建补全建议容器
     const suggestionsDiv = document.createElement('div');
     suggestionsDiv.className = 'completion-suggestions';
@@ -550,25 +639,25 @@ class Terminal {
       min-width: 300px;
     `;
 
-    // 添加AI标识
+    // 添加AI标识和操作提示
     const aiHeader = document.createElement('div');
     aiHeader.className = 'ai-completion-header';
-    aiHeader.style.cssText = `
-      color: #4ec9b0;
-      font-weight: bold;
-      margin-bottom: 8px;
-      padding: 4px 8px;
-      background: rgba(78, 201, 176, 0.1);
-      border-radius: 3px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    aiHeader.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 4px 8px; background: rgba(78, 201, 176, 0.1); border-radius: 3px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>🤖</span>
+          <span>AI 智能补全</span>
+        </div>
+        <div style="font-size: 10px; color: #969696;">
+          ↑↓选择 Enter确认 ESC取消
+        </div>
+      </div>
     `;
-    aiHeader.innerHTML = `<span>🤖</span><span>AI 智能补全</span>`;
     suggestionsDiv.appendChild(aiHeader);
 
     // 按类型分组显示
     const grouped = this.groupCompletionsByType(completions);
+    let itemIndex = 0;
     
     for (const [type, items] of Object.entries(grouped)) {
       if (items.length === 0) continue;
@@ -581,13 +670,14 @@ class Terminal {
       items.forEach(item => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'completion-item';
+        itemDiv.dataset.index = itemIndex++;
         itemDiv.style.cssText = `
           padding: 6px 8px;
           cursor: pointer;
           display: flex;
           align-items: center;
           border-radius: 3px;
-          transition: background-color 0.2s ease;
+          transition: all 0.2s ease;
         `;
         
         // 添加图标和文本
@@ -601,17 +691,28 @@ class Terminal {
           ${description}
         `;
         
+        // 鼠标事件
         itemDiv.addEventListener('mouseenter', () => {
-          itemDiv.style.background = '#2d2d30';
+          if (!itemDiv.classList.contains('selected')) {
+            itemDiv.style.background = '#2d2d30';
+          }
+          // 更新选中索引
+          this.selectedSuggestionIndex = parseInt(itemDiv.dataset.index);
+          this.updateSuggestionSelection();
+          // 先恢复原始输入，再预览新建议
+          this.restoreOriginalInput();
+          this.previewSuggestion(item);
         });
         
         itemDiv.addEventListener('mouseleave', () => {
-          itemDiv.style.background = 'transparent';
+          if (!itemDiv.classList.contains('selected')) {
+            itemDiv.style.background = 'transparent';
+          }
         });
         
         itemDiv.addEventListener('click', () => {
           this.applySuggestion(item, textBeforeCursor, textAfterCursor);
-          suggestionsDiv.remove();
+          this.hideCompletionSuggestions(true);
         });
         
         suggestionsDiv.appendChild(itemDiv);
@@ -627,8 +728,8 @@ class Terminal {
 
     // 点击其他地方关闭建议框
     const closeHandler = (e) => {
-      if (!suggestionsDiv.contains(e.target)) {
-        suggestionsDiv.remove();
+      if (!suggestionsDiv.contains(e.target) && e.target !== this.input) {
+        this.hideCompletionSuggestions();
         document.removeEventListener('click', closeHandler);
       }
     };
@@ -636,15 +737,6 @@ class Terminal {
     setTimeout(() => {
       document.addEventListener('click', closeHandler);
     }, 100);
-
-    // ESC键关闭
-    const escHandler = (e) => {
-      if (e.key === 'Escape') {
-        suggestionsDiv.remove();
-        document.removeEventListener('keydown', escHandler);
-      }
-    };
-    document.addEventListener('keydown', escHandler);
   }
 
   // 按类型分组补全项
@@ -688,7 +780,8 @@ class Terminal {
 
   // 应用选中的建议
   applySuggestion(suggestion, textBeforeCursor, textAfterCursor) {
-    if (!textBeforeCursor) {
+    // 如果没有提供文本上下文，使用当前输入状态
+    if (!textBeforeCursor || textAfterCursor === undefined) {
       const currentValue = this.input.value;
       const cursorPosition = this.input.selectionStart;
       textBeforeCursor = currentValue.substring(0, cursorPosition);
@@ -701,6 +794,128 @@ class Terminal {
     this.input.value = newText;
     this.input.focus();
     this.input.setSelectionRange(newText.length - textAfterCursor.length, newText.length - textAfterCursor.length);
+  }
+
+  // 导航补全建议
+  navigateCompletionSuggestions(direction) {
+    if (!this.isCompletionVisible || this.completionSuggestions.length === 0) {
+      return;
+    }
+
+    // 更新选中索引
+    this.selectedSuggestionIndex += direction;
+    
+    // 循环导航
+    if (this.selectedSuggestionIndex < 0) {
+      this.selectedSuggestionIndex = this.completionSuggestions.length - 1;
+    } else if (this.selectedSuggestionIndex >= this.completionSuggestions.length) {
+      this.selectedSuggestionIndex = 0;
+    }
+
+    // 更新UI显示
+    this.updateSuggestionSelection();
+    
+    // 预览选中的建议
+    this.previewSuggestion(this.completionSuggestions[this.selectedSuggestionIndex]);
+  }
+
+  // 更新建议选中状态
+  updateSuggestionSelection() {
+    const suggestionsContainer = document.querySelector('.completion-suggestions');
+    if (!suggestionsContainer) return;
+
+    const items = suggestionsContainer.querySelectorAll('.completion-item');
+    
+    items.forEach((item, index) => {
+      if (index === this.selectedSuggestionIndex) {
+        item.classList.add('selected');
+        item.style.background = '#007acc';
+        item.style.color = 'white';
+        // 确保选中项可见
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('selected');
+        item.style.background = '';
+        item.style.color = '';
+      }
+    });
+  }
+
+  // 预览建议（不应用，只显示）
+  previewSuggestion(suggestion) {
+    // 始终基于原始输入值进行预览
+    if (this.originalInputValue === undefined || this.originalCursorPosition === undefined) {
+      return;
+    }
+    
+    const cursorPosition = this.originalCursorPosition;
+    const textBeforeCursor = this.originalInputValue.substring(0, cursorPosition);
+    const textAfterCursor = this.originalInputValue.substring(cursorPosition);
+    
+    const { lastArgStart } = this.parseCommandInput(textBeforeCursor);
+    const newText = this.applyCompletion(textBeforeCursor, textAfterCursor, suggestion, lastArgStart);
+    
+    // 显示预览，用灰色显示补全部分
+    this.showCompletionPreview(textBeforeCursor, textAfterCursor, newText, suggestion);
+  }
+
+  // 选择当前建议
+  selectCurrentSuggestion() {
+    if (this.selectedSuggestionIndex >= 0 && this.selectedSuggestionIndex < this.completionSuggestions.length) {
+      const suggestion = this.completionSuggestions[this.selectedSuggestionIndex];
+      
+      // 始终使用原始输入状态来避免重复
+      if (this.originalInputValue !== undefined && this.originalCursorPosition !== undefined) {
+        const textBeforeCursor = this.originalInputValue.substring(0, this.originalCursorPosition);
+        const textAfterCursor = this.originalInputValue.substring(this.originalCursorPosition);
+        
+        // 应用选中的建议
+        this.applySuggestion(suggestion, textBeforeCursor, textAfterCursor);
+      } else {
+        // 降级处理：使用当前输入状态
+        const cursorPosition = this.input.selectionStart;
+        const textBeforeCursor = this.input.value.substring(0, cursorPosition);
+        const textAfterCursor = this.input.value.substring(cursorPosition);
+        this.applySuggestion(suggestion, textBeforeCursor, textAfterCursor);
+      }
+      
+      // 隐藏补全建议和预览，但不恢复原始输入
+      this.hideCompletionSuggestions(true);
+    }
+  }
+
+  // 恢复原始输入
+  restoreOriginalInput() {
+    if (this.originalInputValue !== undefined) {
+      this.input.value = this.originalInputValue;
+      this.input.setSelectionRange(this.originalCursorPosition, this.originalCursorPosition);
+    }
+    // 隐藏预览
+    this.hideCompletionPreview();
+  }
+
+  // 隐藏补全建议
+  hideCompletionSuggestions(keepInput = false) {
+    const suggestionsContainer = document.querySelector('.completion-suggestions');
+    if (suggestionsContainer) {
+      suggestionsContainer.remove();
+    }
+    
+    // 隐藏补全预览
+    this.hideCompletionPreview();
+    
+    this.isCompletionVisible = false;
+    this.completionSuggestions = [];
+    this.selectedSuggestionIndex = -1;
+    
+    // 恢复原始输入值（如果有）- 除非指定保持输入
+    if (!keepInput && this.originalInputValue !== undefined) {
+      this.restoreOriginalInput();
+    }
+    
+    // 清理原始输入状态
+    this.originalInputValue = undefined;
+    this.originalCursorPosition = undefined;
   }
 
   // AI智能补全
@@ -721,8 +936,6 @@ class Terminal {
 - 用户: ${currentUser || 'unknown'}
 - 当前目录: ${currentDir || 'unknown'}
 - 最近命令: ${recentCommands.join(', ')}
-
-用户当前输入: "${textBeforeCursor}"
 
 请分析用户意图并提供补全建议。返回JSON格式：
 {
@@ -746,7 +959,9 @@ class Terminal {
 请提供最多5个最相关的补全建议，按confidence降序排列。`;
 
     try {
-      const response = await this.callAIAPI('', systemPrompt, aiConfig);
+      // 将用户输入作为用户消息传递
+      const userMessage = `用户输入: "${textBeforeCursor}"\n\n请为这个输入提供智能补全建议。`;
+      const response = await this.callAIAPI(userMessage, systemPrompt, aiConfig);
       
       // 解析AI响应
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -827,12 +1042,18 @@ class Terminal {
     if (!command) {
       // 补全命令
       completions = await this.getCommandCompletions('');
-    } else if (args.length === 0 || (args.length === 1 && !textBeforeCursor.endsWith(' '))) {
-      // 补全第一个参数或命令本身
-      if (textBeforeCursor.endsWith(' ') || lastArgStart === textBeforeCursor.length) {
-        completions = await this.getCommandCompletions(command);
+    } else if (args.length === 0) {
+      // 只有命令，没有参数，补全命令
+      completions = await this.getCommandCompletions(command);
+    } else if (args.length === 1 && !textBeforeCursor.endsWith(' ')) {
+      // 一个参数但没有空格结尾，可能是命令补全或参数补全
+      // 先尝试命令补全
+      const commandCompletions = await this.getCommandCompletions(command);
+      if (commandCompletions.length > 0) {
+        completions = commandCompletions;
       } else {
-        completions = await this.getPathCompletions(args[args.length - 1] || command);
+        // 如果没有命令补全，尝试文件路径补全
+        completions = await this.getPathCompletions(args[0]);
       }
     } else {
       // 补全文件路径
@@ -890,6 +1111,103 @@ class Terminal {
       this.aiThinkingIndicator.remove();
       this.aiThinkingIndicator = null;
     }
+  }
+
+  // 显示补全预览
+  showCompletionPreview(originalText, textAfterCursor, completedText, suggestion) {
+    // 移除已存在的预览
+    this.hideCompletionPreview();
+    
+    // 简化差异计算：找到原始文本在补全文本中的位置
+    let originalPart = originalText;
+    let completionPart = '';
+    
+    if (completedText.startsWith(originalText)) {
+      // 如果补全文本以原始文本开头，补全部分就是剩余的部分
+      originalPart = originalText;
+      completionPart = completedText.substring(originalText.length);
+    } else {
+      // 否则，完全替换
+      originalPart = '';
+      completionPart = completedText;
+    }
+    
+    // 创建预览元素
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'completion-preview';
+    
+    // 获取输入框的位置和样式
+    const inputRect = this.input.getBoundingClientRect();
+    const inputStyle = window.getComputedStyle(this.input);
+    
+    // 设置预览元素样式，完全覆盖输入框
+    previewDiv.style.cssText = `
+      position: fixed;
+      left: ${inputRect.left}px;
+      top: ${inputRect.top}px;
+      width: ${inputRect.width}px;
+      height: ${inputRect.height}px;
+      background: transparent;
+      font-family: ${inputStyle.fontFamily};
+      font-size: ${inputStyle.fontSize};
+      font-weight: ${inputStyle.fontWeight};
+      font-style: ${inputStyle.fontStyle};
+      padding: ${inputStyle.padding};
+      padding-left: ${inputStyle.paddingLeft};
+      padding-right: ${inputStyle.paddingRight};
+      padding-top: ${inputStyle.paddingTop};
+      padding-bottom: ${inputStyle.paddingBottom};
+      border: none;
+      outline: none;
+      pointer-events: none;
+      white-space: pre;
+      overflow: hidden;
+      z-index: 10000;
+      box-sizing: border-box;
+      text-align: left;
+      line-height: ${inputStyle.lineHeight};
+      letter-spacing: ${inputStyle.letterSpacing};
+      display: flex;
+      align-items: center;
+    `;
+    
+    // 创建内部HTML结构
+    previewDiv.innerHTML = `
+      <span style="color: #d4d4d4;">${this.escapeHtml(originalPart)}</span>
+      <span style="color: #969696;">${this.escapeHtml(completionPart)}</span>
+      <span style="color: #d4d4d4;">${this.escapeHtml(textAfterCursor)}</span>
+    `;
+    
+    document.body.appendChild(previewDiv);
+    this.completionPreview = previewDiv;
+    
+    // 保持输入框显示原始文本
+    this.input.value = originalText;
+    this.input.focus();
+    
+    // 调试信息
+    console.log('Preview created:', {
+      originalText,
+      completedText,
+      originalPart,
+      completionPart,
+      textAfterCursor
+    });
+  }
+
+  // 隐藏补全预览
+  hideCompletionPreview() {
+    if (this.completionPreview) {
+      this.completionPreview.remove();
+      this.completionPreview = null;
+    }
+  }
+
+  // HTML转义
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }
 

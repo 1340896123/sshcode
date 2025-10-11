@@ -16,9 +16,9 @@ class AIChat {
     });
 
     // 输入框事件
-    this.input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
+    this.input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
         this.sendMessage();
       }
     });
@@ -267,7 +267,7 @@ class AIChat {
     return `📁 **文件操作建议:**\n\n${response}`;
   }
 
-  async handleSystemInfo(intent, aiConfig) {
+  async handleSystemInfo(_intent, aiConfig) {
     const commands = [
       { name: '系统信息', cmd: 'uname -a' },
       { name: '磁盘使用', cmd: 'df -h' },
@@ -566,7 +566,7 @@ class AIChat {
     }
   }
 
-  generateDefaultResponse(message) {
+  generateDefaultResponse(_message) {
     const aiConfig = window.settingsManager?.getChatAIConfig();
     
     if (!aiConfig || !aiConfig.apiKey) {

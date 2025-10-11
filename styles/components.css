@@ -853,7 +853,33 @@
 .ai-thinking-content {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+}
+
+/* 补全预览样式 */
+.completion-preview {
+    position: fixed !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    pointer-events: none !important;
+    white-space: pre !important;
+    overflow: hidden !important;
+    z-index: 10000 !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.completion-preview span {
+    display: inline !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    font-style: inherit !important;
+    letter-spacing: inherit !important;
+    line-height: inherit !important;
 }
 
 .ai-thinking-icon {
@@ -904,4 +930,14 @@
     font-size: 11px;
     color: #969696;
     line-height: 1.3;
+}
+
+/* 补全建议选中状态 */
+.completion-item.selected {
+    background-color: #007acc !important;
+    color: white !important;
+}
+
+.completion-item.selected .completion-desc {
+    color: rgba(255, 255, 255, 0.8) !important;
 }
