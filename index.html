@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH远程连接应用</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+</head>
+<body>
+    <!-- 头部导航 -->
+    <header class="header">
+        <div class="header-left">
+            <h1>SSH Remote App</h1>
+            <button id="btn-sessions" class="btn btn-primary">会话管理</button>
+        </div>
+        <div class="header-right">
+            <span id="connection-status" class="status-indicator">未连接</span>
+            <button id="btn-settings" class="btn btn-secondary">设置</button>
+        </div>
+    </header>
+
+    <!-- 主内容区域 -->
+    <main class="main-container">
+        <!-- 左侧文件目录 -->
+        <section class="file-explorer">
+            <div class="explorer-header">
+                <h3>文件目录</h3>
+                <div class="explorer-controls">
+                    <button id="btn-refresh-files" class="btn btn-small">刷新</button>
+                    <button id="btn-upload" class="btn btn-small">上传</button>
+                </div>
+            </div>
+            <div class="breadcrumb">
+                <span id="current-path">/</span>
+            </div>
+            <div id="file-list" class="file-list">
+                <div class="empty-state">请先连接SSH服务器</div>
+            </div>
+        </section>
+
+        <!-- 中间终端区域 -->
+        <section class="terminal-section">
+            <div class="terminal-header">
+                <h3>终端</h3>
+                <div class="terminal-controls">
+                    <button id="btn-clear-terminal" class="btn btn-small">清空</button>
+                    <button id="btn-copy-output" class="btn btn-small">复制</button>
+                </div>
+            </div>
+            <div id="terminal" class="terminal">
+                <div id="terminal-output" class="terminal-output"></div>
+                <div class="terminal-input-line">
+                    <span id="terminal-prompt">$ </span>
+                    <input type="text" id="terminal-input" class="terminal-input" placeholder="输入命令..." disabled>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右侧AI聊天区域 -->
+        <section class="ai-chat">
+            <div class="chat-header">
+                <h3>AI助手</h3>
+                <div class="chat-controls">
+                    <button id="btn-clear-chat" class="btn btn-small">清空</button>
+                    <button id="btn-ai-settings" class="btn btn-small">设置</button>
+                </div>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="chat-message ai-message">
+                    <div class="message-content">
+                        您好！我是AI助手，可以帮助您执行命令和管理文件。请告诉我您需要什么帮助？
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <textarea id="chat-input" class="chat-input" placeholder="输入消息..." rows="3"></textarea>
+                <button id="btn-send-message" class="btn btn-primary">发送</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- 会话管理模态框 -->
+    <div id="session-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>SSH会话管理</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="sessions-toolbar">
+                    <button id="btn-add-session" class="btn btn-primary">➕ 新建会话</button>
+                    <button id="btn-import-sessions" class="btn btn-secondary">📥 导入</button>
+                    <button id="btn-export-sessions" class="btn btn-secondary">📤 导出</button>
+                    <div class="search-box">
+                        <input type="text" id="session-search" placeholder="搜索会话..." class="search-input">
+                    </div>
+                </div>
+                <div id="sessions-list" class="sessions-list">
+                    <!-- 会话列表将在这里动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 会话表单模态框 -->
+    <div id="session-form-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="session-form-title">新建SSH会话</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="session-form">
+                    <input type="hidden" id="session-id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="session-name">会话名称:</label>
+                            <input type="text" id="session-name" placeholder="例如：生产服务器" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="session-group">分组:</label>
+                            <select id="session-group">
+                                <option value="">默认分组</option>
+                                <option value="production">生产环境</option>
+                                <option value="development">开发环境</option>
+                                <option value="testing">测试环境</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="session-host">主机地址:</label>
+                            <input type="text" id="session-host" placeholder="192.168.1.100 或 example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="session-port">端口:</label>
+                            <input type="number" id="session-port" value="22" min="1" max="65535" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="session-username">用户名:</label>
+                            <input type="text" id="session-username" placeholder="root, ubuntu, etc." required>
+                        </div>
+                        <div class="form-group">
+                            <label for="session-auth-type">认证方式:</label>
+                            <select id="session-auth-type">
+                                <option value="password">密码认证</option>
+                                <option value="key">密钥认证</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="password-group">
+                        <label for="session-password">密码:</label>
+                        <input type="password" id="session-password" placeholder="输入SSH密码">
+                    </div>
+                    <div class="form-group" id="key-group" style="display: none;">
+                        <label for="session-key-path">私钥文件路径:</label>
+                        <input type="text" id="session-key-path" placeholder="~/.ssh/id_rsa">
+                    </div>
+                    <div class="form-group">
+                        <label for="session-description">描述:</label>
+                        <textarea id="session-description" rows="2" placeholder="可选的会话描述信息"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 保存会话</button>
+                        <button type="button" class="btn btn-secondary" id="btn-test-connection">🔗 测试连接</button>
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-session">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>应用设置</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-tabs">
+                    <button class="tab-btn active" data-tab="ai">🤖 AI配置</button>
+                    <button class="tab-btn" data-tab="general">⚙️ 通用设置</button>
+                    <button class="tab-btn" data-tab="terminal">💻 终端设置</button>
+                    <button class="tab-btn" data-tab="security">🔒 安全设置</button>
+                </div>
+                
+                <!-- AI配置标签页 -->
+                <div id="ai-tab" class="tab-content active">
+                    <h3>AI模型配置</h3>
+                    <form id="ai-config-form">
+                        <div class="form-group">
+                            <label for="ai-provider">AI提供商:</label>
+                            <select id="ai-provider">
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic Claude</option>
+                                <option value="ollama">Ollama (本地)</option>
+                                <option value="custom">自定义API</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-base-url">Base URL:</label>
+                            <input type="url" id="ai-base-url" placeholder="https://api.openai.com/v1">
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-api-key">API Key:</label>
+                            <input type="password" id="ai-api-key" placeholder="输入您的API密钥">
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-model">模型名称:</label>
+                            <input type="text" id="ai-model" placeholder="gpt-3.5-turbo, claude-3-sonnet, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-max-tokens">最大Token数:</label>
+                            <input type="number" id="ai-max-tokens" value="2000" min="100" max="8000">
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-temperature">Temperature (0-1):</label>
+                            <input type="number" id="ai-temperature" value="0.7" min="0" max="1" step="0.1">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 保存AI配置</button>
+                            <button type="button" class="btn btn-secondary" id="btn-test-ai">🧪 测试连接</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 通用设置标签页 -->
+                <div id="general-tab" class="tab-content">
+                    <h3>通用设置</h3>
+                    <form id="general-config-form">
+                        <div class="form-group">
+                            <label for="app-language">界面语言:</label>
+                            <select id="app-language">
+                                <option value="zh-CN">简体中文</option>
+                                <option value="en-US">English</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="app-theme">主题:</label>
+                            <select id="app-theme">
+                                <option value="dark">深色主题</option>
+                                <option value="light">浅色主题</option>
+                                <option value="auto">跟随系统</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="auto-save-sessions"> 自动保存会话
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="check-updates"> 启动时检查更新
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 保存设置</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 终端设置标签页 -->
+                <div id="terminal-tab" class="tab-content">
+                    <h3>终端设置</h3>
+                    <form id="terminal-config-form">
+                        <div class="form-group">
+                            <label for="terminal-font">字体:</label>
+                            <select id="terminal-font">
+                                <option value="Consolas">Consolas</option>
+                                <option value="Monaco">Monaco</option>
+                                <option value="Courier New">Courier New</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="terminal-font-size">字体大小:</label>
+                            <input type="number" id="terminal-font-size" value="14" min="10" max="24">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="terminal-bell"> 启用终端铃声
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="terminal-cursor-blink"> 光标闪烁
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 保存设置</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 安全设置标签页 -->
+                <div id="security-tab" class="tab-content">
+                    <h3>安全设置</h3>
+                    <form id="security-config-form">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="encrypt-passwords"> 加密存储密码
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="session-timeout">会话超时时间 (分钟):</label>
+                            <input type="number" id="session-timeout" value="30" min="5" max="480">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="confirm-dangerous-commands"> 危险命令确认
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 保存设置</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notification-container"></div>
+
+    <!-- 加载脚本 -->
+    <script>
+        // 设置Electron API
+        const { ipcRenderer } = require('electron');
+        window.ipcRenderer = ipcRenderer;
+        
+        window.electronAPI = {
+            saveSession: (data) => window.ipcRenderer.invoke('save-session', data),
+            getSessions: () => window.ipcRenderer.invoke('get-sessions'),
+            deleteSession: (id) => window.ipcRenderer.invoke('delete-session', id),
+            sshConnect: (config) => window.ipcRenderer.invoke('ssh-connect', config),
+            sshExecute: (id, command) => window.ipcRenderer.invoke('ssh-execute', id, command),
+            sshDisconnect: (id) => window.ipcRenderer.invoke('ssh-disconnect', id),
+            getFileList: (id, path) => window.ipcRenderer.invoke('get-file-list', id, path),
+            getConfig: () => window.ipcRenderer.invoke('getConfig'),
+            saveConfig: (config) => window.ipcRenderer.invoke('saveConfig', config),
+            testAIConnection: (config) => window.ipcRenderer.invoke('testAIConnection', config),
+            readSSHKey: (keyPath) => window.ipcRenderer.invoke('readSSHKey', keyPath)
+        };
+    </script>
+    <script src="renderer/session-manager.js"></script>
+    <script src="renderer/settings.js"></script>
+    <script src="renderer/terminal.js"></script>
+    <script src="renderer/file-explorer.js"></script>
+    <script src="renderer/ai-chat.js"></script>
+    <script src="renderer/main.js"></script>
+</body>
+</html>

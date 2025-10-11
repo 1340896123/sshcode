@@ -1,0 +1,21 @@
+ai:
+  provider: custom
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  apiKey: 6d5b19eba3494d30ab20bc5749ef7e75.HPYVMdF5RSfW61YX
+  model: glm-4.5
+  maxTokens: 8000
+  temperature: 0.7
+general:
+  language: zh-CN
+  theme: dark
+  autoSaveSessions: true
+  checkUpdates: true
+terminal:
+  font: Consolas
+  fontSize: 14
+  bell: false
+  cursorBlink: true
+security:
+  encryptPasswords: false
+  sessionTimeout: 30
+  confirmDangerousCommands: true
