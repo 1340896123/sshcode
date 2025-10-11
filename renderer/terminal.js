@@ -172,28 +172,139 @@ class Terminal {
   }
 
   // 供AI调用的方法
-  async executeCommandForAI(command) {
+  async executeCommandForAI(command, options = {}) {
     if (!this.currentSession) {
       return { success: false, error: '没有活动的SSH连接' };
     }
 
+    const { silent = false, showInTerminal = true } = options;
+
     try {
-      const result = await window.electronAPI.sshExecute(this.currentSession.id, command);
-      
       // 在终端中显示AI执行的命令
-      this.appendOutput(`[AI执行] ${this.prompt.textContent}${command}`, 'ai-command');
-      
-      if (result.success && result.output) {
-        this.appendOutput(result.output, 'ai-output');
+      if (showInTerminal) {
+        this.appendOutput(`[AI执行] ${command}`, 'ai-command');
       }
       
-      this.scrollToBottom();
+      const result = await window.electronAPI.sshExecute(this.currentSession.id, command);
+      
+      if (result.success) {
+        if (result.output && showInTerminal) {
+          this.appendOutput(result.output, 'ai-output');
+        }
+        
+        // 添加到命令历史
+        this.commandHistory.push(command);
+        this.historyIndex = this.commandHistory.length;
+        
+        // 记录AI执行的命令
+        this.recordAICommand(command, result);
+      } else {
+        if (showInTerminal) {
+          this.appendOutput(`[AI执行失败] ${result.error}`, 'error');
+        }
+      }
+      
+      if (!silent) {
+        this.scrollToBottom();
+      }
       
       return result;
     } catch (error) {
-      this.appendOutput(`[AI执行失败] ${error.message}`, 'error');
-      this.scrollToBottom();
+      if (showInTerminal) {
+        this.appendOutput(`[AI执行失败] ${error.message}`, 'error');
+        this.scrollToBottom();
+      }
       return { success: false, error: error.message };
+    }
+  }
+
+  recordAICommand(command, result) {
+    // 记录AI执行的命令历史，用于后续分析
+    if (!this.aiCommandHistory) {
+      this.aiCommandHistory = [];
+    }
+    
+    this.aiCommandHistory.push({
+      command,
+      result,
+      timestamp: new Date().toISOString(),
+      success: result.success
+    });
+    
+    // 保持最近50条记录
+    if (this.aiCommandHistory.length > 50) {
+      this.aiCommandHistory.shift();
+    }
+  }
+
+  getAICommandHistory() {
+    return this.aiCommandHistory || [];
+  }
+
+  // 批量执行命令（用于复杂操作）
+  async executeCommandsForAI(commands, options = {}) {
+    const results = [];
+    
+    for (let i = 0; i < commands.length; i++) {
+      const command = commands[i];
+      
+      try {
+        const result = await this.executeCommandForAI(command, {
+          ...options,
+          showInTerminal: options.showEachStep !== false
+        });
+        
+        results.push(result);
+        
+        // 如果命令失败且设置了停止执行，则中断
+        if (!result.success && options.stopOnError) {
+          break;
+        }
+        
+        // 命令间延迟（如果设置了）
+        if (options.delayBetweenCommands && i < commands.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, options.delayBetweenCommands));
+        }
+        
+      } catch (error) {
+        results.push({ success: false, error: error.message });
+        
+        if (options.stopOnError) {
+          break;
+        }
+      }
+    }
+    
+    return results;
+  }
+
+  // 获取当前工作目录
+  async getCurrentDirectory() {
+    try {
+      const result = await this.executeCommandForAI('pwd', { silent: true });
+      return result.success ? result.output.trim() : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // 获取用户信息
+  async getCurrentUser() {
+    try {
+      const result = await this.executeCommandForAI('whoami', { silent: true });
+      return result.success ? result.output.trim() : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // 检查命令是否存在
+  async commandExists(command) {
+    try {
+      const result = await this.executeCommandForAI(`which ${command}`, { silent: true });
+      return result.success && result.output.trim() !== '';
+    } catch (error) {
+      return false;
     }
   }
 
