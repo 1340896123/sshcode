@@ -941,3 +941,117 @@
 .completion-item.selected .completion-desc {
     color: rgba(255, 255, 255, 0.8) !important;
 }
+
+/* 补全来源样式 */
+.completion-source-icon {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.source-header {
+    font-size: 11px;
+    font-weight: bold;
+    margin: 8px 0 4px 0;
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+/* AI更新指示器 */
+.ai-updating-indicator {
+    animation: slideIn 0.3s ease;
+    border-top: 1px solid #3e3e42;
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* 补全头部样式 */
+.completion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+}
+
+/* 自动补全模式样式 */
+.completion-header.auto-mode {
+    background: rgba(108, 108, 108, 0.05);
+    border: 1px solid rgba(108, 108, 108, 0.2);
+}
+
+/* 右键提示样式 */
+.right-click-hint {
+    position: absolute;
+    background: #2d2d30;
+    border: 1px solid #007acc;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: #d4d4d4;
+    z-index: 1002;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.right-click-hint.visible {
+    opacity: 1;
+}
+
+/* 传统补全样式增强 */
+.completion-item[data-source="traditional"] {
+    border-left-color: #6c6c6c !important;
+}
+
+.completion-item[data-source="traditional"]:hover {
+    background-color: #2a2a2a;
+}
+
+/* AI补全样式增强 */
+.completion-item[data-source="ai"] {
+    border-left-color: #4ec9b0 !important;
+}
+
+.completion-item[data-source="ai"]:hover {
+    background-color: rgba(78, 201, 176, 0.1);
+}
+
+/* 混合补全样式 */
+.completion-item[data-source="mixed"] {
+    border-left-color: #007acc !important;
+    background: linear-gradient(90deg, rgba(108, 108, 108, 0.05), rgba(78, 201, 176, 0.05));
+}
+
+.completion-item[data-source="mixed"]:hover {
+    background: linear-gradient(90deg, rgba(108, 108, 108, 0.1), rgba(78, 201, 176, 0.1));
+}
+
+/* 补全预览增强 */
+.completion-preview .traditional-part {
+    color: #d4d4d4;
+}
+
+.completion-preview .ai-part {
+    color: #4ec9b0;
+    font-style: italic;
+}
+
+.completion-preview .mixed-part {
+    background: linear-gradient(90deg, #d4d4d4, #4ec9b0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}

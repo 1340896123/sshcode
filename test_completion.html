@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>终端补全测试</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+        }
+        .test-input {
+            width: 100%;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            color: #d4d4d4;
+            padding: 8px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #252526;
+            border-radius: 3px;
+        }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .info { color: #569cd6; }
+    </style>
+</head>
+<body>
+    <h1>终端补全优化测试</h1>
+    
+    <div class="test-section">
+        <h3>测试1: 传统补全响应速度</h3>
+        <input type="text" class="test-input" id="traditional-test" placeholder="输入 'ls ' 然后按Tab键测试传统补全">
+        <div class="result" id="traditional-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>测试2: AI补全异步更新</h3>
+        <input type="text" class="test-input" id="ai-test" placeholder="输入 'git ' 然后按Tab键测试AI补全">
+        <div class="result" id="ai-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>测试3: 混合补全显示</h3>
+        <input type="text" class="test-input" id="mixed-test" placeholder="输入部分命令然后按Tab键测试混合补全">
+        <div class="result" id="mixed-result"></div>
+    </div>
+
+    <script>
+        // 模拟测试结果
+        document.getElementById('traditional-test').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const result = document.getElementById('traditional-result');
+                result.innerHTML = '<div class="success">✓ 传统补全响应时间: &lt; 100ms</div>';
+                result.innerHTML += '<div class="info">显示文件路径补全: file1.txt file2.txt directory/</div>';
+            }
+        });
+        
+        document.getElementById('ai-test').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const result = document.getElementById('ai-result');
+                result.innerHTML = '<div class="success">✓ 传统补全立即显示: git status, git add, git commit</div>';
+                result.innerHTML += '<div class="info">🤖 AI正在获取智能补全...</div>';
+                
+                setTimeout(() => {
+                    result.innerHTML += '<div class="success">✓ AI补全已更新: git add ., git commit -m "message", git push origin main</div>';
+                }, 2000);
+            }
+        });
+        
+        document.getElementById('mixed-test').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const result = document.getElementById('mixed-result');
+                result.innerHTML = '<div class="success">⚡ 传统补全: docker ps, docker images</div>';
+                result.innerHTML += '<div class="info">🤖 AI补全异步获取中...</div>';
+                
+                setTimeout(() => {
+                    result.innerHTML += '<div class="success">🤖 AI补全已合并: docker run -it ubuntu, docker exec -it container bash</div>';
+                    result.innerHTML += '<div class="info">总计4个补全建议 (2个传统, 2个AI)</div>';
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>

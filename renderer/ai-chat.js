@@ -6,6 +6,8 @@ class AIChat {
     this.currentSession = null;
     this.commandHistory = [];
     this.isProcessing = false;
+    this.conversationHistory = []; // 存储对话历史
+    this.maxHistoryLength = 20; // 最大历史记录数量
     this.init();
   }
 
@@ -50,6 +52,12 @@ class AIChat {
   onSessionConnected(session) {
     this.currentSession = session;
     this.addMessage('system', `已连接到 ${session.username}@${session.host}，我现在可以帮您执行命令了！`);
+    
+    // 清空之前的对话历史，因为这是新的会话
+    this.clearConversationHistory();
+    
+    // 添加会话上下文到历史
+    this.addToConversationHistory('assistant', `已连接到 ${session.username}@${session.host}，我现在可以帮您执行命令了！`);
   }
 
   async sendMessage() {
@@ -146,7 +154,7 @@ class AIChat {
 用户消息: "${message}"`;
 
     try {
-      const response = await this.callAIAPI(message, systemPrompt, aiConfig);
+      const response = await this.callAIAPI(message, systemPrompt, aiConfig, false);
       
       // 尝试解析JSON响应
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -183,7 +191,27 @@ class AIChat {
       }
     }
 
-    // 文件操作
+    // 文件操作 - 优先匹配更具体的查询
+    if (lowerMessage.includes('当前目录') || lowerMessage.includes('pwd') || 
+        lowerMessage.includes('我在哪') || lowerMessage.includes('现在在哪个目录')) {
+      return {
+        type: 'file_operation',
+        command: 'pwd',
+        description: '查询当前工作目录',
+        confidence: 0.9
+      };
+    }
+    
+    if (lowerMessage.includes('列出文件') || lowerMessage.includes('ls') || 
+        lowerMessage.includes('有什么文件') || lowerMessage.includes('查看文件')) {
+      return {
+        type: 'file_operation',
+        command: 'ls -la',
+        description: '列出当前目录文件',
+        confidence: 0.9
+      };
+    }
+
     if (lowerMessage.includes('文件') || lowerMessage.includes('目录') || lowerMessage.includes('folder')) {
       return {
         type: 'file_operation',
@@ -241,7 +269,13 @@ class AIChat {
         // 请求AI分析结果
         const analysis = await this.analyzeCommandResult(command, result.output, aiConfig);
         
-        return `✅ 命令执行完成\n\n${formattedOutput}\n\n🤖 **AI分析:**\n${analysis}`;
+        const finalResponse = `✅ 命令执行完成\n\n${formattedOutput}\n\n🤖 **AI分析:**\n${analysis}`;
+        
+        // 手动添加到对话历史
+        this.addToConversationHistory('user', `执行命令: ${command}`);
+        this.addToConversationHistory('assistant', finalResponse);
+        
+        return finalResponse;
       } else {
         return `❌ 命令执行失败: ${result.error}`;
       }
@@ -251,6 +285,18 @@ class AIChat {
   }
 
   async handleFileOperation(intent, aiConfig) {
+    // 如果意图中包含具体命令，直接执行
+    if (intent.command) {
+      return await this.handleCommandExecution(intent, aiConfig);
+    }
+
+    // 先尝试直接处理常见的文件查询请求
+    const directResponse = await this.handleFileRequest(intent.description);
+    if (directResponse && !directResponse.includes('我可以帮您执行文件相关的命令')) {
+      return directResponse;
+    }
+
+    // 如果不是直接查询，则让AI建议命令
     const systemPrompt = `用户想要进行文件操作。当前目录信息未知，请建议合适的Linux命令来帮助用户。
 
 请提供具体的命令建议，例如：
@@ -263,7 +309,7 @@ class AIChat {
 
 用户消息: "${intent.description}"`;
 
-    const response = await this.callAIAPI(intent.description, systemPrompt, aiConfig);
+    const response = await this.callAIAPI(intent.description, systemPrompt, aiConfig, false);
     return `📁 **文件操作建议:**\n\n${response}`;
   }
 
@@ -293,7 +339,7 @@ class AIChat {
 
     // 请求AI分析系统状态
     const analysisPrompt = `基于以上系统信息，请分析系统状态并提供简要总结。`;
-    const analysis = await this.callAIAPI(analysisPrompt, '', aiConfig);
+    const analysis = await this.callAIAPI(analysisPrompt, '', aiConfig, false);
     
     response += `🤖 **AI分析:**\n${analysis}`;
     
@@ -330,7 +376,7 @@ class AIChat {
 保持回答简洁实用。`;
 
     try {
-      return await this.callAIAPI('请分析命令结果', systemPrompt, aiConfig);
+      return await this.callAIAPI('请分析命令结果', systemPrompt, aiConfig, false);
     } catch (error) {
       return '命令结果分析暂时不可用。';
     }
@@ -434,7 +480,7 @@ class AIChat {
     }
   }
 
-  async callAIAPI(message, systemPrompt, aiConfig) {
+  async callAIAPI(message, systemPrompt, aiConfig, includeHistory = true) {
     const headers = {
       'Content-Type': 'application/json'
     };
@@ -448,16 +494,24 @@ class AIChat {
       headers['Authorization'] = `Bearer ${aiConfig.apiKey}`;
     }
 
+    // 构建消息数组
     const messages = [
       {
         role: 'system',
         content: systemPrompt
-      },
-      {
-        role: 'user',
-        content: message
       }
     ];
+
+    // 添加对话历史（如果启用）
+    if (includeHistory && this.conversationHistory.length > 0) {
+      messages.push(...this.conversationHistory);
+    }
+
+    // 添加当前用户消息
+    messages.push({
+      role: 'user',
+      content: message
+    });
 
     const requestBody = {
       model: aiConfig.model,
@@ -480,10 +534,41 @@ class AIChat {
     const data = await response.json();
     
     if (data.choices && data.choices.length > 0) {
-      return data.choices[0].message.content;
+      const aiResponse = data.choices[0].message.content;
+      
+      // 更新对话历史
+      if (includeHistory) {
+        this.addToConversationHistory('user', message);
+        this.addToConversationHistory('assistant', aiResponse);
+      }
+      
+      return aiResponse;
     } else {
       throw new Error('AI响应格式异常');
     }
+  }
+
+  // 添加消息到对话历史
+  addToConversationHistory(role, content) {
+    this.conversationHistory.push({
+      role,
+      content
+    });
+
+    // 限制历史记录长度
+    if (this.conversationHistory.length > this.maxHistoryLength) {
+      this.conversationHistory.shift();
+    }
+  }
+
+  // 清空对话历史
+  clearConversationHistory() {
+    this.conversationHistory = [];
+  }
+
+  // 获取对话历史
+  getConversationHistory() {
+    return [...this.conversationHistory];
   }
 
   async executeCommand(command) {
@@ -513,22 +598,34 @@ class AIChat {
       return '请先连接SSH服务器才能查看文件信息。';
     }
 
+    const lowerMessage = message.toLowerCase();
+
     try {
-      if (message.includes('当前目录') || message.includes('pwd')) {
+      // 查询当前目录
+      if (lowerMessage.includes('当前目录') || lowerMessage.includes('pwd') || 
+          lowerMessage.includes('我在哪') || lowerMessage.includes('现在在哪个目录') ||
+          lowerMessage.includes('what is the current directory')) {
         const result = await window.terminal.executeCommandForAI('pwd');
         if (result.success) {
-          return `📁 当前工作目录: ${result.output.trim()}`;
+          return `📁 当前工作目录: \`${result.output.trim()}\``;
+        } else {
+          return `❌ 获取当前目录失败: ${result.error}`;
         }
       }
 
-      if (message.includes('列出文件') || message.includes('ls')) {
+      // 列出文件
+      if (lowerMessage.includes('列出文件') || lowerMessage.includes('ls') || 
+          lowerMessage.includes('有什么文件') || lowerMessage.includes('查看文件') ||
+          lowerMessage.includes('list files')) {
         const result = await window.terminal.executeCommandForAI('ls -la');
         if (result.success) {
           return `📋 当前目录文件列表:\n\n\`\`\`\n${result.output}\n\`\`\``;
+        } else {
+          return `❌ 列出文件失败: ${result.error}`;
         }
       }
 
-      return '我可以帮您执行文件相关的命令，比如:\n• "列出文件" 或 "ls"\n• "当前目录" 或 "pwd"\n• "执行命令 mkdir test"';
+      return '我可以帮您执行文件相关的命令，比如:\n• "当前目录是？" - 查看当前工作目录\n• "列出文件" - 显示当前目录的文件\n• "执行命令 mkdir test" - 创建目录';
     } catch (error) {
       return '处理文件请求时出错: ' + error.message;
     }
@@ -661,6 +758,7 @@ class AIChat {
   }
 
   clearChat() {
+    // 清空UI
     this.messagesContainer.innerHTML = `
       <div class="chat-message ai-message">
         <div class="message-content">
@@ -668,6 +766,9 @@ class AIChat {
         </div>
       </div>
     `;
+    
+    // 清空对话历史
+    this.clearConversationHistory();
   }
 
   showAISettings() {

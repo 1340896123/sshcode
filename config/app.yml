@@ -16,7 +16,7 @@ ai:
     provider: custom
     baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
     apiKey: 6d5b19eba3494d30ab20bc5749ef7e75.HPYVMdF5RSfW61YX
-    model: glm-4.5-air
+    model: glm-4.5-flash
     maxTokens: 1000
     temperature: 0.3
 general:

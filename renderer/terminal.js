@@ -7,25 +7,58 @@ class Terminal {
     this.commandHistory = [];
     this.historyIndex = -1;
     this.completionCache = new Map();
+    this.aiCompletionCache = new Map();
     this.completionSuggestions = [];
     this.selectedSuggestionIndex = -1;
     this.isCompletionVisible = false;
     this.completionPreview = null;
+    this.aiCompletionTimeout = null;
+    this.lastCompletionRequest = null;
+    this.inputTimeout = null;
+    this.lastInputValue = '';
+    this.autoCompletionEnabled = true;
     this.init();
   }
 
   init() {
     this.input.addEventListener('keydown', (e) => this.handleKeyDown(e));
     
-    // 输入事件处理
+    // 添加右键事件监听
+    this.input.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.handleRightClick();
+    });
+    
+    // 输入事件处理 - 自动显示传统补全
     this.input.addEventListener('input', (e) => {
-      // 如果用户在输入，隐藏补全建议和预览
-      if (this.isCompletionVisible) {
-        this.hideCompletionSuggestions();
-      } else {
-        // 即使没有补全建议可见，也要隐藏预览
-        this.hideCompletionPreview();
+      const currentValue = e.target.value;
+      
+      // 清除之前的输入超时
+      if (this.inputTimeout) {
+        clearTimeout(this.inputTimeout);
+        this.inputTimeout = null;
       }
+      
+      // 清除之前的AI补全超时
+      if (this.aiCompletionTimeout) {
+        clearTimeout(this.aiCompletionTimeout);
+        this.aiCompletionTimeout = null;
+      }
+      
+      // 如果输入为空，隐藏补全
+      if (!currentValue.trim()) {
+        this.hideCompletionSuggestions();
+        this.hideCompletionPreview();
+        this.lastInputValue = currentValue;
+        return;
+      }
+      
+      // 防抖处理，避免频繁触发补全
+      this.inputTimeout = setTimeout(() => {
+        this.handleAutoCompletion(currentValue);
+      }, 200); // 200ms防抖延迟
+      
+      this.lastInputValue = currentValue;
     });
     
     // 监听会话连接事件
@@ -56,7 +89,7 @@ class Terminal {
       return;
     }
 
-    // 如果补全建议可见，处理导航键
+    // 如果补全建议可见，处理导航键和确认键
     if (this.isCompletionVisible) {
       switch (e.key) {
         case 'ArrowUp':
@@ -69,7 +102,13 @@ class Terminal {
           return;
         case 'Enter':
           e.preventDefault();
-          this.selectCurrentSuggestion();
+          // Enter键确认选中的补全建议
+          if (this.selectedSuggestionIndex >= 0) {
+            this.selectCurrentSuggestion();
+          } else {
+            // 没有选中建议时，执行命令
+            this.executeCommand();
+          }
           return;
         case 'Escape':
           e.preventDefault();
@@ -77,13 +116,8 @@ class Terminal {
           return;
         case 'Tab':
           e.preventDefault();
-          // 如果有选中的建议，应用它
-          if (this.selectedSuggestionIndex >= 0) {
-            this.selectCurrentSuggestion();
-          } else {
-            // 否则尝试补全到共同前缀
-            this.handleTabCompletion();
-          }
+          // Tab键现在只用于触发AI补全
+          this.handleTabCompletion();
           return;
       }
     }
@@ -103,6 +137,7 @@ class Terminal {
         break;
       case 'Tab':
         e.preventDefault();
+        // Tab键触发AI补全
         this.handleTabCompletion();
         break;
       case 'Escape':
@@ -152,9 +187,9 @@ class Terminal {
   }
 
   navigateHistory(direction) {
-    // 如果补全建议可见，不处理历史导航
+    // 如果补全建议可见，先隐藏补全再处理历史导航
     if (this.isCompletionVisible) {
-      return;
+      this.hideCompletionSuggestions();
     }
     
     if (this.commandHistory.length === 0) return;
@@ -169,7 +204,15 @@ class Terminal {
       return;
     }
 
-    this.input.value = this.commandHistory[this.historyIndex];
+    const historyValue = this.commandHistory[this.historyIndex];
+    this.input.value = historyValue;
+    this.lastInputValue = historyValue;
+    
+    // 历史导航后不触发自动补全，避免干扰
+    this.autoCompletionEnabled = false;
+    setTimeout(() => {
+      this.autoCompletionEnabled = true;
+    }, 500);
   }
 
   appendOutput(text, className = '') {
@@ -379,7 +422,55 @@ class Terminal {
     return this.currentSession;
   }
 
-  // 处理Tab补全
+  // 处理右键确认
+  handleRightClick() {
+    if (this.isCompletionVisible && this.selectedSuggestionIndex >= 0) {
+      // 右键确认选中的补全建议
+      this.selectCurrentSuggestion();
+    } else if (this.isCompletionVisible && this.completionSuggestions.length > 0) {
+      // 如果没有选中项但有建议列表，选中第一个
+      this.selectedSuggestionIndex = 0;
+      this.updateSuggestionSelection();
+      this.selectCurrentSuggestion();
+    }
+  }
+
+  // 处理自动补全（输入时触发）
+  async handleAutoCompletion(currentValue) {
+    if (!this.currentSession || !this.autoCompletionEnabled) {
+      return;
+    }
+
+    const cursorPosition = this.input.selectionStart;
+    const textBeforeCursor = currentValue.substring(0, cursorPosition);
+    const textAfterCursor = currentValue.substring(cursorPosition);
+
+    try {
+      // 获取传统补全
+      const traditionalCompletions = await this.getTraditionalCompletions(textBeforeCursor);
+      
+      if (traditionalCompletions.length > 0) {
+        // 显示传统补全建议
+        this.showCompletionSuggestions(traditionalCompletions, textBeforeCursor, textAfterCursor, { 
+          type: 'traditional',
+          autoMode: true 
+        });
+        
+        // 如果只有一个补全项，自动预览
+        if (traditionalCompletions.length === 1) {
+          this.previewSuggestion(traditionalCompletions[0]);
+        }
+      } else {
+        // 没有传统补全，隐藏建议
+        this.hideCompletionSuggestions();
+      }
+    } catch (error) {
+      console.error('自动补全失败:', error);
+      this.hideCompletionSuggestions();
+    }
+  }
+
+  // 处理Tab补全（现在主要用于AI补全触发）
   async handleTabCompletion() {
     if (!this.currentSession) return;
 
@@ -392,54 +483,61 @@ class Terminal {
     const aiConfig = window.settingsManager?.getCompletionAIConfig();
     const useAI = aiConfig && aiConfig.apiKey;
 
-    if (useAI) {
-      // 显示AI正在思考
-      this.showAIThinking();
+    if (!useAI) {
+      // 如果没有配置AI补全，显示提示
+      this.showNotification('AI补全未配置，请在设置中配置API密钥', 'info');
+      return;
     }
 
-    try {
-      let completions = [];
+    // 如果已经有补全建议可见，Tab键用于触发AI增强
+    if (this.isCompletionVisible) {
+      // 显示AI正在思考的提示
+      this.showAIUpdatingIndicator();
       
-      if (useAI) {
-        // 使用AI进行智能补全
-        completions = await this.getAICompletions(textBeforeCursor, currentValue);
-      }
-
-      if (completions.length === 0) {
-        // 如果AI补全没有结果或未配置AI，使用传统补全
-        await this.fallbackCompletion(textBeforeCursor, textAfterCursor);
-        return;
-      }
-
-      if (completions.length === 1) {
-        // 只有一个补全项，直接应用
-        const completion = completions[0];
-        const { lastArgStart } = this.parseCommandInput(textBeforeCursor);
-        const newText = this.applyCompletion(textBeforeCursor, textAfterCursor, completion, lastArgStart);
-        this.input.value = newText;
-        this.input.setSelectionRange(newText.length - textAfterCursor.length, newText.length - textAfterCursor.length);
-      } else {
-        // 多个补全项，显示所有可能的补全
-        this.showCompletionSuggestions(completions, textBeforeCursor, textAfterCursor);
+      // 获取当前传统补全结果
+      const traditionalCompletions = [...this.completionSuggestions];
+      
+      // 异步获取AI补全并更新显示
+      this.getAICompletionsAsync(textBeforeCursor, currentValue, traditionalCompletions)
+        .catch(error => {
+          console.error('AI补全失败:', error);
+          this.hideAIUpdatingIndicator();
+        });
+    } else {
+      // 没有可见补全时，直接获取AI补全
+      this.showAIThinking();
+      
+      try {
+        const aiCompletions = await this.getAICompletions(textBeforeCursor, currentValue);
         
-        // 如果有共同前缀，补全到共同前缀
-        const commonPrefix = this.findCommonPrefix(completions);
-        const { command, args, lastArgStart } = this.parseCommandInput(textBeforeCursor);
-        const currentText = args[args.length - 1] || command;
-        
-        if (commonPrefix && currentText.length < commonPrefix.length) {
-          const completion = { text: commonPrefix, type: 'partial' };
-          const newText = this.applyCompletion(textBeforeCursor, textAfterCursor, completion, lastArgStart);
-          this.input.value = newText;
-          this.input.setSelectionRange(newText.length - textAfterCursor.length, newText.length - textAfterCursor.length);
+        if (aiCompletions.length > 0) {
+          if (aiCompletions.length === 1) {
+            const completion = aiCompletions[0];
+            const { lastArgStart } = this.parseCommandInput(textBeforeCursor);
+            const newText = this.applyCompletion(textBeforeCursor, textAfterCursor, completion, lastArgStart);
+            this.input.value = newText;
+            this.input.setSelectionRange(newText.length - textAfterCursor.length, newText.length - textAfterCursor.length);
+          } else {
+            this.showCompletionSuggestions(aiCompletions, textBeforeCursor, textAfterCursor, { type: 'ai' });
+            
+            const commonPrefix = this.findCommonPrefix(aiCompletions);
+            const { args, lastArgStart } = this.parseCommandInput(textBeforeCursor);
+            const currentText = args[args.length - 1] || textBeforeCursor.trim();
+            
+            if (commonPrefix && currentText.length < commonPrefix.length) {
+              const completion = { text: commonPrefix, type: 'partial' };
+              const newText = this.applyCompletion(textBeforeCursor, textAfterCursor, completion, lastArgStart);
+              this.input.value = newText;
+              this.input.setSelectionRange(newText.length - textAfterCursor.length, newText.length - textAfterCursor.length);
+            }
+          }
+        } else {
+          this.showNotification('AI没有找到相关补全建议', 'info');
         }
-      }
-    } catch (error) {
-      console.error('补全失败:', error);
-      // 降级到传统补全
-      await this.fallbackCompletion(textBeforeCursor, textAfterCursor);
-    } finally {
-      if (useAI) {
+      } catch (error) {
+        console.error('AI补全失败:', error);
+        this.showNotification('AI补全失败: ' + error.message, 'error');
+      } finally {
         this.hideAIThinking();
       }
     }
@@ -569,7 +667,7 @@ class Terminal {
   applyCompletion(textBeforeCursor, textAfterCursor, completion, lastArgStart) {
     // 对于命令补全，我们需要特殊处理
     if (completion.type === 'command') {
-      const { command, args } = this.parseCommandInput(textBeforeCursor);
+      const { args } = this.parseCommandInput(textBeforeCursor);
       
       // 如果只有命令没有参数，或者正在补全第一个参数位置，完全替换命令
       if (args.length === 0) {
@@ -605,7 +703,7 @@ class Terminal {
   }
 
   // 显示补全建议
-  showCompletionSuggestions(completions, textBeforeCursor, textAfterCursor) {
+  showCompletionSuggestions(completions, textBeforeCursor, textAfterCursor, options = {}) {
     // 先隐藏已存在的建议
     this.hideCompletionSuggestions();
     
@@ -639,84 +737,93 @@ class Terminal {
       min-width: 300px;
     `;
 
-    // 添加AI标识和操作提示
-    const aiHeader = document.createElement('div');
-    aiHeader.className = 'ai-completion-header';
-    aiHeader.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 4px 8px; background: rgba(78, 201, 176, 0.1); border-radius: 3px;">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span>🤖</span>
-          <span>AI 智能补全</span>
-        </div>
-        <div style="font-size: 10px; color: #969696;">
-          ↑↓选择 Enter确认 ESC取消
-        </div>
-      </div>
-    `;
-    suggestionsDiv.appendChild(aiHeader);
+    // 添加头部信息
+    const header = this.createCompletionHeader(options);
+    if (header) {
+      suggestionsDiv.appendChild(header);
+    }
 
-    // 按类型分组显示
-    const grouped = this.groupCompletionsByType(completions);
+    // 按来源和类型分组显示
+    const grouped = this.groupCompletionsBySourceAndType(completions);
     let itemIndex = 0;
     
-    for (const [type, items] of Object.entries(grouped)) {
-      if (items.length === 0) continue;
+    for (const [source, types] of Object.entries(grouped)) {
+      if (Object.keys(types).length === 0) continue;
       
-      const typeHeader = document.createElement('div');
-      typeHeader.className = 'type-header';
-      typeHeader.textContent = this.getTypeDisplayName(type);
-      suggestionsDiv.appendChild(typeHeader);
+      // 添加来源标题
+      const sourceHeader = document.createElement('div');
+      sourceHeader.className = 'source-header';
+      sourceHeader.style.cssText = `
+        font-size: 11px;
+        font-weight: bold;
+        color: ${this.getSourceColor(source)};
+        margin: 8px 0 4px 0;
+        padding: 2px 6px;
+        background: ${this.getSourceBackground(source)};
+        border-radius: 2px;
+      `;
+      sourceHeader.textContent = this.getSourceDisplayName(source, options);
+      suggestionsDiv.appendChild(sourceHeader);
       
-      items.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'completion-item';
-        itemDiv.dataset.index = itemIndex++;
-        itemDiv.style.cssText = `
-          padding: 6px 8px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          border-radius: 3px;
-          transition: all 0.2s ease;
-        `;
+      // 按类型显示补全项
+      for (const [, items] of Object.entries(types)) {
+        if (items.length === 0) continue;
         
-        // 添加图标和文本
-        const icon = this.getTypeIcon(item.type);
-        const confidence = item.confidence ? ` (${Math.round(item.confidence * 100)}%)` : '';
-        const description = item.description ? `<span class="completion-desc">${item.description}</span>` : '';
-        
-        itemDiv.innerHTML = `
-          <span class="completion-icon">${icon}</span>
-          <span class="completion-text">${item.text}${confidence}</span>
-          ${description}
-        `;
-        
-        // 鼠标事件
-        itemDiv.addEventListener('mouseenter', () => {
-          if (!itemDiv.classList.contains('selected')) {
-            itemDiv.style.background = '#2d2d30';
-          }
-          // 更新选中索引
-          this.selectedSuggestionIndex = parseInt(itemDiv.dataset.index);
-          this.updateSuggestionSelection();
-          // 先恢复原始输入，再预览新建议
-          this.restoreOriginalInput();
-          this.previewSuggestion(item);
+        items.forEach(item => {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'completion-item';
+          itemDiv.dataset.index = itemIndex++;
+          itemDiv.dataset.source = item.source || 'traditional';
+          itemDiv.style.cssText = `
+            padding: 6px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            border-left: 3px solid ${this.getSourceBorderColor(item.source || 'traditional')};
+          `;
+          
+          // 添加图标和文本
+          const icon = this.getTypeIcon(item.type);
+          const sourceIcon = this.getSourceIcon(item.source);
+          const confidence = item.confidence ? ` (${Math.round(item.confidence * 100)}%)` : '';
+          const description = item.description ? `<span class="completion-desc" style="color: #969696; font-size: 10px; margin-left: 8px;">${item.description}</span>` : '';
+          
+          itemDiv.innerHTML = `
+            <span class="completion-source-icon" style="margin-right: 4px; font-size: 10px;">${sourceIcon}</span>
+            <span class="completion-icon">${icon}</span>
+            <span class="completion-text" style="flex: 1;">${item.text}${confidence}</span>
+            ${description}
+          `;
+          
+          // 鼠标事件
+          itemDiv.addEventListener('mouseenter', () => {
+            if (!itemDiv.classList.contains('selected')) {
+              itemDiv.style.background = '#2d2d30';
+            }
+            // 更新选中索引
+            this.selectedSuggestionIndex = parseInt(itemDiv.dataset.index);
+            this.updateSuggestionSelection();
+            // 先恢复原始输入，再预览新建议
+            this.restoreOriginalInput();
+            this.previewSuggestion(item);
+          });
+          
+          itemDiv.addEventListener('mouseleave', () => {
+            if (!itemDiv.classList.contains('selected')) {
+              itemDiv.style.background = 'transparent';
+            }
+          });
+          
+          itemDiv.addEventListener('click', () => {
+            this.applySuggestion(item, textBeforeCursor, textAfterCursor);
+            this.hideCompletionSuggestions(true);
+          });
+          
+          suggestionsDiv.appendChild(itemDiv);
         });
-        
-        itemDiv.addEventListener('mouseleave', () => {
-          if (!itemDiv.classList.contains('selected')) {
-            itemDiv.style.background = 'transparent';
-          }
-        });
-        
-        itemDiv.addEventListener('click', () => {
-          this.applySuggestion(item, textBeforeCursor, textAfterCursor);
-          this.hideCompletionSuggestions(true);
-        });
-        
-        suggestionsDiv.appendChild(itemDiv);
-      });
+      }
     }
 
     // 定位建议框
@@ -739,6 +846,149 @@ class Terminal {
     }, 100);
   }
 
+  // 创建补全头部
+  createCompletionHeader(options) {
+    const header = document.createElement('div');
+    header.className = 'completion-header';
+    
+    let headerContent = '';
+    let headerStyle = `
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 8px; 
+      padding: 4px 8px; 
+      border-radius: 3px;
+      font-size: 10px;
+    `;
+    
+    if (options.autoMode) {
+      // 自动模式下的头部
+      headerStyle += ' background: rgba(108, 108, 108, 0.05);';
+      headerContent = `
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>⚡</span>
+          <span style="color: #969696;">自动补全</span>
+        </div>
+        <div style="color: #969696;">
+          ↑↓选择 Enter/右键确认 Tab获取AI ESC取消
+        </div>
+      `;
+    } else if (options.type === 'traditional') {
+      headerStyle += ' background: rgba(108, 108, 108, 0.1);';
+      headerContent = `
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>⚡</span>
+          <span style="color: #969696;">传统补全</span>
+        </div>
+        <div style="color: #969696;">
+          ↑↓选择 Enter/右键确认 ESC取消
+        </div>
+      `;
+    } else if (options.type === 'ai') {
+      headerStyle += ' background: rgba(78, 201, 176, 0.1);';
+      headerContent = `
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>🤖</span>
+          <span style="color: #4ec9b0;">AI 智能补全</span>
+        </div>
+        <div style="color: #969696;">
+          ↑↓选择 Enter/右键确认 ESC取消
+        </div>
+      `;
+    } else if (options.type === 'mixed') {
+      headerStyle += ' background: linear-gradient(90deg, rgba(108, 108, 108, 0.1), rgba(78, 201, 176, 0.1));';
+      headerContent = `
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>⚡🤖</span>
+          <span style="color: #d4d4d4;">混合补全</span>
+          <span style="color: #969696;">(传统: ${options.traditionalCount}, AI: ${options.aiCount})</span>
+        </div>
+        <div style="color: #969696;">
+          ↑↓选择 Enter/右键确认 ESC取消
+        </div>
+      `;
+    } else {
+      return null; // 默认情况不显示头部
+    }
+    
+    header.innerHTML = headerContent;
+    header.style.cssText = headerStyle;
+    return header;
+  }
+
+  // 按来源和类型分组补全项
+  groupCompletionsBySourceAndType(completions) {
+    const grouped = {};
+    
+    completions.forEach(comp => {
+      const source = comp.source || 'traditional';
+      const type = comp.type || 'file';
+      
+      if (!grouped[source]) {
+        grouped[source] = {};
+      }
+      
+      if (!grouped[source][type]) {
+        grouped[source][type] = [];
+      }
+      
+      grouped[source][type].push(comp);
+    });
+    
+    return grouped;
+  }
+
+  // 获取来源显示名称
+  getSourceDisplayName(source) {
+    const names = {
+      traditional: '传统补全',
+      ai: 'AI智能补全',
+      mixed: '混合补全'
+    };
+    return names[source] || source;
+  }
+
+  // 获取来源颜色
+  getSourceColor(source) {
+    const colors = {
+      traditional: '#969696',
+      ai: '#4ec9b0',
+      mixed: '#d4d4d4'
+    };
+    return colors[source] || '#d4d4d4';
+  }
+
+  // 获取来源背景色
+  getSourceBackground(source) {
+    const backgrounds = {
+      traditional: 'rgba(108, 108, 108, 0.1)',
+      ai: 'rgba(78, 201, 176, 0.1)',
+      mixed: 'linear-gradient(90deg, rgba(108, 108, 108, 0.1), rgba(78, 201, 176, 0.1))'
+    };
+    return backgrounds[source] || 'rgba(212, 212, 212, 0.1)';
+  }
+
+  // 获取来源边框颜色
+  getSourceBorderColor(source) {
+    const colors = {
+      traditional: '#6c6c6c',
+      ai: '#4ec9b0',
+      mixed: '#007acc'
+    };
+    return colors[source] || '#6c6c6c';
+  }
+
+  // 获取来源图标
+  getSourceIcon(source) {
+    const icons = {
+      traditional: '⚡',
+      ai: '🤖',
+      mixed: '⚡🤖'
+    };
+    return icons[source] || '⚡';
+  }
+
   // 按类型分组补全项
   groupCompletionsByType(completions) {
     const grouped = {
@@ -759,23 +1009,23 @@ class Terminal {
   }
 
   // 获取类型显示名称
-  getTypeDisplayName(type) {
+  getTypeDisplayName(typeName) {
     const names = {
       command: '命令',
       directory: '目录',
       file: '文件'
     };
-    return names[type] || type;
+    return names[typeName] || typeName;
   }
 
   // 获取类型图标
-  getTypeIcon(type) {
+  getTypeIcon(typeName) {
     const icons = {
       command: '⚡',
       directory: '📁',
       file: '📄'
     };
-    return icons[type] || '📄';
+    return icons[typeName] || '📄';
   }
 
   // 应用选中的建议
@@ -856,7 +1106,7 @@ class Terminal {
     const newText = this.applyCompletion(textBeforeCursor, textAfterCursor, suggestion, lastArgStart);
     
     // 显示预览，用灰色显示补全部分
-    this.showCompletionPreview(textBeforeCursor, textAfterCursor, newText, suggestion);
+    this.showCompletionPreview(textBeforeCursor, textAfterCursor, newText);
   }
 
   // 选择当前建议
@@ -920,17 +1170,34 @@ class Terminal {
 
   // AI智能补全
   async getAICompletions(textBeforeCursor, fullText) {
+    // 检查缓存
+    const cacheKey = `${textBeforeCursor}_${fullText}`;
+    if (this.aiCompletionCache.has(cacheKey)) {
+      const cached = this.aiCompletionCache.get(cacheKey);
+      // 缓存有效期5分钟
+      if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+        return cached.completions;
+      } else {
+        this.aiCompletionCache.delete(cacheKey);
+      }
+    }
+
     const aiConfig = window.settingsManager?.getCompletionAIConfig();
     if (!aiConfig || !aiConfig.apiKey) {
       throw new Error('AI补全未配置');
     }
 
-    // 获取当前上下文信息
-    const currentDir = await this.getCurrentDirectory();
-    const currentUser = await this.getCurrentUser();
-    const recentCommands = this.commandHistory.slice(-5); // 最近5条命令
+    // 防抖处理，避免频繁请求
+    const requestId = Date.now();
+    this.lastCompletionRequest = requestId;
+    
+    try {
+      // 获取当前上下文信息
+      const currentDir = await this.getCurrentDirectory();
+      const currentUser = await this.getCurrentUser();
+      const recentCommands = this.commandHistory.slice(-5); // 最近5条命令
 
-    const systemPrompt = `你是一个Linux终端智能补全助手。请根据用户的输入和上下文提供准确的补全建议。
+      const systemPrompt = `你是一个Linux终端智能补全助手。请根据用户的输入和上下文提供准确的补全建议。
 
 当前环境信息：
 - 用户: ${currentUser || 'unknown'}
@@ -958,16 +1225,34 @@ class Terminal {
 
 请提供最多5个最相关的补全建议，按confidence降序排列。`;
 
-    try {
       // 将用户输入作为用户消息传递
       const userMessage = `用户输入: "${textBeforeCursor}"\n\n请为这个输入提供智能补全建议。`;
       const response = await this.callAIAPI(userMessage, systemPrompt, aiConfig);
+      
+      // 检查请求是否仍然有效
+      if (this.lastCompletionRequest !== requestId) {
+        throw new Error('请求已过期');
+      }
       
       // 解析AI响应
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const aiResult = JSON.parse(jsonMatch[0]);
-        return aiResult.completions || [];
+        const completions = aiResult.completions || [];
+        
+        // 缓存结果
+        this.aiCompletionCache.set(cacheKey, {
+          completions,
+          timestamp: Date.now()
+        });
+        
+        // 限制缓存大小
+        if (this.aiCompletionCache.size > 50) {
+          const firstKey = this.aiCompletionCache.keys().next().value;
+          this.aiCompletionCache.delete(firstKey);
+        }
+        
+        return completions;
       }
       
       throw new Error('AI响应格式异常');
@@ -1033,9 +1318,9 @@ class Terminal {
     }
   }
 
-  // 降级到传统补全
-  async fallbackCompletion(textBeforeCursor, textAfterCursor) {
-    const { command, args, lastArgStart } = this.parseCommandInput(textBeforeCursor);
+  // 获取传统补全
+  async getTraditionalCompletions(textBeforeCursor) {
+    const { command, args } = this.parseCommandInput(textBeforeCursor);
     
     let completions = [];
     
@@ -1060,6 +1345,73 @@ class Terminal {
       completions = await this.getPathCompletions(args[args.length - 1]);
     }
 
+    return completions;
+  }
+
+  // 异步获取AI补全并更新显示
+  async getAICompletionsAsync(textBeforeCursor, fullText, traditionalCompletions) {
+    try {
+      const aiCompletions = await this.getAICompletions(textBeforeCursor, fullText);
+      
+      // 隐藏AI更新提示
+      this.hideAIUpdatingIndicator();
+      
+      if (aiCompletions.length > 0) {
+        // 合并传统补全和AI补全，去重并排序
+        const mergedCompletions = this.mergeCompletions(traditionalCompletions, aiCompletions);
+        
+        // 更新补全建议显示
+        const currentValue = this.input.value;
+        const cursorPosition = this.input.selectionStart;
+        const currentTextBeforeCursor = currentValue.substring(0, cursorPosition);
+        const currentTextAfterCursor = currentValue.substring(cursorPosition);
+        
+        // 检查用户输入是否发生变化
+        if (currentTextBeforeCursor === textBeforeCursor) {
+          // 用户输入没有变化，更新补全建议
+          this.showCompletionSuggestions(mergedCompletions, currentTextBeforeCursor, currentTextAfterCursor, { 
+            type: 'mixed', 
+            traditionalCount: traditionalCompletions.length,
+            aiCount: aiCompletions.length
+          });
+        }
+      }
+    } catch (error) {
+      console.error('AI异步补全失败:', error);
+      this.hideAIUpdatingIndicator();
+    }
+  }
+
+  // 合并传统补全和AI补全
+  mergeCompletions(traditionalCompletions, aiCompletions) {
+    const merged = new Map();
+    
+    // 先添加传统补全，标记来源
+    traditionalCompletions.forEach(comp => {
+      merged.set(comp.text, { ...comp, source: 'traditional' });
+    });
+    
+    // 添加AI补全，如果已存在则更新为混合来源
+    aiCompletions.forEach(comp => {
+      if (merged.has(comp.text)) {
+        merged.set(comp.text, { ...merged.get(comp.text), source: 'mixed', aiData: comp });
+      } else {
+        merged.set(comp.text, { ...comp, source: 'ai' });
+      }
+    });
+    
+    // 转换为数组并排序：传统补全在前，AI补全在后，混合补全优先
+    return Array.from(merged.values()).sort((a, b) => {
+      const priority = { mixed: 0, traditional: 1, ai: 2 };
+      return priority[a.source] - priority[b.source];
+    });
+  }
+
+  // 降级到传统补全
+  async fallbackCompletion(textBeforeCursor, textAfterCursor) {
+    const completions = await this.getTraditionalCompletions(textBeforeCursor);
+    const { lastArgStart } = this.parseCommandInput(textBeforeCursor);
+
     if (completions.length > 0) {
       if (completions.length === 1) {
         const completion = completions[0];
@@ -1067,7 +1419,7 @@ class Terminal {
         this.input.value = newText;
         this.input.setSelectionRange(newText.length - textAfterCursor.length, newText.length - textAfterCursor.length);
       } else {
-        this.showCompletionSuggestions(completions, textBeforeCursor, textAfterCursor);
+        this.showCompletionSuggestions(completions, textBeforeCursor, textAfterCursor, { type: 'traditional' });
       }
     }
   }
@@ -1113,8 +1465,36 @@ class Terminal {
     }
   }
 
+  // 显示AI更新指示器
+  showAIUpdatingIndicator() {
+    // 如果补全建议框存在，在其中添加更新提示
+    const suggestionsContainer = document.querySelector('.completion-suggestions');
+    if (suggestionsContainer) {
+      const updatingDiv = document.createElement('div');
+      updatingDiv.className = 'ai-updating-indicator';
+      updatingDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: rgba(78, 201, 176, 0.1); border-radius: 3px; margin-top: 8px;">
+          <span style="font-size: 10px;">🤖</span>
+          <span style="font-size: 10px; color: #4ec9b0;">AI正在获取智能补全...</span>
+        </div>
+      `;
+      
+      // 插入到建议框的末尾
+      suggestionsContainer.appendChild(updatingDiv);
+      this.aiUpdatingIndicator = updatingDiv;
+    }
+  }
+
+  // 隐藏AI更新指示器
+  hideAIUpdatingIndicator() {
+    if (this.aiUpdatingIndicator) {
+      this.aiUpdatingIndicator.remove();
+      this.aiUpdatingIndicator = null;
+    }
+  }
+
   // 显示补全预览
-  showCompletionPreview(originalText, textAfterCursor, completedText, suggestion) {
+  showCompletionPreview(originalText, textAfterCursor, completedText) {
     // 移除已存在的预览
     this.hideCompletionPreview();
     
@@ -1208,6 +1588,42 @@ class Terminal {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  // 清理资源
+  cleanup() {
+    // 清理所有超时
+    if (this.aiCompletionTimeout) {
+      clearTimeout(this.aiCompletionTimeout);
+      this.aiCompletionTimeout = null;
+    }
+    
+    if (this.inputTimeout) {
+      clearTimeout(this.inputTimeout);
+      this.inputTimeout = null;
+    }
+    
+    // 隐藏所有提示
+    this.hideCompletionSuggestions();
+    this.hideAIThinking();
+    this.hideAIUpdatingIndicator();
+    this.hideCompletionPreview();
+    
+    // 清理缓存
+    this.completionCache.clear();
+    this.aiCompletionCache.clear();
+  }
+
+  // 清理过期的AI补全缓存
+  cleanupAICache() {
+    const now = Date.now();
+    const expireTime = 5 * 60 * 1000; // 5分钟
+    
+    for (const [key, value] of this.aiCompletionCache.entries()) {
+      if (now - value.timestamp > expireTime) {
+        this.aiCompletionCache.delete(key);
+      }
+    }
   }
 }
 
