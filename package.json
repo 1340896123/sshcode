@@ -6,6 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "vite",
+    "debug": "electron . --dev --remote-debugging-port=9222",
+    "debug-main": "electron . --dev",
     "build": "vite build",
     "build-electron": "npm run build && electron-builder",
     "dist": "npm run build-electron"
@@ -29,6 +31,7 @@
     "@babel/core": "^7.28.4",
     "@babel/preset-env": "^7.28.3",
     "@babel/preset-react": "^7.27.1",
+    "@tailwindcss/vite": "^4.1.14",
     "axios": "^1.6.0",
     "babel-loader": "^10.0.0",
     "cors": "^2.8.5",
@@ -40,6 +43,7 @@
     "react-dom": "^19.2.0",
     "ssh2": "^1.14.0",
     "ssh2-sftp-client": "^9.0.0",
+    "tailwindcss": "^4.1.14",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0"
   },
