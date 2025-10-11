@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多会话保存测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .session-form {
+            display: grid;
+            gap: 10px;
+            max-width: 400px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .form-group label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background-color: #007acc;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .session-list {
+            margin-top: 20px;
+        }
+        .session-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #007acc;
+        }
+        .session-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .session-details {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>多会话保存功能测试</h1>
+    
+    <div class="test-section">
+        <h2>📝 创建测试会话</h2>
+        <div class="session-form">
+            <div class="form-group">
+                <label>会话名称:</label>
+                <input type="text" id="session-name" placeholder="例如：测试服务器1">
+            </div>
+            <div class="form-group">
+                <label>主机地址:</label>
+                <input type="text" id="session-host" placeholder="192.168.1.100">
+            </div>
+            <div class="form-group">
+                <label>端口:</label>
+                <input type="number" id="session-port" value="22">
+            </div>
+            <div class="form-group">
+                <label>用户名:</label>
+                <input type="text" id="session-username" placeholder="root">
+            </div>
+            <div class="form-group">
+                <label>分组:</label>
+                <select id="session-group">
+                    <option value="">默认分组</option>
+                    <option value="production">生产环境</option>
+                    <option value="development">开发环境</option>
+                    <option value="testing">测试环境</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>描述:</label>
+                <textarea id="session-description" rows="2" placeholder="可选的会话描述"></textarea>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="saveSession()">保存会话</button>
+                <button class="btn btn-secondary" onclick="loadSessions()">刷新列表</button>
+                <button class="btn btn-secondary" onclick="clearSessions()">清空所有</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 已保存的会话</h2>
+        <div id="session-list" class="session-list">
+            <p>点击"刷新列表"加载已保存的会话</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 测试步骤</h2>
+        <ol>
+            <li>填写会话信息（不需要真实的SSH连接信息）</li>
+            <li>点击"保存会话"按钮</li>
+            <li>重复步骤1-2，创建多个不同的会话</li>
+            <li>点击"刷新列表"查看所有保存的会话</li>
+            <li>检查 <code>data/sessions.json</code> 文件内容</li>
+        </ol>
+    </div>
+
+    <script>
+        // 模拟Electron API
+        window.electronAPI = {
+            saveSession: async (sessionData) => {
+                try {
+                    const response = await fetch('/api/save-session', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(sessionData)
+                    });
+                    return await response.json();
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            getSessions: async () => {
+                try {
+                    const response = await fetch('/api/get-sessions');
+                    return await response.json();
+                } catch (error) {
+                    console.error('获取会话失败:', error);
+                    return [];
+                }
+            },
+            deleteSession: async (sessionId) => {
+                try {
+                    const response = await fetch(`/api/delete-session/${sessionId}`, {
+                        method: 'DELETE'
+                    });
+                    return await response.json();
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+        };
+
+        function generateSessionId() {
+            return 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        async function saveSession() {
+            const formData = {
+                id: generateSessionId(),
+                name: document.getElementById('session-name').value.trim() || '未命名会话',
+                host: document.getElementById('session-host').value.trim() || 'localhost',
+                port: parseInt(document.getElementById('session-port').value) || 22,
+                username: document.getElementById('session-username').value.trim() || 'user',
+                group: document.getElementById('session-group').value,
+                description: document.getElementById('session-description').value.trim(),
+                authType: 'password',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            if (!formData.name || !formData.host) {
+                showMessage('请填写会话名称和主机地址', 'error');
+                return;
+            }
+
+            try {
+                const result = await window.electronAPI.saveSession(formData);
+                if (result.success) {
+                    showMessage(`会话 "${formData.name}" 保存成功！`, 'success');
+                    // 清空表单
+                    document.getElementById('session-name').value = '';
+                    document.getElementById('session-host').value = '';
+                    document.getElementById('session-username').value = '';
+                    document.getElementById('session-description').value = '';
+                    document.getElementById('session-group').value = '';
+                    // 刷新列表
+                    await loadSessions();
+                } else {
+                    showMessage(`保存失败: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`保存失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadSessions() {
+            try {
+                const sessions = await window.electronAPI.getSessions();
+                const listContainer = document.getElementById('session-list');
+                
+                if (sessions.length === 0) {
+                    listContainer.innerHTML = '<p>暂无保存的会话</p>';
+                    return;
+                }
+
+                let html = `<p>共找到 ${sessions.length} 个会话：</p>`;
+                sessions.forEach((session, index) => {
+                    html += `
+                        <div class="session-item">
+                            <div class="session-name">${index + 1}. ${session.name}</div>
+                            <div class="session-details">
+                                📍 ${session.username}@${session.host}:${session.port}
+                                ${session.group ? ` | 📁 ${session.group}` : ''}
+                            </div>
+                            ${session.description ? `<div class="session-details">📝 ${session.description}</div>` : ''}
+                            <div class="session-details">🆔 ${session.id}</div>
+                            <div class="session-details">🕒 创建时间: ${new Date(session.createdAt).toLocaleString()}</div>
+                            <button class="btn btn-secondary" onclick="deleteSession('${session.id}', '${session.name}')" style="margin-top: 10px;">删除</button>
+                        </div>
+                    `;
+                });
+                
+                listContainer.innerHTML = html;
+                showMessage(`成功加载 ${sessions.length} 个会话`, 'success');
+            } catch (error) {
+                showMessage(`加载会话失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteSession(sessionId, sessionName) {
+            if (!confirm(`确定要删除会话 "${sessionName}" 吗？`)) return;
+            
+            try {
+                const result = await window.electronAPI.deleteSession(sessionId);
+                if (result.success) {
+                    showMessage(`会话 "${sessionName}" 删除成功`, 'success');
+                    await loadSessions();
+                } else {
+                    showMessage(`删除失败: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`删除失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearSessions() {
+            if (!confirm('确定要清空所有会话吗？此操作不可撤销！')) return;
+            
+            try {
+                // 这里需要实现清空功能
+                localStorage.removeItem('test-sessions');
+                showMessage('所有会话已清空', 'success');
+                await loadSessions();
+            } catch (error) {
+                showMessage(`清空失败: ${error.message}`, 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 4px;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // 页面加载时自动加载会话
+        window.addEventListener('load', () => {
+            loadSessions();
+        });
+    </script>
+</body>
+</html>

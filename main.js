@@ -73,6 +73,7 @@ ipcMain.handle('save-session', async (event, sessionData) => {
     }
 
     fs.writeFileSync(sessionsPath, JSON.stringify(sessions, null, 2));
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -82,10 +83,15 @@ ipcMain.handle('save-session', async (event, sessionData) => {
 ipcMain.handle('get-sessions', async () => {
   try {
     const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
+    console.log('读取会话文件:', sessionsPath);
+    
     if (fs.existsSync(sessionsPath)) {
       const data = fs.readFileSync(sessionsPath, 'utf8');
-      return JSON.parse(data);
+      const sessions = JSON.parse(data);
+      console.log('读取到会话数量:', sessions.length);
+      return sessions;
     }
+    console.log('会话文件不存在，返回空数组');
     return [];
   } catch (error) {
     console.error('Error reading sessions:', error);

@@ -1,3 +1,13 @@
+:root {
+    --file-explorer-width: 250px;
+    --ai-chat-width: 350px;
+    --min-file-explorer-width: 180px;
+    --min-ai-chat-width: 280px;
+    --max-file-explorer-width: 400px;
+    --max-ai-chat-width: 500px;
+    --resize-handle-width: 4px;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -53,19 +63,171 @@ body {
     color: #000;
 }
 
+/* 标签页样式 */
+.tabs-container {
+    background-color: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.tabs-nav {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    height: 40px;
+}
+
+.tabs-list {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #5a5a5a #2d2d30;
+}
+
+.tabs-list::-webkit-scrollbar {
+    height: 3px;
+}
+
+.tabs-list::-webkit-scrollbar-track {
+    background: #2d2d30;
+}
+
+.tabs-list::-webkit-scrollbar-thumb {
+    background: #5a5a5a;
+    border-radius: 3px;
+}
+
+.tab-item {
+    display: flex;
+    align-items: center;
+    min-width: 150px;
+    max-width: 250px;
+    height: 32px;
+    margin: 4px 2px;
+    padding: 0 8px;
+    background-color: #3e3e42;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tab-item:hover {
+    background-color: #4a4a4a;
+    border-color: #6a6a6a;
+}
+
+.tab-item.active {
+    background-color: #1e1e1e;
+    border-color: #3e3e42;
+    border-bottom-color: #1e1e1e;
+}
+
+.tab-content {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.tab-title {
+    font-size: 12px;
+    color: #cccccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 6px;
+}
+
+.tab-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.tab-status.connected {
+    background-color: #4ec9b0;
+}
+
+.tab-status.disconnected {
+    background-color: #666;
+}
+
+.tab-close {
+    background: none;
+    border: none;
+    color: #969696;
+    font-size: 16px;
+    padding: 2px 4px;
+    margin-left: 4px;
+    border-radius: 2px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.tab-item:hover .tab-close {
+    opacity: 1;
+}
+
+.tab-close:hover {
+    background-color: #5a5a5a;
+    color: #d4d4d4;
+}
+
+.btn-new-tab {
+    min-width: 32px;
+    height: 32px;
+    margin: 4px 2px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* 标签页内容面板 */
+.tabs-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 100px);
+    overflow: hidden;
+}
+
+.tab-content-panel {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+}
+
+.tab-content-panel[data-tab-id] {
+    display: flex;
+    overflow: hidden;
+}
+
 /* 主容器布局 */
 .main-container {
     display: flex;
-    height: calc(100vh - 60px);
+    height: 100%;
+    overflow: hidden;
+    width: 100%;
 }
 
 /* 左侧文件浏览器 */
 .file-explorer {
-    width: 300px;
+    width: var(--file-explorer-width);
+    min-width: var(--min-file-explorer-width);
+    max-width: var(--max-file-explorer-width);
     background-color: #252526;
     border-right: 1px solid #3e3e42;
     display: flex;
     flex-direction: column;
+    position: relative;
+    resize: horizontal;
+    overflow: auto;
+    flex-shrink: 0;
 }
 
 .explorer-header {
@@ -107,6 +269,9 @@ body {
     background-color: #1e1e1e;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex-shrink: 1;
+    flex-grow: 1;
 }
 
 .terminal-header {
@@ -171,11 +336,17 @@ body {
 
 /* 右侧AI聊天区域 */
 .ai-chat {
-    width: 400px;
+    width: var(--ai-chat-width);
+    min-width: var(--min-ai-chat-width);
+    max-width: var(--max-ai-chat-width);
     background-color: #252526;
     border-left: 1px solid #3e3e42;
     display: flex;
     flex-direction: column;
+    position: relative;
+    resize: horizontal;
+    overflow: auto;
+    flex-shrink: 0;
 }
 
 .chat-header {
@@ -237,33 +408,127 @@ body {
 }
 
 /* 响应式设计 */
+@media (max-width: 1600px) {
+    :root {
+        --file-explorer-width: 240px;
+        --ai-chat-width: 340px;
+        --min-file-explorer-width: 160px;
+        --min-ai-chat-width: 260px;
+    }
+}
+
+@media (max-width: 1400px) {
+    :root {
+        --file-explorer-width: 220px;
+        --ai-chat-width: 320px;
+        --min-file-explorer-width: 150px;
+        --min-ai-chat-width: 250px;
+    }
+}
+
 @media (max-width: 1200px) {
-    .ai-chat {
-        width: 350px;
+    :root {
+        --file-explorer-width: 200px;
+        --ai-chat-width: 300px;
+        --min-file-explorer-width: 140px;
+        --min-ai-chat-width: 240px;
     }
 }
 
 @media (max-width: 1000px) {
-    .file-explorer {
-        width: 250px;
+    :root {
+        --file-explorer-width: 180px;
+        --ai-chat-width: 280px;
+        --min-file-explorer-width: 130px;
+        --min-ai-chat-width: 230px;
     }
-    .ai-chat {
-        width: 300px;
+}
+
+@media (max-width: 900px) {
+    :root {
+        --file-explorer-width: 160px;
+        --ai-chat-width: 260px;
+        --min-file-explorer-width: 120px;
+        --min-ai-chat-width: 220px;
     }
 }
 
 @media (max-width: 800px) {
     .main-container {
         flex-direction: column;
+        width: 100%;
     }
     
     .file-explorer,
     .ai-chat {
-        width: 100%;
+        width: 100% !important;
         height: 200px;
+        min-width: unset !important;
+        max-width: unset !important;
+        resize: vertical;
+        flex-shrink: 0;
+        flex-grow: 0;
     }
     
     .terminal-section {
         height: calc(100vh - 460px);
+        flex: 1;
+        min-height: 200px;
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --file-explorer-width: 180px;
+        --ai-chat-width: 240px;
+    }
+    
+    .file-explorer,
+    .ai-chat {
+        height: 160px;
+    }
+    
+    .terminal-section {
+        height: calc(100vh - 380px);
+    }
+    
+    /* 在小屏幕上隐藏一些不重要的控制按钮 */
+    .explorer-controls .btn-upload,
+    .chat-controls .btn-ai-settings {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-left h1 {
+        font-size: 14px;
+    }
+    
+    .header-right {
+        gap: 8px;
+    }
+    
+    .btn {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+    
+    .file-explorer,
+    .ai-chat {
+        height: 150px;
+    }
+    
+    .terminal-section {
+        height: calc(100vh - 380px);
+    }
+    
+    /* 在极小屏幕上进一步简化界面 */
+    .explorer-controls .btn-new-file,
+    .explorer-controls .btn-new-dir {
+        display: none;
+    }
+    
+    .terminal-controls .btn-copy-output {
+        display: none;
     }
 }

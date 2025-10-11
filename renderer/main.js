@@ -43,7 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
             host: document.getElementById('session-host').value,
             port: document.getElementById('session-port').value,
             username: document.getElementById('session-username').value,
-            password: document.getElementById('session-password').value
+            password: document.getElementById('session-password').value,
+            authType: document.getElementById('session-auth-type').value,
+            keyPath: document.getElementById('session-key-path').value,
+            group: document.getElementById('session-group').value,
+            description: document.getElementById('session-description').value
         };
         window.sessionManager.saveSession(formData);
     });
@@ -79,13 +83,48 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ctrl/Cmd + ` 聚焦终端
         if ((e.ctrlKey || e.metaKey) && e.key === '`') {
             e.preventDefault();
-            document.getElementById('terminal-input').focus();
+            const activeTabId = window.tabManager.getActiveTabId();
+            const terminalInput = document.querySelector(`.terminal-input[data-tab-id="${activeTabId}"]`);
+            if (terminalInput) terminalInput.focus();
         }
         
         // Ctrl/Cmd + / 聚焦AI聊天
         if ((e.ctrlKey || e.metaKey) && e.key === '/') {
             e.preventDefault();
-            document.getElementById('chat-input').focus();
+            const activeTabId = window.tabManager.getActiveTabId();
+            const chatInput = document.querySelector(`.chat-input[data-tab-id="${activeTabId}"]`);
+            if (chatInput) chatInput.focus();
+        }
+        
+        // Ctrl/Cmd + T 新建标签页
+        if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+            e.preventDefault();
+            window.tabManager.createNewTab();
+        }
+        
+        // Ctrl/Cmd + W 关闭当前标签页
+        if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+            e.preventDefault();
+            const activeTabId = window.tabManager.getActiveTabId();
+            window.tabManager.closeTab(activeTabId);
+        }
+        
+        // Ctrl/Cmd + Tab 切换到下一个标签页
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Tab' && !e.shiftKey) {
+            e.preventDefault();
+            const tabs = Array.from(window.tabManager.tabs.keys());
+            const currentIndex = tabs.indexOf(window.tabManager.getActiveTabId());
+            const nextIndex = (currentIndex + 1) % tabs.length;
+            window.tabManager.switchToTab(tabs[nextIndex]);
+        }
+        
+        // Ctrl/Cmd + Shift + Tab 切换到上一个标签页
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Tab' && e.shiftKey) {
+            e.preventDefault();
+            const tabs = Array.from(window.tabManager.tabs.keys());
+            const currentIndex = tabs.indexOf(window.tabManager.getActiveTabId());
+            const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+            window.tabManager.switchToTab(tabs[prevIndex]);
         }
         
         // Escape 关闭所有模态框
@@ -94,11 +133,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 modal.style.display = 'none';
             });
         }
+        
+        // Ctrl/Cmd + R 重置布局
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r' && e.shiftKey) {
+            e.preventDefault();
+            if (window.responsiveLayoutManager) {
+                window.responsiveLayoutManager.resetToDefault();
+                showNotification('布局已重置为默认值', 'success');
+            }
+        }
+    });
+
+    // 监听标签页切换事件
+    window.addEventListener('tabSwitch', (e) => {
+        const { tabId, tab } = e.detail;
+        console.log(`切换到标签页: ${tabId}, 会话: ${tab.sessionName}`);
+        
+        // 更新连接状态显示
+        const statusIndicator = document.getElementById('connection-status');
+        if (tab.isConnected) {
+            statusIndicator.textContent = `已连接 - ${tab.sessionName}`;
+            statusIndicator.className = 'status-indicator connected';
+        } else {
+            statusIndicator.textContent = '未连接';
+            statusIndicator.className = 'status-indicator';
+        }
     });
 
     // 窗口大小调整处理
     window.addEventListener('resize', () => {
-        // 可以在这里添加响应式布局调整逻辑
+        // 响应式布局调整逻辑已移至 responsive-layout.js
     });
 
     // 应用启动完成

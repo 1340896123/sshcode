@@ -36,15 +36,136 @@
     background-color: #5a5a5a;
 }
 
+.btn-danger {
+    background-color: #d16969;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c55555;
+}
+
 .btn-small {
     padding: 4px 8px;
     font-size: 11px;
+}
+
+/* 文件项样式 */
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #2a2a2a;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.file-item:hover {
+    background-color: #2a2a2a;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-icon {
+    font-size: 16px;
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-size: 13px;
+    color: #d4d4d4;
+    margin-bottom: 2px;
+    word-break: break-all;
+}
+
+.file-details {
+    font-size: 11px;
+    color: #969696;
+    display: flex;
+    gap: 10px;
+}
+
+.file-size {
+    flex-shrink: 0;
+}
+
+.file-date {
+    flex-shrink: 0;
+}
+
+.file-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.file-item:hover .file-actions {
+    opacity: 1;
+}
+
+.file-actions .btn-small {
+    padding: 2px 6px;
+    font-size: 10px;
+    min-width: 20px;
 }
 
 .explorer-controls {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
+}
+
+/* 通知样式 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    color: white;
+    font-size: 13px;
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+.notification-success {
+    background-color: #4ec9b0;
+}
+
+.notification-error {
+    background-color: #d16969;
+}
+
+.notification-warning {
+    background-color: #dcdcaa;
+    color: #000;
+}
+
+.notification-info {
+    background-color: #007acc;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 .explorer-controls .btn-small {
@@ -1054,4 +1175,124 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* 响应式工具类 */
+.responsive-hidden {
+    display: none;
+}
+
+.responsive-visible {
+    display: block;
+}
+
+@media (max-width: 800px) {
+    .desktop-only {
+        display: none !important;
+    }
+    
+    .mobile-only {
+        display: block !important;
+    }
+}
+
+@media (min-width: 801px) {
+    .desktop-only {
+        display: block !important;
+    }
+    
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* 确保在小屏幕上文本不会溢出 */
+@media (max-width: 600px) {
+    .tab-title {
+        font-size: 11px;
+    }
+    
+    .file-name {
+        font-size: 12px;
+    }
+    
+    .message-content {
+        font-size: 13px;
+    }
+    
+    .chat-input {
+        font-size: 13px;
+    }
+    
+    .terminal-input {
+        font-size: 13px;
+    }
+}
+
+/* 调整大小手柄样式 */
+.resize-handle {
+    position: absolute;
+    background-color: transparent;
+    z-index: 10;
+    transition: background-color 0.2s ease;
+}
+
+.resize-handle:hover {
+    background-color: rgba(0, 122, 204, 0.3);
+}
+
+.resize-handle.active {
+    background-color: rgba(0, 122, 204, 0.5);
+}
+
+/* 文件浏览器右侧调整手柄 */
+.file-explorer .resize-handle-right {
+    top: 0;
+    right: 0;
+    width: var(--resize-handle-width);
+    height: 100%;
+    cursor: ew-resize;
+}
+
+/* AI聊天左侧调整手柄 */
+.ai-chat .resize-handle-left {
+    top: 0;
+    left: 0;
+    width: var(--resize-handle-width);
+    height: 100%;
+    cursor: ew-resize;
+}
+
+/* 垂直调整手柄（移动端） */
+@media (max-width: 800px) {
+    .file-explorer .resize-handle-right {
+        width: 100%;
+        height: var(--resize-handle-width);
+        bottom: 0;
+        right: 0;
+        top: auto;
+        cursor: ns-resize;
+    }
+    
+    .ai-chat .resize-handle-left {
+        width: 100%;
+        height: var(--resize-handle-width);
+        bottom: 0;
+        left: 0;
+        top: auto;
+        cursor: ns-resize;
+    }
+}
+
+/* 调整时的临时样式 */
+.resizing {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.resizing .file-explorer,
+.resizing .ai-chat {
+    transition: none;
 }

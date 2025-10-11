@@ -243,8 +243,11 @@ class SessionManager {
   }
 
   async handleSessionFormSubmit() {
+    const sessionId = document.getElementById('session-id').value;
+    const isEdit = !!sessionId;
+    
     const formData = {
-      id: document.getElementById('session-id').value,
+      id: sessionId || this.generateSessionId(),
       name: document.getElementById('session-name').value.trim(),
       group: document.getElementById('session-group').value,
       host: document.getElementById('session-host').value.trim(),
@@ -253,7 +256,9 @@ class SessionManager {
       authType: document.getElementById('session-auth-type').value,
       password: document.getElementById('session-password').value,
       keyPath: document.getElementById('session-key-path').value.trim(),
-      description: document.getElementById('session-description').value.trim()
+      description: document.getElementById('session-description').value.trim(),
+      createdAt: isEdit ? undefined : new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     // 验证必填字段
@@ -285,6 +290,7 @@ class SessionManager {
   async saveSession(sessionData) {
     try {
       const result = await window.electronAPI.saveSession(sessionData);
+      
       if (result.success) {
         await this.loadSessions();
         this.renderSessions();
@@ -420,13 +426,11 @@ class SessionManager {
     const session = this.sessions.find(s => s.id === sessionId);
     if (!session) return;
 
-    // 如果已有连接，先断开
-    if (this.currentSession) {
-      await this.disconnectCurrentSession();
-    }
-
     try {
       this.showNotification('正在连接...', 'info');
+      
+      // 创建或切换到标签页
+      const tabId = window.tabManager.createOrSwitchToSessionTab(session);
       
       // 处理SSH密钥认证
       const connectionConfig = { ...session };
@@ -443,10 +447,11 @@ class SessionManager {
       const result = await window.electronAPI.sshConnect(connectionConfig);
       
       if (result.success) {
-        this.currentSession = session;
+        // 更新标签页连接状态
+        window.tabManager.updateTabConnection(tabId, true, session);
         this.showNotification(`已连接到 ${session.name || session.host}`, 'success');
         this.renderSessions(); // 更新UI显示连接状态
-        this.onSessionConnected(session);
+        this.onSessionConnected(session, tabId);
       } else {
         this.showNotification('连接失败: ' + result.error, 'error');
       }
@@ -459,6 +464,14 @@ class SessionManager {
     if (this.currentSession) {
       try {
         await window.electronAPI.sshDisconnect(this.currentSession.id);
+        
+        // 更新所有相关标签页的连接状态
+        for (const [tabId, tab] of window.tabManager.tabs) {
+          if (tab.sessionId === this.currentSession.id) {
+            window.tabManager.updateTabConnection(tabId, false);
+          }
+        }
+        
         this.currentSession = null;
         this.renderSessions();
         this.showNotification('连接已断开', 'info');
@@ -489,6 +502,10 @@ class SessionManager {
     this.showNotification('会话导出功能开发中...', 'info');
   }
 
+  generateSessionId() {
+    return 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  }
+
   showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
@@ -501,7 +518,7 @@ class SessionManager {
     }, 3000);
   }
 
-  onSessionConnected(session) {
+  onSessionConnected(session, tabId = null) {
     // 触发连接成功事件，其他模块可以监听
     window.dispatchEvent(new CustomEvent('sessionConnected', { detail: session }));
   }
