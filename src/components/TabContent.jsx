@@ -2,16 +2,16 @@ import React from 'react';
 import FileExplorer from './FileExplorer';
 import Terminal from './Terminal';
 import AIChat from './AIChat';
-import { ThreePaneSplit } from './ui/layout/ResizableSplit';
+import ThreePaneSplit from './ui/layout/ThreePaneSplit';
 
-function TabContent({ 
-  tab, 
-  isActive, 
-  onConnectSession, 
-  onDisconnectSession, 
-  onExecuteCommand, 
-  onGetFileList, 
-  onShowNotification 
+function TabContent({
+  tab,
+  isActive,
+  onConnectSession,
+  onDisconnectSession,
+  onExecuteCommand,
+  onGetFileList,
+  onShowNotification
 }) {
   console.log('TabContent render:', { tabId: tab.id, isActive, isConnected: tab.isConnected });
 

@@ -10,60 +10,60 @@ export { default as Modal, ConfirmDialog as ModalConfirmDialog, AlertDialog } fr
 
 // 基础组件 (Primitives)
 export { default as Icon, icons } from './primitives/Icon';
-export { 
-  default as Textarea, 
-  TextareaWithCounter, 
-  TextareaWithToolbar 
+export {
+  default as Textarea,
+  TextareaWithCounter,
+  TextareaWithToolbar
 } from './primitives/Textarea';
-export { 
-  default as Select, 
-  MultiSelect 
+export {
+  default as Select,
+  MultiSelect
 } from './primitives/Select';
-export { 
+export {
   default as Combobox,
   SearchableSelect,
   CreatableSelect,
   MultiSelectCombobox,
   TagSelect
 } from './primitives/Combobox';
-export { 
-  default as Switch, 
-  Checkbox, 
-  Radio, 
-  RadioGroup, 
-  CheckboxGroup 
+export {
+  default as Switch,
+  Checkbox,
+  Radio,
+  RadioGroup,
+  CheckboxGroup
 } from './primitives/Switch';
-export { 
-  default as Tag, 
-  StatusDot, 
-  StatusWithText, 
-  TagGroup, 
-  InteractiveTag 
+export {
+  default as Tag,
+  StatusDot,
+  StatusWithText,
+  TagGroup,
+  InteractiveTag
 } from './primitives/Tag';
-export { 
-  default as Badge, 
-  CountBadge, 
-  DotBadge, 
-  StatusBadge, 
-  EnvironmentBadge, 
-  ConnectionBadge, 
-  PositionedBadge, 
-  BadgeGroup 
+export {
+  default as Badge,
+  CountBadge,
+  DotBadge,
+  StatusBadge,
+  EnvironmentBadge,
+  ConnectionBadge,
+  PositionedBadge,
+  BadgeGroup
 } from './primitives/Badge';
-export { 
-  default as Progress, 
-  CircularProgress, 
-  Spinner, 
-  DotsSpinner, 
-  PulseSpinner, 
-  ProgressGroup, 
-  StepProgress 
+export {
+  default as Progress,
+  CircularProgress,
+  Spinner,
+  DotsSpinner,
+  PulseSpinner,
+  ProgressGroup,
+  StepProgress
 } from './primitives/Progress';
-export { 
-  default as Code, 
-  MonoText, 
-  InlineCode, 
-  CodeBlock, 
+export {
+  default as Code,
+  MonoText,
+  InlineCode,
+  CodeBlock,
   SyntaxHighlighter,
   PathText,
   CommandText,
@@ -73,62 +73,60 @@ export {
   IPText,
   PortText
 } from './primitives/Code';
-export { 
-  default as Popover, 
-  PopoverTrigger, 
-  PopoverContent, 
-  PopoverConfirm, 
-  HoverCard 
+export {
+  default as Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverConfirm,
+  HoverCard
 } from './primitives/Popover';
-export { 
-  default as Empty, 
-  Skeleton, 
-  SkeletonGroup, 
-  TableSkeleton, 
-  CardSkeleton, 
-  ListSkeleton, 
-  EmptyState as PrimitiveEmptyState, 
-  LoadingState 
+export {
+  default as Empty,
+  Skeleton,
+  SkeletonGroup,
+  TableSkeleton,
+  CardSkeleton,
+  ListSkeleton,
+  EmptyState as PrimitiveEmptyState,
+  LoadingState
 } from './primitives/Empty';
 
 // 布局组件 (Layout & Navigation)
-export { 
-  default as AppShell, 
-  Topbar, 
-  Sidebar, 
-  SidebarSection, 
-  StatusBar 
+export {
+  default as AppShell,
+  Topbar,
+  Sidebar,
+  SidebarSection,
+  StatusBar
 } from './layout/AppShell';
-export { 
-  default as Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbSeparator, 
-  FileBreadcrumb, 
-  URLBreadcrumb 
+export {
+  default as Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbSeparator,
+  FileBreadcrumb,
+  URLBreadcrumb
 } from './layout/Breadcrumb';
-export { 
-  default as Tabs, 
-  Tab, 
-  TabPanel, 
-  TabList, 
-  TabPanels 
+export {
+  default as Tabs,
+  Tab,
+  TabPanel,
+  TabList,
+  TabPanels
 } from './layout/Tabs';
-export { 
-  default as Accordion, 
-  AccordionItem, 
-  AccordionHeader, 
-  AccordionContent, 
-  ConnectionAccordion, 
-  LogAccordion 
+export {
+  default as Accordion,
+  AccordionItem,
+  AccordionHeader,
+  AccordionContent,
+  ConnectionAccordion,
+  LogAccordion
 } from './layout/Accordion';
-export { 
-  default as ResizableSplit, 
-  SplitPane, 
-  ThreePaneSplit, 
-  FileExplorerSplit, 
-  TerminalSplit 
-} from './layout/ResizableSplit';
-export { 
+export { default as ResizableSplit } from './layout/ResizableSplit';
+export { default as SplitPane } from './layout/SplitPane';
+export { default as ThreePaneSplit } from './layout/ThreePaneSplit';
+export { default as FileExplorerSplit } from './layout/FileExplorerSplit';
+export { default as TerminalSplit } from './layout/TerminalSplit';
+export {
   default as Panel,
   Card,
   CardSection,
@@ -139,98 +137,98 @@ export {
 } from './layout/Panel';
 
 // 连接管理组件 (Connection Management)
-export { 
+export {
   default as ConnectionList,
   ConnectionGroup
 } from './connection/ConnectionList';
-export { 
+export {
   default as ConnectionItem,
   ConnectionItemCompact,
   ConnectionItemDetailed
 } from './connection/ConnectionItem';
-export { 
+export {
   default as ConnectionSearchFilter,
   QuickSearch
 } from './connection/ConnectionSearchFilter';
-export { 
+export {
   default as ConnectionForm,
   ConnectionFormModal
 } from './connection/ConnectionForm';
-export { 
+export {
   default as ImportExport,
   ImportExportModal,
   QuickExportButton,
   QuickImportButton
 } from './connection/ImportExport';
-export { 
+export {
   default as TestConnection,
   InlineTestConnection,
   CompactTestConnection
 } from './connection/TestConnection';
 
 // 会话管理组件 (Session Management)
-export { 
+export {
   SessionBar,
   SessionBarCompact,
   SessionBarMinimal
 } from './session/SessionBar';
-export { 
+export {
   SessionTab,
   SessionTabCompact,
   SessionTabMinimal
 } from './session/SessionTab';
-export { 
+export {
   SessionContextMenu
 } from './session/SessionContextMenu';
-export { 
+export {
   NewSessionWizard
 } from './session/NewSessionWizard';
-export { 
+export {
   TabInnerNav
 } from './session/TabInnerNav';
-export { 
+export {
   ThreePaneLayout
 } from './session/ThreePaneLayout';
 
 // 文件管理组件 (File Management)
-export { 
+export {
   PathBar
 } from './file/PathBar';
-export { 
+export {
   FileTable
 } from './file/FileTable';
-export { 
+export {
   FileRow
 } from './file/FileRow';
-export { 
+export {
   DirectoryTree,
   DirectoryTreeNode
 } from './file/DirectoryTree';
-export { 
+export {
   FileToolbar,
   QuickFileToolbar,
   MinimalFileToolbar
 } from './file/FileToolbar';
-export { 
+export {
   CreateRenameDialog,
   QuickCreateDialog,
   RenameDialog
 } from './file/CreateRenameDialog';
-export { 
+export {
   DeleteConfirm,
   QuickDeleteConfirm,
   BatchDeleteConfirm
 } from './file/DeleteConfirm';
-export { 
+export {
   TransferQueue,
   CompactTransferQueue,
   MinimalTransferQueue
 } from './file/TransferQueue';
-export { 
+export {
   PermissionEditor,
   QuickPermissionEditor
 } from './file/PermissionEditor';
-export { 
+export {
   EmptyState,
   FileEmptyState,
   DirectoryEmptyState,
@@ -242,7 +240,7 @@ export {
 } from './file/EmptyState';
 
 // 反馈组件 (Feedback & Overlays)
-export { 
+export {
   default as ConfirmDialog,
   DeleteConfirmDialog,
   DisconnectConfirmDialog,
@@ -250,7 +248,7 @@ export {
   BatchOperationConfirmDialog,
   SettingsChangeConfirmDialog
 } from './feedback/ConfirmDialog';
-export { 
+export {
   Toast,
   ToastContainer,
   SuccessToast,
@@ -259,7 +257,7 @@ export {
   InfoToast,
   useToast
 } from './feedback/Toast';
-export { 
+export {
   LoadingBar,
   GlobalLoadingBar,
   LoadingBarProvider,
@@ -272,12 +270,12 @@ export {
   GreenLoadingBar,
   RedLoadingBar
 } from './feedback/LoadingBar';
-export { 
+export {
   CommandPalette,
   ConnectionCommandPalette,
   useCommandPalette
 } from './feedback/CommandPalette';
-export { 
+export {
   ErrorBoundary,
   MinimalErrorBoundary,
   FullErrorBoundary,
@@ -285,13 +283,13 @@ export {
   useErrorHandler,
   withErrorBoundary
 } from './feedback/ErrorBoundary';
-export { 
+export {
   UpdateBanner,
   AutoUpdateBanner,
   SilentUpdateBanner,
   useUpdateManager
 } from './feedback/UpdateBanner';
-export { 
+export {
   OfflineNotice,
   NetworkStatusIndicator,
   PersistentOfflineNotice,
@@ -299,18 +297,18 @@ export {
 } from './feedback/OfflineNotice';
 
 // 终端管理组件 (Terminal Management)
-export { 
+export {
   TerminalView,
   terminalThemes
 } from './terminal/TerminalView';
-export { 
+export {
   TerminalStatusBar,
   MinimalTerminalStatusBar,
   FullTerminalStatusBar,
   ConnectionStatusBar,
   TransferStatusBar
 } from './terminal/TerminalStatusBar';
-export { 
+export {
   CommandInput,
   SingleLineCommandInput,
   MultiLineCommandInput,
@@ -318,20 +316,20 @@ export {
   SearchCommandInput,
   SecureCommandInput
 } from './terminal/CommandInput';
-export { 
+export {
   AutocompleteMenu,
   CommandAutocompleteMenu,
   PathAutocompleteMenu,
   HistoryAutocompleteMenu,
   SnippetAutocompleteMenu
 } from './terminal/AutocompleteMenu';
-export { 
+export {
   SnippetList,
   CommandSnippetList,
   CompactSnippetList,
   GridSnippetList
 } from './terminal/SnippetList';
-export { 
+export {
   TerminalActions,
   MinimalTerminalActions,
   FullTerminalActions,
@@ -341,7 +339,7 @@ export {
   EditingTerminalActions,
   FileTransferTerminalActions
 } from './terminal/TerminalActions';
-export { 
+export {
   DragOverlay,
   MinimalDragOverlay,
   DefaultDragOverlay,
@@ -353,23 +351,23 @@ export {
 } from './terminal/DragOverlay';
 
 // AI助手组件 (AI Assistant)
-export { 
+export {
   ChatThread,
   MinimalChatThread,
   FullChatThread,
   CompactChatThread
 } from './ai/ChatThread';
-export { 
+export {
   ChatInputBox,
   MinimalChatInput,
   FullChatInput
 } from './ai/ChatInputBox';
-export { 
+export {
   ToolCallViewer,
   CompactToolCallViewer,
   DetailedToolCallViewer
 } from './ai/ToolCallViewer';
-export { 
+export {
   AIActionControls,
   MinimalAIControls,
   CompactAIControls,
@@ -381,19 +379,19 @@ export {
   CompletedAIControls,
   ErrorAIControls
 } from './ai/AIActionControls';
-export { 
+export {
   PromptTemplatePicker
 } from './ai/PromptTemplatePicker';
-export { 
+export {
   ResultDiffViewer
 } from './ai/ResultDiffViewer';
-export { 
+export {
   GuardrailNotice,
   DangerousCommandWarning,
   ReadOnlyModeNotice,
   HighRiskOperation
 } from './ai/GuardrailNotice';
-export { 
+export {
   AttachmentPill,
   FileAttachment,
   TerminalAttachment,
@@ -402,46 +400,46 @@ export {
 } from './ai/AttachmentPill';
 
 // 设置与偏好组件 (Settings)
-export { 
+export {
   ThemeSwitcher,
   CompactThemeSwitcher,
   MinimalThemeSwitcher
 } from './settings/ThemeSwitcher';
-export { 
+export {
   Keybindings
 } from './settings/Keybindings';
-export { 
+export {
   TerminalThemePicker
 } from './settings/TerminalThemePicker';
-export { 
+export {
   SecurityPanel
 } from './settings/SecurityPanel';
-export { 
+export {
   ProxySettings
 } from './settings/ProxySettings';
-export { 
+export {
   LogViewer
 } from './settings/LogViewer';
 
 // 跨区域通用复合组件 (Composite)
-export { 
+export {
   ConnectionSelect,
   CompactConnectionSelect,
   MinimalConnectionSelect,
   FullConnectionSelect
 } from './composite/ConnectionSelect';
-export { 
+export {
   ServerHealthCard,
   CompactServerHealthCard,
   DetailedServerHealthCard
 } from './composite/ServerHealthCard';
-export { 
+export {
   FilePreview,
   ImagePreview,
   CodePreview,
   BinaryPreview
 } from './composite/FilePreview';
-export { 
+export {
   IdentityBadge,
   RootBadge,
   AdminBadge,
@@ -452,7 +450,7 @@ export {
 } from './composite/IdentityBadge';
 
 // 辅助与无障碍组件 (A11y & i18n)
-export { 
+export {
   FocusRing,
   BlueFocusRing,
   GreenFocusRing,
@@ -462,21 +460,21 @@ export {
   GrayFocusRing,
   useFocusRing
 } from './a11y/FocusRing';
-export { 
+export {
   ARIAProvider,
   useARIA,
   useAnnouncer,
   useLiveRegion,
   useFocusTrap
 } from './a11y/ARIAProvider';
-export { 
+export {
   KeyboardNavigation,
   MenuKeyboardNavigation,
   DialogKeyboardNavigation,
   TableKeyboardNavigation,
   useKeyboardShortcuts
 } from './a11y/KeyboardNavigation';
-export { 
+export {
   I18nProvider,
   LanguageSwitcher,
   TranslatedText,
