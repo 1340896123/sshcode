@@ -82,7 +82,7 @@ function FileExplorer({ tabId, isConnected, onGetFileList, onShowNotification })
 
   return (
     <section 
-      className="w-[var(--file-explorer-width)] min-w-[var(--min-file-explorer-width)] max-w-[var(--max-file-explorer-width)] bg-[#252526] border-r border-[#3e3e42] flex flex-col relative resize-x overflow-auto flex-shrink-0" 
+      className="w-full h-full bg-[#252526] border-r border-[#3e3e42] flex flex-col relative overflow-hidden" 
       data-tab-id={tabId}
     >
       <div className="flex justify-between items-center px-4 py-3 bg-[#2d2d30] border-b border-[#3e3e42]">

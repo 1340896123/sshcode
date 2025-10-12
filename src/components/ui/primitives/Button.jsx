@@ -44,36 +44,36 @@ const Button = forwardRef(({
   const getVariantClasses = () => {
     const baseClasses = {
       solid: {
-        primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-        secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2',
-        success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2',
-        warning: 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2',
-        error: 'bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
-        info: 'bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2'
+        primary: 'bg-[#007acc] text-white hover:bg-[#005a9e] focus:ring-2 focus:ring-[#007acc] focus:ring-offset-2',
+        secondary: 'bg-[#666] text-white hover:bg-[#555] focus:ring-2 focus:ring-[#666] focus:ring-offset-2',
+        success: 'bg-[#28a745] text-white hover:bg-[#218838] focus:ring-2 focus:ring-[#28a745] focus:ring-offset-2',
+        warning: 'bg-[#ffc107] text-white hover:bg-[#e0a800] focus:ring-2 focus:ring-[#ffc107] focus:ring-offset-2',
+        error: 'bg-[#dc3545] text-white hover:bg-[#c82333] focus:ring-2 focus:ring-[#dc3545] focus:ring-offset-2',
+        info: 'bg-[#17a2b8] text-white hover:bg-[#138496] focus:ring-2 focus:ring-[#17a2b8] focus:ring-offset-2'
       },
       outline: {
-        primary: 'border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 focus:ring-2 focus:ring-blue-500',
-        secondary: 'border border-gray-600 text-gray-600 hover:bg-gray-50 hover:text-gray-700 focus:ring-2 focus:ring-gray-500',
-        success: 'border border-green-600 text-green-600 hover:bg-green-50 hover:text-green-700 focus:ring-2 focus:ring-green-500',
-        warning: 'border border-yellow-600 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 focus:ring-2 focus:ring-yellow-500',
-        error: 'border border-red-600 text-red-600 hover:bg-red-50 hover:text-red-700 focus:ring-2 focus:ring-red-500',
-        info: 'border border-cyan-600 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700 focus:ring-2 focus:ring-cyan-500'
+        primary: 'border border-[#007acc] text-[#007acc] hover:bg-[#007acc] hover:text-white focus:ring-2 focus:ring-[#007acc]',
+        secondary: 'border border-[#666] text-[#666] hover:bg-[#666] hover:text-white focus:ring-2 focus:ring-[#666]',
+        success: 'border border-[#28a745] text-[#28a745] hover:bg-[#28a745] hover:text-white focus:ring-2 focus:ring-[#28a745]',
+        warning: 'border border-[#ffc107] text-[#ffc107] hover:bg-[#ffc107] hover:text-white focus:ring-2 focus:ring-[#ffc107]',
+        error: 'border border-[#dc3545] text-[#dc3545] hover:bg-[#dc3545] hover:text-white focus:ring-2 focus:ring-[#dc3545]',
+        info: 'border border-[#17a2b8] text-[#17a2b8] hover:bg-[#17a2b8] hover:text-white focus:ring-2 focus:ring-[#17a2b8]'
       },
       ghost: {
-        primary: 'text-blue-600 hover:bg-blue-50 hover:text-blue-700 focus:ring-2 focus:ring-blue-500',
-        secondary: 'text-gray-600 hover:bg-gray-50 hover:text-gray-700 focus:ring-2 focus:ring-gray-500',
-        success: 'text-green-600 hover:bg-green-50 hover:text-green-700 focus:ring-2 focus:ring-green-500',
-        warning: 'text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 focus:ring-2 focus:ring-yellow-500',
-        error: 'text-red-600 hover:bg-red-50 hover:text-red-700 focus:ring-2 focus:ring-red-500',
-        info: 'text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700 focus:ring-2 focus:ring-cyan-500'
+        primary: 'text-[#007acc] hover:bg-[#007acc] hover:text-white focus:ring-2 focus:ring-[#007acc]',
+        secondary: 'text-[#666] hover:bg-[#666] hover:text-white focus:ring-2 focus:ring-[#666]',
+        success: 'text-[#28a745] hover:bg-[#28a745] hover:text-white focus:ring-2 focus:ring-[#28a745]',
+        warning: 'text-[#ffc107] hover:bg-[#ffc107] hover:text-white focus:ring-2 focus:ring-[#ffc107]',
+        error: 'text-[#dc3545] hover:bg-[#dc3545] hover:text-white focus:ring-2 focus:ring-[#dc3545]',
+        info: 'text-[#17a2b8] hover:bg-[#17a2b8] hover:text-white focus:ring-2 focus:ring-[#17a2b8]'
       },
       link: {
-        primary: 'text-blue-600 hover:text-blue-700 hover:underline focus:ring-2 focus:ring-blue-500',
-        secondary: 'text-gray-600 hover:text-gray-700 hover:underline focus:ring-2 focus:ring-gray-500',
-        success: 'text-green-600 hover:text-green-700 hover:underline focus:ring-2 focus:ring-green-500',
-        warning: 'text-yellow-600 hover:text-yellow-700 hover:underline focus:ring-2 focus:ring-yellow-500',
-        error: 'text-red-600 hover:text-red-700 hover:underline focus:ring-2 focus:ring-red-500',
-        info: 'text-cyan-600 hover:text-cyan-700 hover:underline focus:ring-2 focus:ring-cyan-500'
+        primary: 'text-[#007acc] hover:text-[#005a9e] hover:underline focus:ring-2 focus:ring-[#007acc]',
+        secondary: 'text-[#666] hover:text-[#555] hover:underline focus:ring-2 focus:ring-[#666]',
+        success: 'text-[#28a745] hover:text-[#218838] hover:underline focus:ring-2 focus:ring-[#28a745]',
+        warning: 'text-[#ffc107] hover:text-[#e0a800] hover:underline focus:ring-2 focus:ring-[#ffc107]',
+        error: 'text-[#dc3545] hover:text-[#c82333] hover:underline focus:ring-2 focus:ring-[#dc3545]',
+        info: 'text-[#17a2b8] hover:text-[#138496] hover:underline focus:ring-2 focus:ring-[#17a2b8]'
       }
     };
 

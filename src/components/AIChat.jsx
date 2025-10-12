@@ -103,7 +103,7 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
   };
 
   return (
-    <section className="w-[var(--ai-chat-width)] min-w-[var(--min-ai-chat-width)] max-w-[var(--max-ai-chat-width)] bg-[#252526] border-l border-[#3e3e42] flex flex-col relative resize-x overflow-auto flex-shrink-0" data-tab-id={tabId}>
+    <section className="w-full h-full bg-[#252526] border-l border-[#3e3e42] flex flex-col relative overflow-hidden" data-tab-id={tabId}>
       <div className="flex justify-between items-center px-4 py-2.5 bg-[#2d2d30] border-b border-[#3e3e42]">
         <h3 className="text-sm text-[#cccccc]">AI助手</h3>
         <div className="flex gap-1.5">

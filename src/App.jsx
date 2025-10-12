@@ -74,7 +74,7 @@ function AppContent() {
   };
 
   return (
-    <div className="app">
+    <div className="app h-screen w-screen flex flex-col overflow-hidden">
       <Header 
         connectionStatus={connectionStatus}
         onOpenSessionModal={() => setIsSessionModalOpen(true)}

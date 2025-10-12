@@ -188,23 +188,21 @@ const ResizableSplit = forwardRef(({
       'flex-shrink-0',
       'transition-colors duration-200',
       'hover:bg-blue-100 dark:hover:bg-blue-900',
-      'relative z-10',
+      'relative z-50', // 提高z-index确保分隔条在最上层
+      'cursor-col-resize', // 始终显示调整大小的光标
+      'touch-manipulation-none', // 防止触摸设备上的默认行为
       gutterClassName
     );
 
     const directionClasses = direction === 'horizontal'
       ? cn(
-          'w-px cursor-col-resize',
+          'cursor-col-resize',
           showGutter && gutterStyle !== 'handle' && 'bg-gray-300 dark:bg-gray-600'
         )
       : cn(
-          'h-px cursor-row-resize',
+          'cursor-row-resize',
           showGutter && gutterStyle !== 'handle' && 'bg-gray-300 dark:bg-gray-600'
         );
-
-    const sizeClasses = direction === 'horizontal'
-      ? `w-${gutterSize} hover:w-${Math.max(gutterSize, 4)}`
-      : `h-${gutterSize} hover:h-${Math.max(gutterSize, 4)}`;
 
     const activeClasses = activeGutter === index && isResizing
       ? 'bg-blue-500 dark:bg-blue-400'
@@ -215,26 +213,20 @@ const ResizableSplit = forwardRef(({
 
   // 渲染分隔条内容
   const renderGutterContent = (index) => {
-    if (!showGutter || gutterStyle === 'line') return null;
+    if (!showGutter) return null;
 
+    // 为所有gutterStyle提供明显的拖动指示符
     return (
       <div className={cn(
         'absolute inset-0 flex items-center justify-center',
         direction === 'horizontal' ? 'flex-col' : 'flex-row'
       )}>
-        {gutterStyle === 'handle' && (
-          <div className={cn(
-            'bg-gray-400 dark:bg-gray-500 rounded-full',
-            direction === 'horizontal' ? 'w-1 h-4' : 'w-4 h-1'
-          )} />
-        )}
-        
-        {gutterStyle === 'both' && (
-          <div className={cn(
-            'bg-gray-400 dark:bg-gray-500 rounded-full',
-            direction === 'horizontal' ? 'w-1 h-4' : 'w-4 h-1'
-          )} />
-        )}
+        <div className={cn(
+          'bg-gray-400 dark:bg-gray-500 rounded-full',
+          direction === 'horizontal' ? 'w-1 h-4' : 'w-4 h-1',
+          'hover:bg-blue-300 dark:hover:bg-blue-600',
+          'transition-all duration-200'
+        )} />
       </div>
     );
   };
@@ -267,10 +259,32 @@ const ResizableSplit = forwardRef(({
             className={getGutterClasses(index)}
             style={{
               [direction === 'horizontal' ? 'width' : 'height']: `${gutterSize}px`,
-              [direction === 'horizontal' ? 'height' : 'width']: '100%'
+              [direction === 'horizontal' ? 'height' : 'width']: '100%',
+              userSelect: 'none', // 防止文本选择
+              WebkitUserSelect: 'none',
+              msUserSelect: 'none'
             }}
-            onMouseDown={(e) => handleMouseDown(e, index)}
-            onDoubleClick={() => handleDoubleClick(index)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleMouseDown(e, index);
+            }}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDoubleClick(index);
+            }}
+            // 添加触摸事件支持
+            onTouchStart={(e) => {
+              if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                  clientX: touch.clientX,
+                  clientY: touch.clientY
+                });
+                handleMouseDown(mouseEvent, index);
+              }
+            }}
           >
             {renderGutterContent(index)}
           </div>

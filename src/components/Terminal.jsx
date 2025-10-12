@@ -136,7 +136,7 @@ function Terminal({ tabId, isConnected, sessionData, onExecuteCommand, onShowNot
   };
 
   return (
-    <section className="flex-1 bg-[#1e1e1e] flex flex-col min-w-0 flex-shrink-1 flex-grow-1" data-tab-id={tabId}>
+    <section className="w-full h-full bg-[#1e1e1e] flex flex-col overflow-hidden" data-tab-id={tabId}>
       <div className="flex justify-between items-center px-4 py-2.5 bg-[#2d2d30] border-b border-[#3e3e42]">
         <h3 className="text-sm text-[#cccccc]">终端</h3>
         <div className="flex gap-1.5">

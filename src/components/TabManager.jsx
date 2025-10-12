@@ -160,7 +160,7 @@ function TabManager({ onSessionConnected, onSessionDisconnected, onShowNotificat
   };
 
   return (
-    <div className="tab-manager">
+    <div className="tab-manager flex-1 flex flex-col overflow-hidden">
       {/* 标签页导航 */}
       <div className="bg-[#2d2d30] border-b border-[#3e3e42]">
         <div className="flex items-center px-2.5 h-10">
@@ -188,8 +188,8 @@ function TabManager({ onSessionConnected, onSessionDisconnected, onShowNotificat
       </div>
 
       {/* 主内容区域 */}
-      <main className="flex h-full overflow-hidden w-full">
-        <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
+      <main className="flex-1 h-full overflow-hidden w-full">
+        <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden w-full">
           {Array.from(tabs.values()).map(tab => (
             <TabContent
               key={tab.id}

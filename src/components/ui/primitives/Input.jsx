@@ -125,27 +125,27 @@ const Input = forwardRef(({
     return cn(
       // 基础样式
       'w-full',
-      'bg-white dark:bg-gray-800',
-      'border',
-      'rounded-md',
-      'font-medium',
+      'bg-[#3e3e42]',
+      'border border-[#5a5a5a]',
+      'rounded-lg',
+      'font-inherit',
       'outline-none',
       'transition-all duration-200',
       
       // 文本颜色
-      'text-gray-900 dark:text-gray-100',
-      'placeholder-gray-500 dark:placeholder-gray-400',
+      'text-[#d4d4d4]',
+      'placeholder:text-[#969696]',
       
       // 边框颜色
       error 
-        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800'
+        ? 'border-[#d16969] focus:border-[#d16969] focus:shadow-[0_0_0_3px_rgba(209,105,105,0.15)]'
         : isFocused 
-          ? 'border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
-          : 'border-gray-300 dark:border-gray-600 focus:border-blue-500',
+          ? 'border-[#007acc] focus:border-[#007acc] focus:shadow-[0_0_0_3px_rgba(0,122,204,0.15)]'
+          : 'border-[#5a5a5a] focus:border-[#007acc]',
       
       // 状态样式
-      disabled && 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed',
-      readonly && 'bg-gray-50 dark:bg-gray-750 cursor-default',
+      disabled && 'bg-[#2d2d30] text-[#666] cursor-not-allowed',
+      readonly && 'bg-[#2d2d30] cursor-default',
       
       // 尺寸样式
       getPaddingClasses(),

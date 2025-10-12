@@ -2,6 +2,7 @@ import React from 'react';
 import FileExplorer from './FileExplorer';
 import Terminal from './Terminal';
 import AIChat from './AIChat';
+import { ThreePaneSplit } from './ui/layout/ResizableSplit';
 
 function TabContent({ 
   tab, 
@@ -12,32 +13,54 @@ function TabContent({
   onGetFileList, 
   onShowNotification 
 }) {
+  console.log('TabContent render:', { tabId: tab.id, isActive, isConnected: tab.isConnected });
+
   if (!isActive) return null;
 
   return (
-    <div className="flex-1 overflow-hidden flex" data-tab-id={tab.id}>
-      {/* 左侧文件目录 */}
-      <FileExplorer
-        tabId={tab.id}
-        isConnected={tab.isConnected}
-        onGetFileList={onGetFileList}
-        onShowNotification={onShowNotification}
-      />
-
-      {/* 中间终端区域 */}
-      <Terminal
-        tabId={tab.id}
-        isConnected={tab.isConnected}
-        sessionData={tab.connectionConfig}
-        onExecuteCommand={onExecuteCommand}
-        onShowNotification={onShowNotification}
-      />
-
-      {/* 右侧AI聊天区域 */}
-      <AIChat
-        tabId={tab.id}
-        isConnected={tab.isConnected}
-        onShowNotification={onShowNotification}
+    <div className="w-full h-full flex">
+      <ThreePaneSplit
+        direction="horizontal"
+        defaultSizes={[30, 40, 30]} // 3:4:3 比例
+        minSizes={[15, 25, 15]} // 最小宽度限制
+        maxSizes={[50, 60, 50]} // 最大宽度限制
+        gutterSize={6}
+        gutterStyle="both"
+        className="w-full h-full"
+        onResize={(sizes) => {
+          // 可选：保存用户调整的尺寸到本地存储
+          console.log('Panel sizes changed:', sizes);
+        }}
+        left={
+          <div className="w-full h-full">
+            <FileExplorer
+              tabId={tab.id}
+              isConnected={tab.isConnected}
+              onGetFileList={onGetFileList}
+              onShowNotification={onShowNotification}
+            />
+          </div>
+        }
+        center={
+          <div className="w-full h-full">
+            <Terminal
+              tabId={tab.id}
+              isConnected={tab.isConnected}
+              sessionData={tab.connectionConfig}
+              onExecuteCommand={onExecuteCommand}
+              onShowNotification={onShowNotification}
+            />
+          </div>
+        }
+        right={
+          <div className="w-full h-full">
+            <AIChat
+              tabId={tab.id}
+              isConnected={tab.isConnected}
+              onShowNotification={onShowNotification}
+            />
+          </div>
+        }
       />
     </div>
   );
