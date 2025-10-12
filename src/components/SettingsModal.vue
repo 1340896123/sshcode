@@ -28,30 +28,56 @@
                 <h3>聊天配置</h3>
                 <div class="setting-item">
                   <label>AI 提供商</label>
-                  <select v-model="settings.aiChat.provider" class="setting-select">
+                  <select v-model="settings.aiChat.provider" class="setting-select" @change="updateAIChatDefaults">
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
                     <option value="local">Local</option>
+                    <option value="custom">自定义</option>
                   </select>
                 </div>
                 <div class="setting-item">
                   <label>API Key</label>
+                  <div class="input-with-toggle">
+                    <input
+                      v-model="settings.aiChat.apiKey"
+                      :type="showApiKey ? 'text' : 'password'"
+                      class="setting-input"
+                      placeholder="请输入API密钥"
+                    />
+                    <button type="button" class="toggle-btn" @click="showApiKey = !showApiKey">
+                      {{ showApiKey ? '🙈' : '👁️' }}
+                    </button>
+                  </div>
+                </div>
+                <div class="setting-item">
+                  <label>Base URL</label>
                   <input
-                    v-model="settings.aiChat.apiKey"
-                    type="password"
+                    v-model="settings.aiChat.baseUrl"
+                    type="url"
                     class="setting-input"
-                    placeholder="请输入API密钥"
+                    placeholder="https://api.openai.com/v1"
                   />
                 </div>
                 <div class="setting-item">
-                  <label>模型</label>
-                  <select v-model="settings.aiChat.model" class="setting-select">
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    <option value="gpt-4">GPT-4</option>
-                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                    <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                    <option value="claude-3-opus">Claude 3 Opus</option>
-                  </select>
+                  <label>模型名称</label>
+                  <div class="model-input-group">
+                    <input
+                      v-model="settings.aiChat.customModel"
+                      type="text"
+                      class="setting-input"
+                      placeholder="自定义模型名称或选择预设"
+                    />
+                    <select v-model="settings.aiChat.model" class="setting-select model-select" @change="syncCustomModel">
+                      <option value="">自定义模型</option>
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      <option value="gpt-4">GPT-4</option>
+                      <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                      <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                      <option value="claude-3-opus">Claude 3 Opus</option>
+                      <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="setting-item">
                   <label>最大令牌数</label>
@@ -127,30 +153,56 @@
                 <h3>代码补全配置</h3>
                 <div class="setting-item">
                   <label>补全提供商</label>
-                  <select v-model="settings.aiCompletion.provider" class="setting-select">
+                  <select v-model="settings.aiCompletion.provider" class="setting-select" @change="updateAICompletionDefaults">
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
                     <option value="github">GitHub Copilot</option>
                     <option value="local">Local</option>
+                    <option value="custom">自定义</option>
                   </select>
                 </div>
                 <div class="setting-item">
                   <label>API Key</label>
+                  <div class="input-with-toggle">
+                    <input
+                      v-model="settings.aiCompletion.apiKey"
+                      :type="showCompletionApiKey ? 'text' : 'password'"
+                      class="setting-input"
+                      placeholder="请输入API密钥"
+                    />
+                    <button type="button" class="toggle-btn" @click="showCompletionApiKey = !showCompletionApiKey">
+                      {{ showCompletionApiKey ? '🙈' : '👁️' }}
+                    </button>
+                  </div>
+                </div>
+                <div class="setting-item">
+                  <label>Base URL</label>
                   <input
-                    v-model="settings.aiCompletion.apiKey"
-                    type="password"
+                    v-model="settings.aiCompletion.baseUrl"
+                    type="url"
                     class="setting-input"
-                    placeholder="请输入API密钥"
+                    placeholder="https://api.openai.com/v1"
                   />
                 </div>
                 <div class="setting-item">
                   <label>补全模型</label>
-                  <select v-model="settings.aiCompletion.model" class="setting-select">
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    <option value="gpt-4">GPT-4</option>
-                    <option value="text-davinci-003">Text Davinci 003</option>
-                    <option value="code-davinci-002">Code Davinci 002</option>
-                  </select>
+                  <div class="model-input-group">
+                    <input
+                      v-model="settings.aiCompletion.customModel"
+                      type="text"
+                      class="setting-input"
+                      placeholder="自定义模型名称或选择预设"
+                    />
+                    <select v-model="settings.aiCompletion.model" class="setting-select model-select" @change="syncCompletionCustomModel">
+                      <option value="">自定义模型</option>
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      <option value="gpt-4">GPT-4</option>
+                      <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                      <option value="text-davinci-003">Text Davinci 003</option>
+                      <option value="code-davinci-002">Code Davinci 002</option>
+                      <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -464,7 +516,9 @@ export default {
       aiChat: {
         provider: 'openai',
         apiKey: '',
+        baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-3.5-turbo',
+        customModel: '',
         maxTokens: 2000,
         temperature: 0.7,
         systemPromptEnabled: false,
@@ -475,7 +529,9 @@ export default {
       aiCompletion: {
         provider: 'openai',
         apiKey: '',
+        baseUrl: 'https://api.openai.com/v1',
         model: 'gpt-3.5-turbo',
+        customModel: '',
         autoTrigger: true,
         triggerDelay: 500,
         maxSuggestions: 5,
@@ -509,7 +565,60 @@ export default {
       }
     }
 
+    const showApiKey = ref(false)
+    const showCompletionApiKey = ref(false)
+    
     const settings = reactive({ ...defaultSettings })
+
+    // 提供商默认配置
+    const providerDefaults = {
+      openai: {
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-3.5-turbo'
+      },
+      anthropic: {
+        baseUrl: 'https://api.anthropic.com',
+        model: 'claude-3-sonnet'
+      },
+      local: {
+        baseUrl: 'http://localhost:11434',
+        model: 'llama2'
+      },
+      custom: {
+        baseUrl: '',
+        model: ''
+      }
+    }
+
+    const updateAIChatDefaults = () => {
+      const provider = settings.aiChat.provider
+      if (providerDefaults[provider]) {
+        settings.aiChat.baseUrl = providerDefaults[provider].baseUrl
+        settings.aiChat.model = providerDefaults[provider].model
+        settings.aiChat.customModel = ''
+      }
+    }
+
+    const updateAICompletionDefaults = () => {
+      const provider = settings.aiCompletion.provider
+      if (providerDefaults[provider]) {
+        settings.aiCompletion.baseUrl = providerDefaults[provider].baseUrl
+        settings.aiCompletion.model = providerDefaults[provider].model
+        settings.aiCompletion.customModel = ''
+      }
+    }
+
+    const syncCustomModel = () => {
+      if (settings.aiChat.model) {
+        settings.aiChat.customModel = settings.aiChat.model
+      }
+    }
+
+    const syncCompletionCustomModel = () => {
+      if (settings.aiCompletion.model) {
+        settings.aiCompletion.customModel = settings.aiCompletion.model
+      }
+    }
 
     const loadSettings = async () => {
       try {
@@ -526,11 +635,14 @@ export default {
 
     const saveSettings = async () => {
       try {
+        // 创建一个可序列化的设置对象副本
+        const serializableSettings = JSON.parse(JSON.stringify(settings))
+        
         if (window.electronAPI) {
-          await window.electronAPI.saveConfig(settings)
+          await window.electronAPI.saveConfig(serializableSettings)
           emit('show-notification', '设置已保存', 'success')
         } else {
-          localStorage.setItem('sshcode-settings', JSON.stringify(settings))
+          localStorage.setItem('sshcode-settings', JSON.stringify(serializableSettings))
           emit('show-notification', '设置已保存（本地存储）', 'success')
         }
         emit('close')
@@ -551,8 +663,14 @@ export default {
       activeTab,
       tabs,
       settings,
+      showApiKey,
+      showCompletionApiKey,
       saveSettings,
-      resetSettings
+      resetSettings,
+      updateAIChatDefaults,
+      updateAICompletionDefaults,
+      syncCustomModel,
+      syncCompletionCustomModel
     }
   }
 }
@@ -757,6 +875,74 @@ export default {
   align-items: center;
   gap: spacing(sm);
   cursor: pointer;
+}
+
+/* 输入框增强样式 */
+.input-with-toggle {
+  display: flex;
+  gap: spacing(xs);
+  align-items: center;
+  max-width: 400px;
+}
+
+.input-with-toggle .setting-input {
+  flex: 1;
+}
+
+.toggle-btn {
+  background: color(bg-secondary);
+  border: 1px solid color(border);
+  border-radius: border-radius(md);
+  padding: spacing(sm);
+  cursor: pointer;
+  font-size: font-size(sm);
+  transition: all transition(fast) ease;
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: color(bg-tertiary);
+    border-color: color(primary);
+  }
+}
+
+.model-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: spacing(sm);
+  max-width: 400px;
+}
+
+.model-select {
+  margin-top: spacing(xs);
+}
+
+/* 响应式表单布局 */
+@media (min-width: 768px) {
+  .model-input-group {
+    flex-direction: row;
+    align-items: center;
+    gap: spacing(sm);
+  }
+
+  .model-select {
+    margin-top: 0;
+    min-width: 200px;
+  }
+}
+
+/* 表单验证样式 */
+.setting-input:invalid {
+  border-color: color(error);
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: color(primary);
+  box-shadow: 0 0 0 2px rgba(color(primary), 0.2);
 }
 
 /* 响应式设计 */

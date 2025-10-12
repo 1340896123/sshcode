@@ -22,14 +22,45 @@ ai:
 general:
   language: zh-CN
   theme: dark
+  zoom: 1
   autoSaveSessions: true
-  checkUpdates: true
+  reconnectOnStart: false
+  connectionTimeout: 30
+  enableNotifications: true
+  soundEnabled: true
 terminal:
   font: Consolas
   fontSize: 14
+  lineHeight: 1.2
   bell: false
   cursorBlink: true
+  cursorStyle: block
+  scrollback: 1000
+  copyShortcut: ctrl-c
+  pasteShortcut: ctrl-v
 security:
   encryptPasswords: false
   sessionTimeout: 30
   confirmDangerousCommands: true
+aiChat:
+  provider: custom
+  apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  model: ''
+  customModel: glm-4.6
+  maxTokens: 8000
+  temperature: 0.7
+  systemPromptEnabled: false
+  systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
+  saveHistory: true
+  historyRetentionDays: 30
+aiCompletion:
+  provider: custom
+  apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  model: ''
+  customModel: glm-4.5
+  autoTrigger: true
+  triggerDelay: 500
+  maxSuggestions: 5
+  acceptOnTab: true
