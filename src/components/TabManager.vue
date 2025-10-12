@@ -1318,6 +1318,139 @@ Swap:         2.0Gi          0B       2.0Gi`
       addConnection(sessionData)
     }
 
+    // 处理AI命令执行请求
+    const handleExecuteTerminalCommand = async (event) => {
+      const { commandId, command, connectionId } = event.detail
+      
+      console.log('🤖 [TAB-MANAGER] 收到AI命令执行请求:', {
+        commandId,
+        command,
+        connectionId
+      })
+
+      // 找到对应的连接
+      const connection = activeConnections.value.find(c => c.id === connectionId)
+      if (!connection) {
+        console.error('❌ [TAB-MANAGER] 连接不存在:', connectionId)
+        // 发送失败结果
+        window.dispatchEvent(new CustomEvent('terminal-command-result', {
+          detail: {
+            commandId,
+            success: false,
+            error: '连接不存在'
+          }
+        }))
+        return
+      }
+
+      if (connection.status !== 'connected') {
+        console.error('❌ [TAB-MANAGER] 连接未建立:', connection.status)
+        // 发送失败结果
+        window.dispatchEvent(new CustomEvent('terminal-command-result', {
+          detail: {
+            commandId,
+            success: false,
+            error: '连接未建立'
+          }
+        }))
+        return
+      }
+
+      try {
+        // 添加命令到终端输出
+        const commandLine = `${connection.username}@${connection.host}:~$ ${command}`
+        addTerminalOutput(connection, {
+          type: 'command',
+          content: commandLine,
+          timestamp: new Date()
+        })
+
+        // 执行命令
+        if (window.electronAPI) {
+          const result = await window.electronAPI.sshExecute(connection.id, command)
+          
+          if (result.success) {
+            addTerminalOutput(connection, {
+              type: 'output',
+              content: result.output,
+              timestamp: new Date()
+            })
+
+            // 发送成功结果
+            window.dispatchEvent(new CustomEvent('terminal-command-result', {
+              detail: {
+                commandId,
+                success: true,
+                output: result.output
+              }
+            }))
+          } else {
+            addTerminalOutput(connection, {
+              type: 'error',
+              content: `命令执行失败: ${result.error}`,
+              timestamp: new Date()
+            })
+
+            // 发送失败结果
+            window.dispatchEvent(new CustomEvent('terminal-command-result', {
+              detail: {
+                commandId,
+                success: false,
+                error: result.error
+              }
+            }))
+          }
+        } else {
+          // 开发模式模拟命令执行
+          setTimeout(() => {
+            const output = simulateCommandOutput(command)
+            addTerminalOutput(connection, {
+              type: 'output',
+              content: output,
+              timestamp: new Date()
+            })
+
+            // 发送成功结果
+            window.dispatchEvent(new CustomEvent('terminal-command-result', {
+              detail: {
+                commandId,
+                success: true,
+                output: output
+              }
+            }))
+          }, 500)
+        }
+
+        // 滚动到底部
+        await nextTick()
+        scrollToBottom(connectionId)
+
+      } catch (error) {
+        console.error('💥 [TAB-MANAGER] AI命令执行异常:', error)
+        
+        addTerminalOutput(connection, {
+          type: 'error',
+          content: `命令执行异常: ${error.message}`,
+          timestamp: new Date()
+        })
+
+        // 发送失败结果
+        window.dispatchEvent(new CustomEvent('terminal-command-result', {
+          detail: {
+            commandId,
+            success: false,
+            error: error.message
+          }
+        }))
+      }
+    }
+
+    // 初始化
+    onMounted(() => {
+      // 监听AI命令执行请求
+      window.addEventListener('execute-terminal-command', handleExecuteTerminalCommand)
+    })
+
     // 组件卸载时清理
     onUnmounted(() => {
       connectionTimers.value.forEach(timer => clearInterval(timer))
@@ -1329,6 +1462,9 @@ Swap:         2.0Gi          0B       2.0Gi`
       // 清理拖拽事件监听器
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
+
+      // 清理AI命令执行监听器
+      window.removeEventListener('execute-terminal-command', handleExecuteTerminalCommand)
     })
 
     return {
