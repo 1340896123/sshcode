@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
+import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [
-    react(),
-    tailwindcss(),
+    vue(),
   ],
   root: '.',
   base: './',
@@ -16,8 +14,14 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html')
+      },
+      output: {
+        manualChunks: {
+          vendor: ['vue']
+        }
       }
-    }
+    },
+    chunkSizeWarningLimit: 1000
   },
   server: {
     port: 3000,
@@ -26,6 +30,13 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src')
+    }
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@use "@/styles/variables.scss" as *;`
+      }
     }
   }
 });

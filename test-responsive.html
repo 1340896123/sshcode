@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH Session Management - Responsive Design Test</title>
+    <link rel="stylesheet" href="./src/styles/token.css">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: var(--font-sans);
+            background-color: #f8fafc;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .viewport-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .resize-handle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--accent-primary);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: ew-resize;
+            user-select: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-info" id="viewportInfo">
+        Width: <span id="width">0</span>px |
+        Height: <span id="height">0</span>px |
+        Breakpoint: <span id="breakpoint">Unknown</span>
+    </div>
+
+    <div class="resize-handle" id="resizeHandle">
+        ↔️ Resize Window
+    </div>
+
+    <div class="test-container">
+        <!-- Session Form Test -->
+        <div class="neo-form-container">
+            <div class="neo-form-header">
+                <div className="neo-form-title">
+                    <h2>SSH Session Management</h2>
+                    <p>Test responsive layout across different screen sizes</p>
+                </div>
+            </div>
+
+            <form className="neo-form">
+                <div className="neo-form-content">
+                    <div className="neo-form-section">
+                        <div className="neo-section-header">
+                            <h3>Connection Settings</h3>
+                            <p>Configure your SSH connection</p>
+                        </div>
+                        <div className="neo-form-grid">
+                            <div className="neo-form-field">
+                                <label className="neo-field-label">Session Name</label>
+                                <input type="text" className="neo-input" placeholder="My Server" />
+                            </div>
+                            <div className="neo-form-field">
+                                <label className="neo-field-label">Host</label>
+                                <input type="text" className="neo-input" placeholder="192.168.1.100" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="neo-form-actions">
+                    <button type="button" className="neo-btn-cancel">Cancel</button>
+                    <button type="submit" className="neo-btn-submit">Connect</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Session List Test -->
+        <div class="neo-session-container">
+            <div class="neo-header-top">
+                <div class="neo-header-title">
+                    <h2>Saved Sessions</h2>
+                    <p>Test card layout responsiveness</p>
+                </div>
+                <div class="neo-header-stats">
+                    <div class="neo-stat-item">
+                        <div class="neo-stat-value">3</div>
+                        <div class="neo-stat-label">Total</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="neo-header-actions">
+                <div class="neo-search-box">
+                    <input type="text" placeholder="Search sessions..." />
+                </div>
+                <button class="neo-btn-new">
+                    <span>+</span>
+                    New Session
+                </button>
+            </div>
+
+            <div class="neo-sessions-list">
+                <div class="neo-session-card">
+                    <div class="neo-session-header">
+                        <div class="neo-session-info">
+                            <h4>Production Server</h4>
+                            <p>prod.example.com:22</p>
+                        </div>
+                        <div class="neo-session-status online"></div>
+                    </div>
+                    <div class="neo-session-details">
+                        <span>Ubuntu 22.04</span>
+                        <span>•</span>
+                        <span>Last connected: 2 hours ago</span>
+                    </div>
+                </div>
+
+                <div class="neo-session-card">
+                    <div class="neo-session-header">
+                        <div class="neo-session-info">
+                            <h4>Development Server</h4>
+                            <p>dev.example.com:22</p>
+                        </div>
+                        <div class="neo-session-status offline"></div>
+                    </div>
+                    <div class="neo-session-details">
+                        <span>Ubuntu 20.04</span>
+                        <span>•</span>
+                        <span>Last connected: 1 day ago</span>
+                    </div>
+                </div>
+
+                <div class="neo-session-card">
+                    <div class="neo-session-header">
+                        <div class="neo-session-info">
+                            <h4>Database Server</h4>
+                            <p>db.example.com:22</p>
+                        </div>
+                        <div class="neo-session-status connecting"></div>
+                    </div>
+                    <div class="neo-session-details">
+                        <span>CentOS 8</span>
+                        <span>•</span>
+                        <span>Last connected: 3 days ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateViewportInfo() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const widthEl = document.getElementById('width');
+            const heightEl = document.getElementById('height');
+            const breakpointEl = document.getElementById('breakpoint');
+
+            widthEl.textContent = width;
+            heightEl.textContent = height;
+
+            let breakpoint = 'Unknown';
+            if (width >= 1921) breakpoint = 'Ultra Wide';
+            else if (width >= 1201) breakpoint = 'Desktop';
+            else if (width >= 961) breakpoint = 'Large Tablet';
+            else if (width >= 768) breakpoint = 'Tablet';
+            else if (width >= 576) breakpoint = 'Mobile Large';
+            else if (width >= 480) breakpoint = 'Mobile';
+            else breakpoint = 'Mobile Small';
+
+            breakpointEl.textContent = breakpoint;
+
+            // Update page background based on breakpoint
+            document.body.style.background =
+                breakpoint === 'Desktop' ? '#e8f4fd' :
+                breakpoint.includes('Tablet') ? '#fff4e6' :
+                breakpoint.includes('Mobile') ? '#f3e5f5' : '#f8fafc';
+        }
+
+        // Initialize
+        updateViewportInfo();
+        window.addEventListener('resize', updateViewportInfo);
+
+        // Resize functionality
+        let isResizing = false;
+        const resizeHandle = document.getElementById('resizeHandle');
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.style.cursor = 'ew-resize';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isResizing) {
+                const newWidth = e.clientX;
+                if (newWidth >= 320 && newWidth <= screen.width) {
+                    window.resizeTo(newWidth, window.innerHeight);
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            document.body.style.cursor = 'default';
+        });
+
+        // Touch support for mobile
+        resizeHandle.addEventListener('touchstart', (e) => {
+            isResizing = true;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isResizing && e.touches.length > 0) {
+                const newWidth = e.touches[0].clientX;
+                if (newWidth >= 320 && newWidth <= screen.width) {
+                    window.resizeTo(newWidth, window.innerHeight);
+                }
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            isResizing = false;
+        });
+
+        // Log responsive features
+        console.log('🎯 Responsive Design Test Loaded');
+        console.log('📱 Breakpoints:');
+        console.log('  - Mobile Small: < 480px');
+        console.log('  - Mobile: 576px - 767px');
+        console.log('  - Tablet: 768px - 960px');
+        console.log('  - Large Tablet: 961px - 1200px');
+        console.log('  - Desktop: 1201px - 1920px');
+        console.log('  - Ultra Wide: > 1920px');
+    </script>
+</body>
+</html>

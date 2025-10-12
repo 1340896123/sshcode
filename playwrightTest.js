@@ -41,7 +41,7 @@ test('test', async ({ page }) => {
     console.log('失败原因:', request.failure());
   });
   
-  await page.goto('http://localhost:3002/');
+  await page.goto('http://localhost:3003/');
   
   // 等待一段时间让页面完全加载并捕获所有可能的错误
   await page.waitForTimeout(3000);

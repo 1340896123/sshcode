@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VS Code SSH会话管理器演示</title>
+    <link rel="stylesheet" href="./src/styles/token.css">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family-base);
+            background: var(--editor-background);
+            color: var(--editor-foreground);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .demo-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-header {
+            background: var(--background-secondary);
+            border-bottom: 1px solid var(--border-primary);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .demo-title {
+            font-size: 14px;
+            font-weight: var(--font-weight-semibold);
+            color: var(--foreground-primary);
+        }
+
+        .demo-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .demo-button {
+            padding: 6px 12px;
+            background: var(--background-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 3px;
+            color: var(--foreground-primary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+
+        .demo-button:hover {
+            background: var(--background-hover);
+        }
+
+        .demo-button.primary {
+            background: var(--accent-primary);
+            color: var(--color-white);
+            border-color: var(--accent-primary);
+        }
+
+        .demo-button.primary:hover {
+            background: var(--interactive-primary-hover);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <div class="demo-title">🖥️ VS Code SSH会话管理器 - 演示页面</div>
+            <div class="demo-actions">
+                <button class="demo-button" onclick="toggleView()">切换视图</button>
+                <button class="demo-button primary" onclick="openModal()">打开会话管理</button>
+            </div>
+        </div>
+
+        <div id="vscode-workbench" class="vscode-workbench">
+            <!-- VS Code标题栏 -->
+            <div class="vscode-titlebar">
+                <div class="vscode-titlebar-left">
+                    <span class="vscode-window-icon">🖥️</span>
+                    <span class="vscode-titlebar-title">SSH会话管理器 - Visual Studio Code</span>
+                </div>
+                <div class="vscode-titlebar-right">
+                    <button class="vscode-titlebar-button" title="最小化">─</button>
+                    <button class="vscode-titlebar-button" title="最大化">□</button>
+                    <button class="vscode-titlebar-button vscode-close-button" title="关闭">✕</button>
+                </div>
+            </div>
+
+            <!-- VS Code活动栏 -->
+            <div class="vscode-activity-bar">
+                <div class="vscode-activity-item active" title="SSH配置">
+                    <span class="vscode-activity-icon">📁</span>
+                </div>
+                <div class="vscode-activity-item" title="搜索">
+                    <span class="vscode-activity-icon">🔍</span>
+                </div>
+                <div class="vscode-activity-item" title="设置">
+                    <span class="vscode-activity-icon">⚙️</span>
+                </div>
+            </div>
+
+            <!-- VS Code侧边栏 -->
+            <div class="vscode-sidebar">
+                <div class="vscode-explorer">
+                    <div class="vscode-explorer-header">
+                        <div class="vscode-explorer-title">
+                            <span>SSH配置</span>
+                            <div class="vscode-explorer-actions">
+                                <button class="vscode-action-button" title="新建SSH配置">
+                                    <span>➕</span>
+                                </button>
+                                <button class="vscode-action-button" title="刷新">
+                                    <span>🔄</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vscode-explorer-content">
+                        <!-- 搜索框 -->
+                        <div class="vscode-search-section">
+                            <div class="vscode-search-header">
+                                <span>🔍</span>
+                                <input
+                                    type="text"
+                                    placeholder="搜索配置..."
+                                    class="vscode-search-input"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- 分组筛选 -->
+                        <div class="vscode-outline">
+                            <div class="vscode-outline-header">
+                                <span>📁</span>
+                                <span>分组</span>
+                            </div>
+                            <div class="vscode-outline-items">
+                                <div class="vscode-outline-item active">
+                                    <span class="vscode-outline-icon">📂</span>
+                                    <span class="vscode-outline-label">所有分组</span>
+                                    <span class="vscode-outline-count">5</span>
+                                </div>
+                                <div class="vscode-outline-item">
+                                    <span class="vscode-outline-icon">📁</span>
+                                    <span class="vscode-outline-label">生产环境</span>
+                                    <span class="vscode-outline-count">2</span>
+                                </div>
+                                <div class="vscode-outline-item">
+                                    <span class="vscode-outline-icon">📁</span>
+                                    <span class="vscode-outline-label">开发环境</span>
+                                    <span class="vscode-outline-count">2</span>
+                                </div>
+                                <div class="vscode-outline-item">
+                                    <span class="vscode-outline-icon">📁</span>
+                                    <span class="vscode-outline-label">测试环境</span>
+                                    <span class="vscode-outline-count">1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SSH配置列表 -->
+                        <div class="vscode-ssh-list">
+                            <div class="vscode-ssh-header">
+                                <span>🌐</span>
+                                <span>SSH连接</span>
+                            </div>
+                            <div class="vscode-ssh-items">
+                                <div class="vscode-ssh-item">
+                                    <div class="vscode-ssh-main">
+                                        <div class="vscode-ssh-info">
+                                            <span class="vscode-ssh-icon">🟢</span>
+                                            <span class="vscode-ssh-name">生产服务器</span>
+                                        </div>
+                                        <div class="vscode-ssh-actions">
+                                            <button class="vscode-ssh-action" title="连接">▶️</button>
+                                            <button class="vscode-ssh-action" title="编辑">✏️</button>
+                                            <button class="vscode-ssh-action" title="删除">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div class="vscode-ssh-details">
+                                        <span class="vscode-ssh-connection">root@192.168.1.100:22</span>
+                                        <span class="vscode-ssh-group">🏭 生产环境</span>
+                                    </div>
+                                </div>
+
+                                <div class="vscode-ssh-item">
+                                    <div class="vscode-ssh-main">
+                                        <div class="vscode-ssh-info">
+                                            <span class="vscode-ssh-icon">🟢</span>
+                                            <span class="vscode-ssh-name">开发服务器</span>
+                                        </div>
+                                        <div class="vscode-ssh-actions">
+                                            <button class="vscode-ssh-action" title="连接">▶️</button>
+                                            <button class="vscode-ssh-action" title="编辑">✏️</button>
+                                            <button class="vscode-ssh-action" title="删除">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div class="vscode-ssh-details">
+                                        <span class="vscode-ssh-connection">dev@dev.example.com:22</span>
+                                        <span class="vscode-ssh-group">🛠️ 开发环境</span>
+                                    </div>
+                                    <div class="vscode-ssh-description">
+                                        用于日常开发和测试的Ubuntu服务器
+                                    </div>
+                                </div>
+
+                                <div class="vscode-ssh-item">
+                                    <div class="vscode-ssh-main">
+                                        <div class="vscode-ssh-info">
+                                            <span class="vscode-ssh-icon">⚪</span>
+                                            <span class="vscode-ssh-name">测试服务器</span>
+                                        </div>
+                                        <div class="vscode-ssh-actions">
+                                            <button class="vscode-ssh-action" title="连接">▶️</button>
+                                            <button class="vscode-ssh-action" title="编辑">✏️</button>
+                                            <button class="vscode-ssh-action" title="删除">🗑️</button>
+                                        </div>
+                                    </div>
+                                    <div class="vscode-ssh-details">
+                                        <span class="vscode-ssh-connection">test@test.example.com:22</span>
+                                        <span class="vscode-ssh-group">🧪 测试环境</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VS Code编辑器区域 -->
+            <div class="vscode-editor">
+                <div class="vscode-welcome">
+                    <div class="vscode-welcome-content">
+                        <div class="vscode-welcome-header">
+                            <h1>SSH会话管理器</h1>
+                            <p>管理您的远程服务器连接配置</p>
+                        </div>
+
+                        <div class="vscode-welcome-stats">
+                            <div class="vscode-stat-card">
+                                <div class="vscode-stat-number">5</div>
+                                <div class="vscode-stat-label">总会话数</div>
+                            </div>
+                            <div class="vscode-stat-card">
+                                <div class="vscode-stat-number">4</div>
+                                <div class="vscode-stat-label">已分组</div>
+                            </div>
+                            <div class="vscode-stat-card">
+                                <div class="vscode-stat-number">3</div>
+                                <div class="vscode-stat-label">分组数</div>
+                            </div>
+                        </div>
+
+                        <div class="vscode-welcome-actions">
+                            <button class="demo-button primary" onclick="showNewSessionForm()">
+                                <span>➕</span>
+                                <span>新建SSH配置</span>
+                            </button>
+                        </div>
+
+                        <div class="vscode-welcome-tips">
+                            <h3>快速开始</h3>
+                            <div class="vscode-tips-grid">
+                                <div class="vscode-tip-item">
+                                    <span class="vscode-tip-icon">📁</span>
+                                    <div class="vscode-tip-content">
+                                        <h4>浏览配置</h4>
+                                        <p>在左侧文件资源管理器中查看所有SSH配置</p>
+                                    </div>
+                                </div>
+                                <div class="vscode-tip-item">
+                                    <span class="vscode-tip-icon">🔍</span>
+                                    <div class="vscode-tip-content">
+                                        <h4>快速搜索</h4>
+                                        <p>使用搜索框快速找到特定配置</p>
+                                    </div>
+                                </div>
+                                <div class="vscode-tip-item">
+                                    <span class="vscode-tip-icon">⚡</span>
+                                    <div class="vscode-tip-content">
+                                        <h4>一键连接</h4>
+                                        <p>点击连接按钮快速建立SSH连接</p>
+                                    </div>
+                                </div>
+                                <div class="vscode-tip-item">
+                                    <span class="vscode-tip-icon">🔐</span>
+                                    <div class="vscode-tip-content">
+                                        <h4>安全认证</h4>
+                                        <p>支持密码和SSH密钥两种认证方式</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="vscode-welcome-recent">
+                            <h3>最近配置</h3>
+                            <div class="vscode-recent-list">
+                                <div class="vscode-recent-item">
+                                    <span class="vscode-recent-icon">🖥️</span>
+                                    <span class="vscode-recent-name">生产服务器</span>
+                                    <span class="vscode-recent-connection">root@192.168.1.100:22</span>
+                                </div>
+                                <div class="vscode-recent-item">
+                                    <span class="vscode-recent-icon">🖥️</span>
+                                    <span class="vscode-recent-name">开发服务器</span>
+                                    <span class="vscode-recent-connection">dev@dev.example.com:22</span>
+                                </div>
+                                <div class="vscode-recent-item">
+                                    <span class="vscode-recent-icon">🖥️</span>
+                                    <span class="vscode-recent-name">测试服务器</span>
+                                    <span class="vscode-recent-connection">test@test.example.com:22</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VS Code状态栏 -->
+            <div class="vscode-statusbar">
+                <div class="vscode-statusbar-left">
+                    <span class="vscode-statusbar-item">
+                        <span class="vscode-statusbar-icon">🖥️</span>
+                        SSH管理器
+                    </span>
+                    <span class="vscode-statusbar-item">5 个配置</span>
+                    <span class="vscode-statusbar-item">Git: main</span>
+                </div>
+                <div class="vscode-statusbar-right">
+                    <span class="vscode-statusbar-item">所有分组</span>
+                    <span class="vscode-statusbar-item">UTF-8</span>
+                    <span class="vscode-statusbar-item">JavaScript</span>
+                    <span class="vscode-statusbar-item">v1.0.0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'welcome';
+
+        function toggleView() {
+            const editor = document.querySelector('.vscode-editor');
+            if (currentView === 'welcome') {
+                // 切换到表单视图
+                editor.innerHTML = `
+                    <div class="vscode-editor-panel">
+                        <div class="vscode-editor-tabs">
+                            <div class="vscode-tab active">
+                                <span>📝</span>
+                                <span>新建SSH配置</span>
+                            </div>
+                        </div>
+                        <div class="vscode-editor-content">
+                            <form class="vscode-form">
+                                <div class="vscode-form-section">
+                                    <div class="vscode-form-header">
+                                        <span>📋 基本信息</span>
+                                    </div>
+                                    <div class="vscode-form-row">
+                                        <div class="vscode-form-field">
+                                            <label class="vscode-label">连接名称</label>
+                                            <input type="text" class="vscode-textarea" placeholder="例如：生产服务器" />
+                                        </div>
+                                    </div>
+                                    <div class="vscode-form-row">
+                                        <div class="vscode-form-field">
+                                            <label class="vscode-label">环境分组</label>
+                                            <select class="vscode-textarea">
+                                                <option value="">默认分组</option>
+                                                <option value="production">🏭 生产环境</option>
+                                                <option value="development">🛠️ 开发环境</option>
+                                                <option value="testing">🧪 测试环境</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="vscode-form-section">
+                                    <div class="vscode-form-header">
+                                        <span>🌐 连接配置</span>
+                                    </div>
+                                    <div class="vscode-form-row">
+                                        <div class="vscode-form-field">
+                                            <label class="vscode-label">服务器地址</label>
+                                            <input type="text" class="vscode-textarea" placeholder="192.168.1.100 或 example.com" />
+                                        </div>
+                                        <div class="vscode-form-field vscode-port-field">
+                                            <label class="vscode-label">端口</label>
+                                            <input type="number" class="vscode-textarea" placeholder="22" />
+                                        </div>
+                                    </div>
+                                    <div class="vscode-form-row">
+                                        <div class="vscode-form-field">
+                                            <label class="vscode-label">用户名</label>
+                                            <input type="text" class="vscode-textarea" placeholder="root 或 ubuntu" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="vscode-form-actions">
+                                    <button type="button" class="demo-button">取消</button>
+                                    <button type="submit" class="demo-button primary">🚀 创建连接</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                currentView = 'form';
+            } else {
+                // 切换回欢迎视图
+                location.reload();
+            }
+        }
+
+        function openModal() {
+            alert('VS Code风格的SSH会话管理器演示！\n\n主要特色：\n• 🎨 VS Code Dark+ 主题色彩\n• 📋 文件资源管理器风格侧边栏\n• 🔧 可拖拽分割的面板布局\n• 📊 底部状态栏信息显示\n• 🏷️ 标签页系统\n• ⚡ 快速命令面板');
+        }
+
+        function showNewSessionForm() {
+            toggleView();
+        }
+
+        // 添加交互事件
+        document.addEventListener('DOMContentLoaded', function() {
+            // 活动栏点击事件
+            document.querySelectorAll('.vscode-activity-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.vscode-activity-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // 大纲项点击事件
+            document.querySelectorAll('.vscode-outline-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('.vscode-outline-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // SSH项悬停效果
+            document.querySelectorAll('.vscode-ssh-item').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.querySelector('.vscode-ssh-actions').style.opacity = '1';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.querySelector('.vscode-ssh-actions').style.opacity = '0';
+                });
+            });
+
+            console.log('🎉 VS Code风格SSH会话管理器演示已加载！');
+            console.log('🎨 基于VS Code Dark+主题设计');
+            console.log('📋 完整的文件资源管理器界面');
+            console.log('⚡ 交互式侧边栏和编辑器');
+        });
+    </script>
+</body>
+</html>

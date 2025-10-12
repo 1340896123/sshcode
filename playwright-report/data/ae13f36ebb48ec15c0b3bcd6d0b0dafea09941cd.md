@@ -1,0 +1,62 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e7]: S
+          - heading "SSH Remote" [level=1] [ref=e8]
+        - button "🔗 会话管理" [ref=e9] [cursor=pointer]:
+          - generic [ref=e10]: 🔗
+          - generic [ref=e11]: 会话管理
+      - generic [ref=e12]:
+        - generic [ref=e15]: 未连接
+        - button "⚙️" [ref=e16] [cursor=pointer]
+    - generic [ref=e19]:
+      - generic [ref=e20]: 💻
+      - heading "欢迎使用 SSH Remote" [level=2] [ref=e21]
+      - paragraph [ref=e22]: 点击上方的"会话管理"按钮创建您的第一个SSH连接
+      - button "创建会话" [ref=e23] [cursor=pointer]
+  - generic [ref=e25]:
+    - generic [ref=e26]:
+      - heading "设置" [level=2] [ref=e27]
+      - button "×" [ref=e28] [cursor=pointer]
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - heading "AI 配置" [level=3] [ref=e31]
+        - generic [ref=e32]:
+          - generic [ref=e33]: AI 提供商
+          - combobox [ref=e34]:
+            - option "OpenAI" [selected]
+            - option "Anthropic"
+            - option "Local"
+        - generic [ref=e35]:
+          - generic [ref=e36]: API Key
+          - textbox "请输入API密钥" [ref=e37]
+      - generic [ref=e38]:
+        - heading "终端设置" [level=3] [ref=e39]
+        - generic [ref=e40]:
+          - generic [ref=e41]: 字体大小
+          - spinbutton [ref=e42]: "14"
+        - generic [ref=e43]:
+          - generic [ref=e44]: 字体
+          - combobox [ref=e45]:
+            - option "Consolas" [selected]
+            - option "Monaco"
+            - option "Courier New"
+      - generic [ref=e46]:
+        - heading "常规设置" [level=3] [ref=e47]
+        - generic [ref=e49]:
+          - checkbox "自动保存会话" [checked] [ref=e50]
+          - text: 自动保存会话
+        - generic [ref=e51]:
+          - generic [ref=e52]: 主题
+          - combobox [ref=e53]:
+            - option "深色" [selected]
+            - option "浅色"
+    - generic [ref=e54]:
+      - button "保存设置" [ref=e55] [cursor=pointer]
+      - button "取消" [ref=e56] [cursor=pointer]
+```
