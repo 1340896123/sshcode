@@ -838,7 +838,10 @@ Swap:         2.0Gi          0B       2.0Gi`
       // 找到对应的自动补全组件
       const autocompleteRef = autocompleteRefs.value[connection.id]
 
-      if (autocompleteRef && autocompleteRef.filteredSuggestions && autocompleteRef.filteredSuggestions.value.length > 0) {
+      if (autocompleteRef && 
+          autocompleteRef.filteredSuggestions && 
+          autocompleteRef.filteredSuggestions.value && 
+          autocompleteRef.filteredSuggestions.value.length > 0) {
         // 如果有建议项，选择第一个建议项
         const firstSuggestion = autocompleteRef.filteredSuggestions.value[0]
         handleAutocompleteSelect(firstSuggestion.command)
