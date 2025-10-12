@@ -15,7 +15,7 @@
         </h1>
       </div>
 
-      <!-- 会话管理按钮 -->
+      <!-- 连接管理按钮 -->
       <button
         class="session-btn"
         @click="$emit('open-session-modal')"
@@ -26,7 +26,7 @@
         ref="sessionBtn"
       >
         <span class="session-btn-icon">🔗</span>
-        <span>会话管理</span>
+        <span>连接管理</span>
       </button>
     </div>
 

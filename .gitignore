@@ -3,3 +3,4 @@ dist
 test
 test-results
 temp
+playwright-report

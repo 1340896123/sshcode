@@ -60,7 +60,7 @@
                     type="checkbox"
                     class="setting-checkbox"
                   />
-                  自动保存会话
+                  自动保存连接
                 </label>
               </div>
               <div class="setting-item">

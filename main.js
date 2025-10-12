@@ -87,15 +87,15 @@ ipcMain.handle('save-session', async (event, sessionData) => {
 ipcMain.handle('get-sessions', async () => {
   try {
     const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
-    console.log('读取会话文件:', sessionsPath);
+    console.log('读取连接文件:', sessionsPath);
     
     if (fs.existsSync(sessionsPath)) {
       const data = fs.readFileSync(sessionsPath, 'utf8');
       const sessions = JSON.parse(data);
-      console.log('读取到会话数量:', sessions.length);
+      console.log('读取到连接数量:', sessions.length);
       return sessions;
     }
-    console.log('会话文件不存在，返回空数组');
+    console.log('连接文件不存在，返回空数组');
     return [];
   } catch (error) {
     console.error('Error reading sessions:', error);

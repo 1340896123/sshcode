@@ -30,7 +30,7 @@ export function useSessions() {
       const sessionList = await window.electronAPI.getSessions();
       setSessions(sessionList || []);
     } catch (error) {
-      console.error('加载会话失败:', error);
+      console.error('加载连接失败:', error);
     } finally {
       setLoading(false);
     }
@@ -41,10 +41,10 @@ export function useSessions() {
     
     try {
       await window.electronAPI.saveSession(sessionData);
-      await loadSessions(); // 重新加载会话列表
+      await loadSessions(); // 重新加载连接列表
       return true;
     } catch (error) {
-      console.error('保存会话失败:', error);
+      console.error('保存连接失败:', error);
       return false;
     }
   };
@@ -54,10 +54,10 @@ export function useSessions() {
     
     try {
       await window.electronAPI.deleteSession(sessionId);
-      await loadSessions(); // 重新加载会话列表
+      await loadSessions(); // 重新加载连接列表
       return true;
     } catch (error) {
-      console.error('删除会话失败:', error);
+      console.error('删除连接失败:', error);
       return false;
     }
   };

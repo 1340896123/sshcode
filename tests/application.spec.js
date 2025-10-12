@@ -31,7 +31,7 @@ test.describe('SSH Remote Application - Main Features', () => {
     // Check session management button
     const sessionBtn = page.locator('.session-btn');
     await expect(sessionBtn).toBeVisible();
-    await expect(sessionBtn).toContainText('会话管理');
+    await expect(sessionBtn).toContainText('连接管理');
     await expect(sessionBtn).toContainText('🔗');
 
     // Check connection status indicator
@@ -52,7 +52,7 @@ test.describe('SSH Remote Application - Main Features', () => {
     // Check if modal appears
     await expect(page.locator('.modal-overlay')).toBeVisible();
     await expect(page.locator('.modal-content')).toBeVisible();
-    await expect(page.locator('.modal-header h2')).toContainText('会话管理');
+    await expect(page.locator('.modal-header h2')).toContainText('连接管理');
 
     // Check modal content
     await expect(page.locator('.empty-sessions')).toBeVisible();
@@ -114,20 +114,20 @@ test.describe('SSH Remote Application - Main Features', () => {
     await expect(page.locator('.empty-state')).toBeVisible();
     await expect(page.locator('.empty-icon')).toContainText('💻');
     await expect(page.locator('h2')).toContainText('欢迎使用 SSH Remote');
-    await expect(page.locator('p')).toContainText('点击上方的"会话管理"按钮创建您的第一个SSH连接');
+    await expect(page.locator('p')).toContainText('点击上方的"连接管理"按钮创建您的第一个SSH连接');
   });
 
   test('toast notifications work correctly', async ({ page }) => {
     // Open session modal
     await page.click('.session-btn');
 
-    // Click "新建会话" button (should show a toast)
+    // Click "新建连接" button (should show a toast)
     await page.click('.primary-btn');
 
     // Check if toast appears
     await expect(page.locator('.toast-container')).toBeVisible();
     await expect(page.locator('.toast')).toBeVisible();
-    await expect(page.locator('.toast')).toContainText('会话创建功能即将推出');
+    await expect(page.locator('.toast')).toContainText('连接创建功能即将推出');
 
     // Click toast to remove it
     await page.click('.toast');

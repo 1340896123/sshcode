@@ -16,6 +16,7 @@
       :is-open="isSessionModalOpen"
       @close="isSessionModalOpen = false"
       @show-notification="handleShowNotification"
+      @session-connected="handleSessionConnected"
     />
 
     <SettingsModal
@@ -32,7 +33,7 @@
 import { ref, onMounted, onUnmounted, reactive } from 'vue'
 import Header from './components/Header.vue'
 import TabManager from './components/TabManager.vue'
-import SessionModal from './components/SessionModal.vue'
+import SessionModal from './components/ConnectionModal.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ToastContainer from './components/ui/ToastContainer.vue'
 
@@ -133,7 +134,7 @@ export default {
     }
 
     const handleKeyDown = (e) => {
-      // Ctrl/Cmd + K 打开会话管理
+      // Ctrl/Cmd + K 打开连接管理
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         isSessionModalOpen.value = true

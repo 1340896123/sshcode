@@ -8,17 +8,17 @@
         - generic [ref=e6]:
           - generic [ref=e7]: S
           - heading "SSH Remote" [level=1] [ref=e8]
-        - button "🔗 会话管理" [ref=e9] [cursor=pointer]:
+        - button "🔗 连接管理" [ref=e9] [cursor=pointer]:
           - generic [ref=e10]: 🔗
-          - generic [ref=e11]: 会话管理
+          - generic [ref=e11]: 连接管理
       - generic [ref=e12]:
         - generic [ref=e15]: 未连接
         - button "⚙️" [ref=e16] [cursor=pointer]
     - generic [ref=e19]:
       - generic [ref=e20]: 💻
       - heading "欢迎使用 SSH Remote" [level=2] [ref=e21]
-      - paragraph [ref=e22]: 点击上方的"会话管理"按钮创建您的第一个SSH连接
-      - button "创建会话" [ref=e23] [cursor=pointer]
+      - paragraph [ref=e22]: 点击上方的"连接管理"按钮创建您的第一个SSH连接
+      - button "创建连接" [ref=e23] [cursor=pointer]
   - generic [ref=e25]:
     - generic [ref=e26]:
       - heading "设置" [level=2] [ref=e27]
@@ -49,8 +49,8 @@
       - generic [ref=e46]:
         - heading "常规设置" [level=3] [ref=e47]
         - generic [ref=e49]:
-          - checkbox "自动保存会话" [checked] [ref=e50]
-          - text: 自动保存会话
+          - checkbox "自动保存连接" [checked] [ref=e50]
+          - text: 自动保存连接
         - generic [ref=e51]:
           - generic [ref=e52]: 主题
           - combobox [ref=e53]:

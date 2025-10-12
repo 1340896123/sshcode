@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VS Code SSH会话管理器演示</title>
+    <title>VS Code SSH连接管理器演示</title>
     <link rel="stylesheet" href="./src/styles/token.css">
     <link rel="stylesheet" href="./src/styles/main.css">
     <style>
@@ -76,10 +76,10 @@
 <body>
     <div class="demo-container">
         <div class="demo-header">
-            <div class="demo-title">🖥️ VS Code SSH会话管理器 - 演示页面</div>
+            <div class="demo-title">🖥️ VS Code SSH连接管理器 - 演示页面</div>
             <div class="demo-actions">
                 <button class="demo-button" onclick="toggleView()">切换视图</button>
-                <button class="demo-button primary" onclick="openModal()">打开会话管理</button>
+                <button class="demo-button primary" onclick="openModal()">打开连接管理</button>
             </div>
         </div>
 
@@ -88,7 +88,7 @@
             <div class="vscode-titlebar">
                 <div class="vscode-titlebar-left">
                     <span class="vscode-window-icon">🖥️</span>
-                    <span class="vscode-titlebar-title">SSH会话管理器 - Visual Studio Code</span>
+                    <span class="vscode-titlebar-title">SSH连接管理器 - Visual Studio Code</span>
                 </div>
                 <div class="vscode-titlebar-right">
                     <button class="vscode-titlebar-button" title="最小化">─</button>
@@ -244,14 +244,14 @@
                 <div class="vscode-welcome">
                     <div class="vscode-welcome-content">
                         <div class="vscode-welcome-header">
-                            <h1>SSH会话管理器</h1>
+                            <h1>SSH连接管理器</h1>
                             <p>管理您的远程服务器连接配置</p>
                         </div>
 
                         <div class="vscode-welcome-stats">
                             <div class="vscode-stat-card">
                                 <div class="vscode-stat-number">5</div>
-                                <div class="vscode-stat-label">总会话数</div>
+                                <div class="vscode-stat-label">总连接数</div>
                             </div>
                             <div class="vscode-stat-card">
                                 <div class="vscode-stat-number">4</div>
@@ -426,7 +426,7 @@
         }
 
         function openModal() {
-            alert('VS Code风格的SSH会话管理器演示！\n\n主要特色：\n• 🎨 VS Code Dark+ 主题色彩\n• 📋 文件资源管理器风格侧边栏\n• 🔧 可拖拽分割的面板布局\n• 📊 底部状态栏信息显示\n• 🏷️ 标签页系统\n• ⚡ 快速命令面板');
+            alert('VS Code风格的SSH连接管理器演示！\n\n主要特色：\n• 🎨 VS Code Dark+ 主题色彩\n• 📋 文件资源管理器风格侧边栏\n• 🔧 可拖拽分割的面板布局\n• 📊 底部状态栏信息显示\n• 🏷️ 标签页系统\n• ⚡ 快速命令面板');
         }
 
         function showNewSessionForm() {
@@ -461,7 +461,7 @@
                 });
             });
 
-            console.log('🎉 VS Code风格SSH会话管理器演示已加载！');
+            console.log('🎉 VS Code风格SSH连接管理器演示已加载！');
             console.log('🎨 基于VS Code Dark+主题设计');
             console.log('📋 完整的文件资源管理器界面');
             console.log('⚡ 交互式侧边栏和编辑器');

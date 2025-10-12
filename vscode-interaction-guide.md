@@ -1,8 +1,8 @@
-# VS Code风格SSH会话管理器 - 交互体验优化指南
+# VS Code风格SSH连接管理器 - 交互体验优化指南
 
 ## 🎯 设计目标
 
-创建一个完全符合VS Code用户习惯的SSH会话管理界面，让用户感觉就像在使用VS Code的原生功能。
+创建一个完全符合VS Code用户习惯的SSH连接管理界面，让用户感觉就像在使用VS Code的原生功能。
 
 ## 🎨 核心设计特色
 
@@ -158,8 +158,8 @@ const VSCodeState = {
   activeTab: 'explorer',      // 当前活动标签
   selectedGroup: 'all',       // 选中的分组
   searchTerm: '',             // 搜索关键词
-  editingSession: null,       // 正在编辑的会话
-  connectingIds: new Set(),   // 连接中的会话ID
+  editingSession: null,       // 正在编辑的连接
+  connectingIds: new Set(),   // 连接中的连接ID
   sidebarWidth: 300,          // 侧边栏宽度
   viewMode: 'welcome'         // 编辑器视图模式
 };
@@ -204,4 +204,4 @@ const VSCodeState = {
 ✅ **优秀的性能表现** - 流畅的交互体验
 ✅ **完整的响应式设计** - 支持各种设备使用
 
-这个VS Code风格的SSH会话管理器不仅提供了强大的功能，更重要的是提供了用户熟悉的交互体验，让SSH连接管理变得像管理代码文件一样简单自然。
+这个VS Code风格的SSH连接管理器不仅提供了强大的功能，更重要的是提供了用户熟悉的交互体验，让SSH连接管理变得像管理代码文件一样简单自然。

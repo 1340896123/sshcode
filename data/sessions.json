@@ -4,36 +4,12 @@
     "name": "生产服务器",
     "host": "192.168.1.118",
     "port": "22",
-    "username": "jieok",
+    "username": "admin",
+    "description": "主要生产环境服务器",
+    "authType": "password",
     "password": "1340896123",
-    "authType": "password",
     "keyPath": "",
-    "group": "production",
-    "description": "主要生产环境服务器"
-  },
-  {
-    "id": "session-2-1760197539246",
-    "name": "开发服务器",
-    "host": "192.168.1.200",
-    "port": 22,
-    "username": "developer",
-    "authType": "key",
-    "keyPath": "~/.ssh/id_rsa",
-    "group": "development",
-    "description": "开发测试环境",
-    "createdAt": "2025-10-11T15:45:39.246Z",
-    "updatedAt": "2025-10-11T15:45:39.246Z"
-  },
-  {
-    "id": "session-3-1760197539246",
-    "name": "测试服务器",
-    "host": "192.168.1.300",
-    "port": 2222,
-    "username": "test",
-    "authType": "password",
-    "group": "testing",
-    "description": "自动化测试环境",
-    "createdAt": "2025-10-11T15:45:39.246Z",
-    "updatedAt": "2025-10-11T15:45:39.246Z"
+    "keyContent": "",
+    "updatedAt": "2025-10-12T12:06:06.167Z"
   }
 ]
