@@ -9,15 +9,20 @@ This is an Electron-based SSH remote connection application that integrates file
 ## Development Commands
 
 ### Core Development
-- `npm run build` - Build the application for production
-- `npm start` - Build and start the Electron app
-- `npm run debug` - Start Electron with DevTools and remote debugging
-- `npm run debug-main` - Start Electron in development mode
+- `npm run build` - Build the application for production using Vite
+- `npm start` - Build and start the Electron app (production mode)
+- `npm run devUI` - Start Vite development server for UI components
+- `npm run debug` - Start Electron with DevTools and remote debugging (port 9222)
+- `npm run debug-renderer` - Start Vite dev server only
+- `npm run debug-main` - Start Electron in development mode with debugging
+- `npm run debug:inspect` - Start with Node.js inspector on port 9229
+- `npm run debug:break` - Start with inspector breaking on first line
 - `npm run build-electron` - Build and create distributable Electron app
 - `npm run dist` - Build and package for distribution
 
 ### Testing
 - Test configuration setup available via @playwright/test
+- Development server for testing runs on port 3003
 
 ## Architecture Overview
 
@@ -37,16 +42,32 @@ The Vue 3 frontend follows a modular component architecture:
 **Key Directories:**
 - `src/components/` - Vue components organized by functionality
 - `src/components/ui/` - Reusable UI components (ToastContainer)
+- `src/components/tabs/` - Tab-related components (TabBar, WelcomeScreen, ConnectionContent)
+- `src/components/connection/` - Connection state components (StatusBar, ConnectingState, etc.)
+- `src/components/layout/` - Layout components (ThreePanelLayout)
 - `src/hooks/` - Custom Vue 3 composition API hooks
+- `src/composables/` - Shared composables (useAIChat, useConnectionManager, etc.)
+- `src/constants/` - Application constants (AI constants)
+- `src/utils/` - Utility functions (aiService)
 - `src/styles/` - SCSS styling utilities and design tokens
+- `src/styles/components/` - Component-specific styles
 
 **Component Organization:**
-- `App.vue` - Root component with layout and global state
-- `Header.vue` - Application header with navigation
-- `TabManager.vue` - SSH session tab management
+- `App.vue` - Root component with layout, global state, and Electron API setup
+- `Header.vue` - Application header with navigation and settings access
+- `TabManager.vue` - SSH session tab management and connection lifecycle
 - `ConnectionModal.vue` - SSH connection creation and management
-- `SettingsModal.vue` - Application settings interface
-- `ToastContainer.vue` - Notification system
+- `SettingsModal.vue` - Application settings interface with AI configuration
+- `ToastContainer.vue` - Global notification system
+
+**Additional Key Components:**
+- `AIAssistant.vue` - AI chat interface and command execution
+- `FileManager.vue` - SFTP file browser and operations
+- `TerminalAutocomplete.vue` - Terminal command autocomplete functionality
+- `ContextMenu.vue` - Right-click context menus
+- `ThreePanelLayout.vue` - Main application layout with three panels
+- `ConnectionStatusBar.vue` - SSH connection status indicator
+- `WelcomeScreen.vue` - Initial screen for new users
 
 ### State Management
 - Vue 3 Composition API with `reactive` and `ref`
@@ -112,38 +133,75 @@ ipcMain.handle('method-name', async (event, params) => {
 ### Available IPC Methods
 - **Session Management:** `saveSession`, `getSessions`, `deleteSession`
 - **SSH Operations:** `sshConnect`, `sshExecute`, `sshDisconnect`
-- **File Operations:** `getFileList`, `uploadFile`, `downloadFile`
+- **File Operations:** `getFileList`, `uploadFile`, `downloadFile`, `downloadAndOpenFile`, `selectAndUploadFile`, `uploadDroppedFile`
+- **SSH Key Management:** `readSSHKey`
+- **File Watching:** `startFileWatcher`, `stopFileWatcher`
 - **Configuration:** `getConfig`, `saveConfig`
 - **AI Integration:** `testAIConnection`
 
 ## Configuration Files
 
 ### Application Config (config/app.yml)
-```yaml
-ai:
-  provider: custom
-  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
-  apiKey: ""
-  model: glm-4.5
-  maxTokens: 8000
-  temperature: 0.7
+The application uses a comprehensive YAML configuration with multiple sections:
 
+```yaml
+# General application settings
 general:
   language: zh-CN
   theme: dark
+  zoom: 1
   autoSaveSessions: true
+  reconnectOnStart: false
+  connectionTimeout: 30
+  enableNotifications: true
+  soundEnabled: true
 
+# Terminal configuration
 terminal:
   font: Consolas
   fontSize: 14
+  lineHeight: 1.2
   bell: false
   cursorBlink: true
+  cursorStyle: block
+  scrollback: 1000
+  copyShortcut: ctrl-c
+  pasteShortcut: ctrl-v
 
+# Security settings
 security:
   encryptPasswords: false
   sessionTimeout: 30
   confirmDangerousCommands: true
+
+# AI Chat configuration
+aiChat:
+  provider: custom
+  apiKey: ""
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  model: ""
+  customModel: glm-4.6
+  maxTokens: 8000
+  temperature: 0.7
+  systemPromptEnabled: false
+  systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
+  saveHistory: true
+  historyRetentionDays: 30
+
+# AI Completion configuration
+aiCompletion:
+  provider: custom
+  apiKey: ""
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  model: ""
+  customModel: glm-4.5
+  autoTrigger: true
+  triggerDelay: 500
+  maxSuggestions: 5
+  acceptOnTab: true
 ```
+
+The config also supports a provider pool system for managing multiple AI providers and switching between them.
 
 ### SSH Sessions (data/sessions.json)
 Stores SSH connection configurations with support for:
@@ -170,6 +228,22 @@ Stores SSH connection configurations with support for:
 1. Add handler in `main.js` following existing patterns
 2. Add corresponding method to `window.electronAPI` in `App.vue` (lines 132-151)
 3. Create custom hook in `useElectronAPI.js` if needed
+
+### Key Composables
+- `useAIChat.js` - AI chat functionality and message handling
+- `useConnectionManager.js` - SSH connection lifecycle management
+- `useTerminalManager.js` - Terminal operations and command execution
+- `usePanelManager.js` - UI panel state management
+- `useContextMenu.js` - Context menu functionality
+- `useMessageFormatter.js` - AI message formatting and display
+- `useChatExport.js` - Chat history export functionality
+
+### AI Integration Architecture
+- AI service abstraction in `src/utils/aiService.js`
+- Provider switching and configuration management
+- Real-time chat interface with command execution
+- Safety measures for dangerous command detection
+- Support for multiple AI providers (OpenAI, Anthropic, custom APIs)
 
 ### Styling Guidelines
 - Use design tokens from `variables.scss`
