@@ -1,24 +1,3 @@
-ai:
-  provider: custom
-  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
-  apiKey: 6d5b19eba3494d30ab20bc5749ef7e75.HPYVMdF5RSfW61YX
-  model: glm-4.5
-  maxTokens: 8000
-  temperature: 0.7
-  chat:
-    provider: custom
-    baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
-    apiKey: 6d5b19eba3494d30ab20bc5749ef7e75.HPYVMdF5RSfW61YX
-    model: glm-4.5
-    maxTokens: 8000
-    temperature: 0.7
-  completion:
-    provider: custom
-    baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
-    apiKey: 6d5b19eba3494d30ab20bc5749ef7e75.HPYVMdF5RSfW61YX
-    model: glm-4.5-flash
-    maxTokens: 1000
-    temperature: 0.3
 general:
   language: zh-CN
   theme: dark
@@ -43,24 +22,79 @@ security:
   sessionTimeout: 30
   confirmDangerousCommands: true
 aiChat:
-  provider: openai
+  provider: custom
   apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
-  baseUrl: https://api.openai.com/v1
-  model: gpt-3.5-turbo
-  customModel: ''
-  maxTokens: 2000
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  model: ''
+  customModel: glm-4.6
+  maxTokens: 8000
   temperature: 0.7
   systemPromptEnabled: false
   systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
   saveHistory: true
   historyRetentionDays: 30
 aiCompletion:
-  provider: openai
-  apiKey: ''
-  baseUrl: https://api.openai.com/v1
-  model: gpt-3.5-turbo
-  customModel: ''
+  provider: custom
+  apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  model: ''
+  customModel: glm-4.5
   autoTrigger: true
   triggerDelay: 500
   maxSuggestions: 5
   acceptOnTab: true
+lastSavedProviders:
+  aiChat: custom
+  aiCompletion: custom
+  timestamp: '2025-10-12T16:23:58.196Z'
+providerPool:
+  aiChat:
+    openai:
+      provider: openai
+      apiKey: '12236666'
+      baseUrl: https://api.openai.com/v1
+      model: gpt-3.5-turbo
+      customModel: ''
+      maxTokens: 2000
+      temperature: 0.7
+      systemPromptEnabled: false
+      systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
+      saveHistory: true
+      historyRetentionDays: 30
+      lastUpdated: '2025-10-12T16:16:01.200Z'
+    custom:
+      provider: custom
+      apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+      baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+      model: ''
+      customModel: glm-4.6
+      maxTokens: 8000
+      temperature: 0.7
+      systemPromptEnabled: false
+      systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
+      saveHistory: true
+      historyRetentionDays: 30
+      lastUpdated: '2025-10-12T16:23:58.195Z'
+  aiCompletion:
+    openai:
+      provider: openai
+      apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+      baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+      model: gpt-3.5-turbo
+      customModel: glm-4.5
+      autoTrigger: true
+      triggerDelay: 500
+      maxSuggestions: 5
+      acceptOnTab: true
+      lastUpdated: '2025-10-12T16:23:21.257Z'
+    custom:
+      provider: custom
+      apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+      baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+      model: ''
+      customModel: glm-4.5
+      autoTrigger: true
+      triggerDelay: 500
+      maxSuggestions: 5
+      acceptOnTab: true
+      lastUpdated: '2025-10-12T16:23:58.196Z'

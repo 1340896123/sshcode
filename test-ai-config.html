@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI配置测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .config-form {
+            display: grid;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI配置测试</h1>
+        
+        <div class="test-section">
+            <h3>1. 测试获取AI配置</h3>
+            <button onclick="testGetAIConfig()">获取配置</button>
+            <div id="config-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. 设置AI配置</h3>
+            <div class="config-form">
+                <input type="text" id="baseUrl" placeholder="API基础URL" value="https://api.openai.com/v1">
+                <input type="text" id="apiKey" placeholder="API密钥">
+                <input type="text" id="model" placeholder="模型名称" value="gpt-3.5-turbo">
+                <input type="number" id="maxTokens" placeholder="最大令牌数" value="4000">
+                <input type="number" id="temperature" placeholder="温度" value="0.7" step="0.1" min="0" max="2">
+                <button onclick="saveConfig()">保存配置</button>
+                <button onclick="clearConfig()">清除配置</button>
+            </div>
+            <div id="save-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. 测试配置验证</h3>
+            <button onclick="testValidation()">验证当前配置</button>
+            <div id="validation-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. 模拟AI服务调用</h3>
+            <textarea id="testMessage" rows="3" placeholder="输入测试消息...">你好，请帮我查看系统状态</textarea>
+            <button onclick="testAICall()">调用AI服务</button>
+            <div id="ai-result" class="result"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // 模拟aiService模块
+        const aiService = {
+            /**
+             * 检查配置是否有效
+             */
+            isConfigValid(config) {
+                return config && 
+                       config.baseUrl && 
+                       config.apiKey && 
+                       config.model &&
+                       config.baseUrl.trim() !== '' &&
+                       config.apiKey.trim() !== '' &&
+                       config.model.trim() !== ''
+            },
+
+            /**
+             * 获取AI配置
+             */
+            async getAIConfig() {
+                try {
+                    // 尝试从本地存储获取配置
+                    const localConfig = localStorage.getItem('ai-config')
+                    if (localConfig) {
+                        const parsedConfig = JSON.parse(localConfig)
+                        if (this.isConfigValid(parsedConfig)) {
+                            return parsedConfig
+                        }
+                    }
+                    
+                    // 如果没有有效配置，抛出错误引导用户设置
+                    throw new Error('AI_CONFIG_NOT_SET')
+                    
+                } catch (error) {
+                    if (error.message === 'AI_CONFIG_NOT_SET') {
+                        // 触发配置设置引导
+                        this.triggerConfigSetup()
+                        throw error
+                    }
+                    console.error('获取AI配置失败:', error)
+                    throw new Error('AI配置获取失败，请检查设置')
+                }
+            },
+
+            /**
+             * 触发配置设置引导
+             */
+            triggerConfigSetup() {
+                // 触发全局事件，通知组件显示设置引导
+                window.dispatchEvent(new CustomEvent('ai-config-required', {
+                    detail: {
+                        message: '请先配置AI服务设置才能使用AI助手功能'
+                    }
+                }))
+            },
+
+            /**
+             * 验证AI配置
+             */
+            validateAIConfig(config) {
+                if (!config) {
+                    return { valid: false, error: '配置不能为空' }
+                }
+
+                if (!config.baseUrl) {
+                    return { valid: false, error: 'API基础URL不能为空' }
+                }
+
+                if (!config.apiKey) {
+                    return { valid: false, error: 'API密钥不能为空' }
+                }
+
+                if (!config.model) {
+                    return { valid: false, error: '模型名称不能为空' }
+                }
+
+                if (config.maxTokens && (config.maxTokens < 1 || config.maxTokens > 32000)) {
+                    return { valid: false, error: '最大令牌数必须在1-32000之间' }
+                }
+
+                if (config.temperature && (config.temperature < 0 || config.temperature > 2)) {
+                    return { valid: false, error: '温度值必须在0-2之间' }
+                }
+
+                return { valid: true }
+            }
+        }
+
+        // 全局函数
+        window.testGetAIConfig = async function() {
+            const resultDiv = document.getElementById('config-result')
+            try {
+                const config = await aiService.getAIConfig()
+                resultDiv.className = 'result success'
+                resultDiv.textContent = `配置获取成功:\n${JSON.stringify(config, null, 2)}`
+            } catch (error) {
+                resultDiv.className = 'result error'
+                resultDiv.textContent = `配置获取失败: ${error.message}`
+            }
+        }
+
+        window.saveConfig = function() {
+            const config = {
+                baseUrl: document.getElementById('baseUrl').value,
+                apiKey: document.getElementById('apiKey').value,
+                model: document.getElementById('model').value,
+                maxTokens: parseInt(document.getElementById('maxTokens').value),
+                temperature: parseFloat(document.getElementById('temperature').value)
+            }
+
+            const validation = aiService.validateAIConfig(config)
+            const resultDiv = document.getElementById('save-result')
+            
+            if (validation.valid) {
+                localStorage.setItem('ai-config', JSON.stringify(config))
+                resultDiv.className = 'result success'
+                resultDiv.textContent = '配置保存成功!'
+            } else {
+                resultDiv.className = 'result error'
+                resultDiv.textContent = `配置验证失败: ${validation.error}`
+            }
+        }
+
+        window.clearConfig = function() {
+            localStorage.removeItem('ai-config')
+            const resultDiv = document.getElementById('save-result')
+            resultDiv.className = 'result warning'
+            resultDiv.textContent = '配置已清除'
+        }
+
+        window.testValidation = function() {
+            const configStr = localStorage.getItem('ai-config')
+            const resultDiv = document.getElementById('validation-result')
+            
+            if (!configStr) {
+                resultDiv.className = 'result warning'
+                resultDiv.textContent = '没有找到配置'
+                return
+            }
+
+            const config = JSON.parse(configStr)
+            const validation = aiService.validateAIConfig(config)
+            
+            if (validation.valid) {
+                resultDiv.className = 'result success'
+                resultDiv.textContent = '配置验证通过!'
+            } else {
+                resultDiv.className = 'result error'
+                resultDiv.textContent = `配置验证失败: ${validation.error}`
+            }
+        }
+
+        window.testAICall = async function() {
+            const message = document.getElementById('testMessage').value
+            const resultDiv = document.getElementById('ai-result')
+            
+            if (!message.trim()) {
+                resultDiv.className = 'result error'
+                resultDiv.textContent = '请输入测试消息'
+                return
+            }
+
+            try {
+                const config = await aiService.getAIConfig()
+                resultDiv.className = 'result success'
+                resultDiv.textContent = `配置有效，可以调用AI服务\n配置: ${JSON.stringify(config, null, 2)}\n\n注意: 实际API调用需要有效的API密钥和网络连接`
+            } catch (error) {
+                resultDiv.className = 'result error'
+                resultDiv.textContent = `AI服务调用失败: ${error.message}`
+            }
+        }
+
+        // 监听配置需求事件
+        window.addEventListener('ai-config-required', function(event) {
+            const resultDiv = document.getElementById('config-result')
+            resultDiv.className = 'result warning'
+            resultDiv.textContent = `需要配置AI服务: ${event.detail.message}`
+            
+            // 显示设置区域
+            document.querySelector('.test-section:nth-child(2)').scrollIntoView()
+        })
+
+        // 页面加载时显示当前配置状态
+        window.addEventListener('DOMContentLoaded', function() {
+            const configStr = localStorage.getItem('ai-config')
+            if (configStr) {
+                const config = JSON.parse(configStr)
+                document.getElementById('baseUrl').value = config.baseUrl || ''
+                document.getElementById('apiKey').value = config.apiKey || ''
+                document.getElementById('model').value = config.model || ''
+                document.getElementById('maxTokens').value = config.maxTokens || ''
+                document.getElementById('temperature').value = config.temperature || ''
+            }
+        })
+    </script>
+</body>
+</html>
