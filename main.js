@@ -218,7 +218,23 @@ ipcMain.handle('ssh-execute', async (event, connectionId, command) => {
   }
 
   return new Promise((resolve, reject) => {
-    conn.exec(command, (err, stream) => {
+    // 设置终端环境变量
+    const execOptions = {
+      env: {
+        TERM: 'xterm-256color',
+        SHELL: '/bin/bash',
+        PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        HOME: `/home/${sshConnectionConfigs[connectionId].username}`,
+        USER: sshConnectionConfigs[connectionId].username,
+        LANG: 'en_US.UTF-8',
+        LC_ALL: 'en_US.UTF-8'
+      },
+      pty: true,
+      rows: 24,
+      cols: 80
+    };
+
+    conn.exec(command, execOptions, (err, stream) => {
       if (err) {
         reject({ success: false, error: err.message });
         return;

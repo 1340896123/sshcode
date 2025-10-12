@@ -131,7 +131,8 @@
                       <span class="line-timestamp" v-if="line.timestamp">
                         {{ formatTimestamp(line.timestamp) }}
                       </span>
-                      <span class="line-content">{{ line.content }}</span>
+                      <span class="line-content" v-if="line.isHtml" v-html="line.content"></span>
+                      <span class="line-content" v-else>{{ line.content }}</span>
                     </div>
                     <div v-if="connection.terminalOutput.length === 0" class="terminal-welcome">
                       欢迎使用SSH终端，输入命令开始操作...
@@ -145,8 +146,6 @@
                         class="terminal-input"
                         :ref="`input-${connection.id}`"
                         v-model="connection.currentCommand"
-                        @keydown.enter="executeCommand(connection)"
-                        @keydown.tab.prevent="handleTabCompletion(connection)"
                         @keydown="handleTerminalKeydown($event, connection)"
                         @input="handleTerminalInput(connection)"
                         @focus="handleTerminalFocus(connection)"
@@ -315,6 +314,7 @@
 
 <script>
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import Convert from 'ansi-to-html'
 import FileManager from './FileManager.vue'
 import AIAssistant from './AIAssistant.vue'
 import TerminalAutocomplete from './TerminalAutocomplete.vue'
@@ -330,6 +330,15 @@ export default {
   },
   emits: ['session-connected', 'session-disconnected', 'show-notification', 'open-session-modal'],
   setup(props, { emit }) {
+    // ANSI转换器实例
+    const ansiConvert = new Convert({
+      fg: '#f0f0f0',
+      bg: '#1e1e1e',
+      newline: false,
+      escapeXML: true,
+      stream: false
+    })
+
     // 状态管理
     const activeConnections = ref([])
     const activeTabId = ref(null)
@@ -639,6 +648,34 @@ Swap:         2.0Gi          0B       2.0Gi`
 
     // 添加终端输出
     const addTerminalOutput = (connection, line) => {
+      // 处理ANSI转义序列
+      if (line.type === 'output' || line.type === 'error') {
+        try {
+          // 检查是否包含清屏命令的ANSI序列
+          if (line.content.includes('\x1b[2J') || line.content.includes('\x1b[H')) {
+            // 清空终端输出
+            connection.terminalOutput = []
+            // 添加一个简单的清屏标记
+            line = {
+              type: 'info',
+              content: '--- 终端已清空 ---',
+              timestamp: new Date()
+            }
+          } else {
+            // 转换ANSI转义序列为HTML
+            const processedContent = ansiConvert.toHtml(line.content)
+            line = {
+              ...line,
+              content: processedContent,
+              isHtml: true
+            }
+          }
+        } catch (error) {
+          // 如果转换失败，保持原始内容
+          console.warn('ANSI转换失败:', error)
+        }
+      }
+
       connection.terminalOutput.push(line)
 
       // 限制输出历史记录
@@ -827,18 +864,34 @@ Swap:         2.0Gi          0B       2.0Gi`
         return
       }
 
-      // 如果自动补全组件可见，优先委托给自动补全组件处理上下箭头键
+      // 如果自动补全组件可见，优先委托给自动补全组件处理上下箭头键和Enter键
       if (connection.showAutocomplete && (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Enter' || event.key === 'Escape')) {
         // 找到对应的自动补全组件
         const autocompleteRef = autocompleteRefs.value[connection.id]
 
         if (autocompleteRef && autocompleteRef.handleKeyDown && autocompleteRef.handleKeyDown(event)) {
-          return // 如果自动补全组件处理了该事件，直接返回
+          // 如果自动补全组件处理了该事件，阻止默认行为并返回
+          event.preventDefault()
+          event.stopPropagation()
+          return
+        }
+
+        // 如果补全组件存在但没有处理该事件，仍然阻止默认行为
+        if (autocompleteRef) {
+          event.preventDefault()
+          event.stopPropagation()
+          return
         }
       }
 
       // 处理其他按键事件
       switch (event.key) {
+        case 'Enter':
+          // 只有在没有显示补全时才执行命令
+          if (connection.currentCommand.trim()) {
+            executeCommand(connection)
+          }
+          break
         case 'Escape':
           connection.showAutocomplete = false
           break
