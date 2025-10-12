@@ -8,16 +8,25 @@ export function useAIChat(props, emit) {
   const isProcessing = ref(false)
   const isConnected = ref(true)
   const messageIdCounter = ref(0)
+  const lastMessageId = ref(null) // 防止重复发送
 
   // 发送消息
   const sendMessage = async () => {
     const message = userInput.value.trim()
     if (!message || isProcessing.value) return
 
+    // 生成消息ID并检查是否重复
+    const currentMessageId = `${message}-${Date.now()}`
+    if (lastMessageId.value === currentMessageId) {
+      console.warn('检测到重复消息，忽略发送')
+      return
+    }
+    lastMessageId.value = currentMessageId
+
     // 添加用户消息
     addMessage('user', message)
 
-    // 清空输入框
+    // 清空输入框并设置处理状态
     userInput.value = ''
     isProcessing.value = true
 
@@ -42,15 +51,38 @@ export function useAIChat(props, emit) {
       }
     } finally {
       isProcessing.value = false
+      lastMessageId.value = null // 重置消息ID
     }
   }
 
   // 添加消息
   const addMessage = (role, content, actions = null) => {
+    // 防止添加系统消息到历史记录中
+    if (role === 'system') {
+      console.warn('系统消息不应该添加到历史记录中')
+      return
+    }
+    
+    // 检查消息内容是否为空或只包含空白字符
+    if (!content || !content.trim()) {
+      console.warn('跳过空消息')
+      return
+    }
+    
+    // 检查是否重复添加相同的消息
+    const lastMessage = messages.value[messages.value.length - 1]
+    if (lastMessage && 
+        lastMessage.role === role && 
+        lastMessage.content === content && 
+        Math.abs(new Date(lastMessage.timestamp).getTime() - Date.now()) < 1000) {
+      console.warn('检测到重复消息，跳过添加')
+      return
+    }
+    
     const message = {
       id: ++messageIdCounter.value,
       role,
-      content,
+      content: content.trim(), // 确保内容没有前后空白
       timestamp: new Date(),
       actions
     }

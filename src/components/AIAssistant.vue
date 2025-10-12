@@ -229,6 +229,10 @@ export default {
       nextTick(() => {
         messageInput.value?.focus()
       })
+      
+      // 确保事件监听器只添加一次
+      window.removeEventListener('add-to-ai-assistant', handleExternalText)
+      window.removeEventListener('ai-config-required', handleAIConfigRequired)
       window.addEventListener('add-to-ai-assistant', handleExternalText)
       window.addEventListener('ai-config-required', handleAIConfigRequired)
     })

@@ -90,7 +90,16 @@ export async function callAIAPI(message, historyMessages, connection) {
     }
   ]
 
-  // 构建请求
+  // 构建请求 - 确保消息历史的正确性
+  const cleanedHistoryMessages = historyMessages
+    .filter(msg => msg && msg.role && msg.content) // 过滤无效消息
+    .filter(msg => msg.role !== 'system') // 确保没有系统消息在历史中
+    .map(msg => ({
+      role: msg.role,
+      content: msg.content.trim() // 确保内容没有前后空白
+    }))
+    .filter(msg => msg.content.length > 0) // 过滤空内容消息
+
   const requestData = {
     model: config.customModel || config.model,
     messages: [
@@ -98,13 +107,10 @@ export async function callAIAPI(message, historyMessages, connection) {
         role: 'system',
         content: buildSystemPrompt(connection)
       },
-      ...historyMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      })),
+      ...cleanedHistoryMessages,
       {
         role: 'user',
-        content: message
+        content: message.trim()
       }
     ],
     tools,
@@ -267,12 +273,14 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
  */
 export async function executeTerminalCommand(command, connectionId) {
   return new Promise((resolve, reject) => {
-    // 创建一个临时的命令执行事件
-    const commandId = `ai-cmd-${Date.now()}`
+    // 创建一个唯一的命令执行ID
+    const commandId = `ai-cmd-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    let isResolved = false
     
     // 监听命令执行结果
     const handleCommandResult = (event) => {
-      if (event.detail && event.detail.commandId === commandId) {
+      if (event.detail && event.detail.commandId === commandId && !isResolved) {
+        isResolved = true
         window.removeEventListener('terminal-command-result', handleCommandResult)
         
         if (event.detail.success) {
@@ -283,22 +291,46 @@ export async function executeTerminalCommand(command, connectionId) {
       }
     }
     
+    // 添加事件监听器
     window.addEventListener('terminal-command-result', handleCommandResult)
     
-    // 发送命令执行请求
-    window.dispatchEvent(new CustomEvent('execute-terminal-command', {
-      detail: {
-        commandId,
-        command,
-        connectionId: connectionId || window.currentConnectionId
-      }
-    }))
-    
-    // 设置超时
-    setTimeout(() => {
+    try {
+      // 发送命令执行请求
+      window.dispatchEvent(new CustomEvent('execute-terminal-command', {
+        detail: {
+          commandId,
+          command,
+          connectionId: connectionId || window.currentConnectionId
+        }
+      }))
+    } catch (error) {
+      isResolved = true
       window.removeEventListener('terminal-command-result', handleCommandResult)
-      reject(new Error('命令执行超时'))
-    }, 30000) // 30秒超时
+      reject(new Error(`发送命令失败: ${error.message}`))
+      return
+    }
+    
+    // 设置超时（缩短到15秒）
+    const timeoutId = setTimeout(() => {
+      if (!isResolved) {
+        isResolved = true
+        window.removeEventListener('terminal-command-result', handleCommandResult)
+        reject(new Error('命令执行超时'))
+      }
+    }, 15000) // 15秒超时
+    
+    // 清理函数
+    const cleanup = () => {
+      clearTimeout(timeoutId)
+      window.removeEventListener('terminal-command-result', handleCommandResult)
+    }
+    
+    // 在Promise解决或拒绝时清理
+    Promise.resolve().then(() => {
+      // 确保清理函数在适当的时候被调用
+    }).catch(() => {
+      cleanup()
+    })
   })
 }
 
