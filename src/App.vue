@@ -1,12 +1,12 @@
 <template>
   <div class="app">
     <Header
-      :connection-status="connectionStatus"
       @open-session-modal="isSessionModalOpen = true"
       @open-settings-modal="isSettingsModalOpen = true"
     />
 
     <TabManager
+      ref="tabManagerRef"
       @session-connected="handleSessionConnected"
       @session-disconnected="handleSessionDisconnected"
       @show-notification="handleShowNotification"
@@ -49,21 +49,31 @@ export default {
   setup() {
     const isSessionModalOpen = ref(false)
     const isSettingsModalOpen = ref(false)
-    const connectionStatus = ref('未连接')
+    const tabManagerRef = ref(null)
 
     const toastState = reactive({
       toasts: [],
       toastId: 0
     })
 
-    const addToast = (message, type = 'info') => {
+    const addToast = (message, type = 'info', duration = 2000) => {
       const id = toastState.toastId++
-      toastState.toasts.push({
+      const toast = {
         id,
         message,
         type,
-        timestamp: Date.now()
-      })
+        timestamp: Date.now(),
+        duration
+      }
+      
+      toastState.toasts.push(toast)
+      
+      // 自动关闭通知
+      if (duration > 0) {
+        setTimeout(() => {
+          removeToast(id)
+        }, duration)
+      }
     }
 
     const removeToast = (id) => {
@@ -95,12 +105,21 @@ export default {
     }
 
     const handleSessionConnected = (sessionData) => {
-      connectionStatus.value = `已连接 - ${sessionData.name}`
-      toast.success(`已连接到 ${sessionData.name}`)
-    }
+      console.log('🎯 [APP] 收到session-connected事件:', {
+        name: sessionData.name,
+        id: sessionData.id,
+        host: sessionData.host
+      });
 
-    const handleSessionDisconnected = () => {
-      connectionStatus.value = '未连接'
+      toast.success(`已连接到 ${sessionData.name}`)
+
+      // 调用 TabManager 的 handleSessionConnected 方法
+      if (tabManagerRef.value) {
+        console.log('📞 [APP] 调用TabManager.handleSessionConnected');
+        tabManagerRef.value.handleSessionConnected(sessionData)
+      } else {
+        console.error('❌ [APP] TabManager ref为null，无法调用handleSessionConnected');
+      }
     }
 
     const setupElectronAPI = () => {
@@ -159,10 +178,9 @@ export default {
     return {
       isSessionModalOpen,
       isSettingsModalOpen,
-      connectionStatus,
       toastState,
+      tabManagerRef,
       handleSessionConnected,
-      handleSessionDisconnected,
       handleShowNotification,
       removeToast
     }

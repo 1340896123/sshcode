@@ -319,6 +319,25 @@ export default {
       return domainRegex.test(host) || host.includes('.') || /^[a-zA-Z0-9\-]+$/.test(host)
     }
 
+    // 字段验证
+    const validateField = (fieldName) => {
+      // 触发计算属性重新计算
+      switch (fieldName) {
+        case 'name':
+          return formData.name.trim().length >= 2
+        case 'host':
+          return formData.host.trim() && isValidHost(formData.host.trim())
+        case 'username':
+          return formData.username.trim().length >= 1
+        case 'password':
+          return formData.authType === 'password' ? formData.password.trim().length >= 1 : true
+        case 'keyPath':
+          return formData.authType === 'key' ? formData.keyPath.trim() : true
+        default:
+          return true
+      }
+    }
+
     // 获取验证错误信息
     const validationErrors = computed(() => {
       const errors = []
@@ -462,21 +481,26 @@ export default {
 
     // 连接连接
     const connectSession = async (session) => {
+      console.log('🚀 [CONNECTION-MODAL] 用户点击连接按钮:', {
+        id: session.id,
+        name: session.name,
+        host: session.host,
+        username: session.username,
+        authType: session.authType
+      });
+
       try {
         emit('show-notification', '正在连接SSH服务器...', 'info')
 
-        if (window.electronAPI) {
-          const result = await window.electronAPI.sshConnect(session)
-          if (result.success) {
-            emit('show-notification', `已连接到 ${session.name}`, 'success')
-            emit('session-connected', { ...session, id: session.id })
-            closeModal()
-          } else {
-            emit('show-notification', `连接失败: ${result.error}`, 'error')
-          }
-        }
+        console.log('📤 [CONNECTION-MODAL] 发送session-connected事件到TabManager');
+
+        // 直接触发 session-connected 事件，让 TabManager 处理连接过程
+        emit('session-connected', { ...session, id: session.id })
+
+        console.log('🔒 [CONNECTION-MODAL] 关闭连接模态框');
+        closeModal()
       } catch (error) {
-        console.error('SSH连接失败:', error)
+        console.error('❌ [CONNECTION-MODAL] SSH连接失败:', error)
         emit('show-notification', 'SSH连接失败', 'error')
       }
     }
@@ -595,7 +619,10 @@ export default {
         if (window.electronAPI) {
           const result = await window.electronAPI.sshConnect({
             ...session,
-            id: testId // 使用临时ID避免影响现有连接
+            id: testId, // 使用临时ID避免影响现有连接
+            authType: session.authType || 'password',
+            keyContent: session.authType === 'key' ? session.keyContent : undefined,
+            password: session.authType === 'password' ? session.password : undefined
           })
 
           // 更新测试结果
@@ -651,7 +678,12 @@ export default {
         }
 
         if (window.electronAPI) {
-          const result = await window.electronAPI.sshConnect(testSession)
+          const result = await window.electronAPI.sshConnect({
+            ...testSession,
+            authType: testSession.authType || 'password',
+            keyContent: testSession.authType === 'key' ? testSession.keyContent : undefined,
+            password: testSession.authType === 'password' ? testSession.password : undefined
+          })
 
           if (result.success) {
             emit('show-notification', '连接测试成功！配置有效', 'success')
@@ -731,6 +763,8 @@ export default {
       isTestingConnection,
       keyValidationMessage,
       keyValidationType,
+      validateField,
+      isValidHost,
       createNewSession,
       editSession,
       saveSession,
@@ -1027,14 +1061,42 @@ export default {
   color: color(error);
   font-size: font-size(sm);
   margin-bottom: spacing(xs);
+  display: flex;
+  align-items: flex-start;
+  gap: spacing(xs);
 
   &:last-child {
     margin-bottom: 0;
   }
 }
 
+.error-bullet {
+  color: color(error);
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.error-text {
+  flex: 1;
+  line-height: line-height(relaxed);
+}
+
 .form-group {
   margin-bottom: spacing(lg);
+  position: relative;
+
+  &.has-error {
+    input, select, textarea {
+      border-color: color(error);
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+
+      &:focus {
+        border-color: color(error);
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+      }
+    }
+  }
 }
 
 .form-group label {
@@ -1045,6 +1107,24 @@ export default {
   font-size: font-size(sm);
 }
 
+.field-error {
+  margin-top: spacing(xs);
+  padding: spacing(xs) spacing(sm);
+  background: rgba(220, 38, 38, 0.05);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: border-radius(sm);
+  color: color(error);
+  font-size: font-size(xs);
+  display: flex;
+  align-items: center;
+  gap: spacing(xs);
+
+  &::before {
+    content: "⚠️";
+    font-size: 10px;
+  }
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1052,8 +1132,18 @@ export default {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   @include input-base;
+}
+
+.form-group select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
 }
 
 .form-group textarea {

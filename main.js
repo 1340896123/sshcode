@@ -22,14 +22,19 @@ function createWindow() {
     titleBarStyle: 'default'
   });
 
-  // 在开发环境中加载本地文件，在生产环境中加载构建后的文件
+  // 在开发环境中加载 Vite 开发服务器，在生产环境中加载构建后的文件
   const isDev = process.argv.includes('--dev');
-  const indexPath = isDev ? 'index.html' : path.join(__dirname, 'dist', 'index.html');
-  console.log('加载HTML文件:', indexPath);
-  mainWindow.loadFile(indexPath);
-
-  if (process.argv.includes('--dev')) {
+  
+  if (isDev) {
+    // 开发模式：加载 Vite 开发服务器
+    console.log('开发模式：加载 Vite 开发服务器');
+    mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
+  } else {
+    // 生产模式：加载本地构建文件
+    const indexPath = path.join(__dirname, 'dist', 'index.html');
+    console.log('生产模式：加载HTML文件:', indexPath);
+    mainWindow.loadFile(indexPath);
   }
 
   mainWindow.on('closed', () => {
@@ -119,23 +124,90 @@ ipcMain.handle('delete-session', async (event, sessionId) => {
 });
 
 ipcMain.handle('ssh-connect', async (event, connectionConfig) => {
+  console.log('🔗 [SSH-DEBUG] 开始SSH连接请求');
+  console.log('📋 [SSH-DEBUG] 连接配置:', {
+    id: connectionConfig.id,
+    host: connectionConfig.host,
+    port: connectionConfig.port,
+    username: connectionConfig.username,
+    authType: connectionConfig.authType,
+    hasPassword: !!connectionConfig.password,
+    hasKeyContent: !!connectionConfig.keyContent || !!connectionConfig.privateKey
+  });
+
   const { Client } = require('ssh2');
   const conn = new Client();
-  
+
   return new Promise((resolve, reject) => {
-    conn.on('ready', () => {
-      sshConnections[connectionConfig.id] = conn;
-      sshConnectionConfigs[connectionConfig.id] = { ...connectionConfig };
-      resolve({ success: true, message: 'SSH连接成功' });
-    }).on('error', (err) => {
-      reject({ success: false, error: err.message });
-    }).connect({
+    const connectConfig = {
       host: connectionConfig.host,
       port: connectionConfig.port || 22,
       username: connectionConfig.username,
-      password: connectionConfig.password,
-      privateKey: connectionConfig.privateKey
-    });
+      readyTimeout: 30000,
+      algorithms: {
+        kex: ['diffie-hellman-group-exchange-sha256', 'diffie-hellman-group14-sha256', 'ecdh-sha2-nistp256'],
+        cipher: ['aes128-ctr', 'aes192-ctr', 'aes256-ctr'],
+        serverHostKey: ['ssh-rsa', 'rsa-sha2-512', 'rsa-sha2-256', 'ssh-ed25519'],
+        hmac: ['hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1']
+      }
+    };
+
+    console.log('⚙️ [SSH-DEBUG] 基础连接配置准备完成');
+
+    // 根据认证方式添加相应的认证信息
+    if (connectionConfig.authType === 'key' && (connectionConfig.keyContent || connectionConfig.privateKey)) {
+      try {
+        connectConfig.privateKey = connectionConfig.keyContent || connectionConfig.privateKey;
+        console.log('🔑 [SSH-DEBUG] 使用密钥认证，密钥长度:', connectConfig.privateKey.length);
+      } catch (error) {
+        console.error('❌ [SSH-DEBUG] 私钥格式错误:', error.message);
+        resolve({ success: false, error: '私钥格式错误: ' + error.message });
+        return;
+      }
+    } else if (connectionConfig.authType === 'password' && connectionConfig.password) {
+      connectConfig.password = connectionConfig.password;
+      console.log('🔒 [SSH-DEBUG] 使用密码认证，密码长度:', connectConfig.password.length);
+    } else {
+      console.error('❌ [SSH-DEBUG] 缺少认证信息:', {
+        authType: connectionConfig.authType,
+        hasPassword: !!connectionConfig.password,
+        hasKeyContent: !!(connectionConfig.keyContent || connectionConfig.privateKey)
+      });
+      resolve({ success: false, error: '缺少认证信息' });
+      return;
+    }
+
+    console.log('🚀 [SSH-DEBUG] 开始建立SSH连接到:', `${connectConfig.username}@${connectConfig.host}:${connectConfig.port}`);
+
+    conn.on('ready', () => {
+      console.log('✅ [SSH-DEBUG] SSH连接成功建立');
+      sshConnections[connectionConfig.id] = conn;
+      sshConnectionConfigs[connectionConfig.id] = { ...connectionConfig };
+      console.log('💾 [SSH-DEBUG] 连接已保存到连接池，当前连接数:', Object.keys(sshConnections).length);
+      resolve({ success: true, message: 'SSH连接成功' });
+    }).on('error', (err) => {
+      console.error('❌ [SSH-DEBUG] SSH连接错误:', {
+        message: err.message,
+        level: err.level,
+        code: err.code
+      });
+
+      let errorMessage = err.message;
+
+      // 提供更友好的错误信息
+      if (err.level === 'client-authentication') {
+        errorMessage = '认证失败，请检查用户名和密码/密钥';
+      } else if (err.code === 'ENOTFOUND') {
+        errorMessage = '主机地址无法解析，请检查主机名或IP地址';
+      } else if (err.code === 'ECONNREFUSED') {
+        errorMessage = '连接被拒绝，请检查主机地址和端口';
+      } else if (err.code === 'ETIMEDOUT') {
+        errorMessage = '连接超时，请检查网络连接';
+      }
+
+      console.log('📝 [SSH-DEBUG] 最终错误信息:', errorMessage);
+      resolve({ success: false, error: errorMessage });
+    }).connect(connectConfig);
   });
 });
 
@@ -200,13 +272,60 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
     }
 
     await sftpClient.connect(connectConfig);
-    const list = await sftpClient.list(remotePath || '/');
-    await sftpClient.end();
     
-    return { success: true, files: list };
+    // 如果路径不存在，尝试使用根目录或用户主目录
+    let targetPath = remotePath || '/';
+    try {
+      const list = await sftpClient.list(targetPath);
+      await sftpClient.end();
+      return { success: true, files: list };
+    } catch (pathErr) {
+      // 如果路径不存在，尝试备选路径
+      if (pathErr.code === 2) { // SSH_FX_NO_SUCH_FILE
+        console.log(`路径 ${targetPath} 不存在，尝试备选路径`);
+        
+        let fallbackPath = '/';
+        
+        // 如果是尝试访问用户主目录失败，根据用户名确定正确的路径
+        if (targetPath.includes('/home/')) {
+          const username = config.username;
+          if (username === 'root') {
+            fallbackPath = '/root';
+          } else {
+            fallbackPath = '/home/' + username;
+          }
+        }
+        
+        try {
+          const list = await sftpClient.list(fallbackPath);
+          await sftpClient.end();
+          return { success: true, files: list, fallbackPath };
+        } catch (fallbackErr) {
+          await sftpClient.end();
+          return { 
+            success: false, 
+            error: `路径 ${targetPath} 不存在，备选路径 ${fallbackPath} 也不可访问。请检查路径是否正确。` 
+          };
+        }
+      } else {
+        await sftpClient.end();
+        throw pathErr;
+      }
+    }
   } catch (err) {
     console.error('SFTP操作失败:', err);
-    return { success: false, error: err.message };
+    
+    // 提供更友好的错误信息
+    let errorMessage = err.message;
+    if (err.code === 2) {
+      errorMessage = `路径不存在: ${remotePath || '/'}，请检查路径是否正确`;
+    } else if (err.code === 3) {
+      errorMessage = `权限不足，无法访问路径: ${remotePath || '/'}`;
+    } else if (err.code === 4) {
+      errorMessage = `连接失败，请检查SSH连接状态`;
+    }
+    
+    return { success: false, error: errorMessage };
   }
 });
 

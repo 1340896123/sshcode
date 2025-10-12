@@ -11,8 +11,19 @@
         <div class="toast-icon">
           {{ getToastIcon(toast.type) }}
         </div>
-        <div class="toast-message">
-          {{ toast.message }}
+        <div class="toast-content">
+          <div class="toast-message">
+            {{ toast.message }}
+          </div>
+          <div 
+            v-if="toast.duration && toast.duration > 0"
+            class="toast-progress"
+          >
+            <div 
+              class="toast-progress-bar"
+              :style="{ animationDuration: `${toast.duration}ms` }"
+            ></div>
+          </div>
         </div>
         <button class="toast-close" @click.stop="removeToast(toast.id)">
           ×
@@ -58,13 +69,21 @@ export default {
 <style lang="scss" scoped>
 .toast-container {
   position: fixed;
-  top: 20px;
+  top: 80px;
   right: 20px;
-  z-index: 1000;
+  z-index: 1030;
   display: flex;
   flex-direction: column;
   gap: 8px;
   max-width: 400px;
+  
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    top: 70px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
 }
 
 .toast {
@@ -106,10 +125,42 @@ export default {
   flex-shrink: 0;
 }
 
-.toast-message {
+.toast-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toast-message {
   font-size: 14px;
   line-height: 1.5;
+}
+
+.toast-progress {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.toast-progress-bar {
+  height: 100%;
+  background: currentColor;
+  border-radius: 2px;
+  animation: toast-progress linear forwards;
+  opacity: 0.8;
+}
+
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
 .toast-close {

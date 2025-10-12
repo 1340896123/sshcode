@@ -76,104 +76,171 @@
           v-show="activeTabId === connection.id"
           class="tab-panel"
         >
-          <!-- 连接状态头部 -->
-          <div class="connection-header">
-            <div class="connection-info">
-              <h3>{{ connection.name }}</h3>
-              <p class="connection-details">
-                {{ connection.username }}@{{ connection.host }}:{{ connection.port || 22 }}
-              </p>
-            </div>
-            <div class="connection-actions">
-              <button
-                class="action-btn"
-                @click="reconnectConnection(connection)"
-                :disabled="connection.status === 'connecting'"
-                title="重新连接"
-              >
-                🔄
-              </button>
-              <button
-                class="action-btn"
-                @click="disconnectConnection(connection.id)"
-                :disabled="connection.status === 'disconnected'"
-                title="断开连接"
-              >
-                🔌
-              </button>
-              <button
-                class="action-btn"
-                @click="$emit('open-session-modal')"
-                title="管理连接"
-              >
-                ⚙️
-              </button>
-            </div>
-          </div>
-
-          <!-- 连接状态显示 -->
-          <div class="connection-status-bar">
-            <div class="status-indicator" :class="connection.status">
-              <span class="status-dot"></span>
-              <span class="status-text">{{ getStatusText(connection.status) }}</span>
-            </div>
-            <div class="connection-time" v-if="connection.connectedAt">
-              连接时间: {{ formatConnectionTime(connection.connectedAt) }}
-            </div>
-          </div>
-
-          <!-- SSH终端区域 -->
-          <div class="terminal-container" v-if="connection.status === 'connected'">
-            <div class="terminal-header">
-              <span class="terminal-title">SSH Terminal - {{ connection.host }}</span>
-              <div class="terminal-controls">
-                <button class="terminal-control-btn" @click="clearTerminal(connection.id)">
-                  🗑️ 清空
-                </button>
-                <button class="terminal-control-btn" @click="copyTerminalContent(connection.id)">
-                  📋 复制
-                </button>
+  
+          <!-- 三部分布局容器 -->
+          <div class="three-panel-layout" :class="{ resizing: isResizing }" v-if="connection.status === 'connected'">
+            <!-- 文件管理面板 (可调整宽度) -->
+            <div class="panel-section files-panel" :style="{ width: panelWidths.files + '%' }">
+              <div class="panel-header">
+                <h3><span class="panel-icon">📁</span> 文件管理</h3>
+              </div>
+              <div class="panel-body">
+                <FileManager
+                  :connection-id="connection.id"
+                  :connection="connection"
+                  @show-notification="handleShowNotification"
+                  @execute-command="handleExecuteCommand"
+                />
               </div>
             </div>
+
+            <!-- 第一个拖拽分隔符 -->
             <div
-              class="terminal-output"
-              :ref="`terminal-${connection.id}`"
-              @contextmenu.prevent="showTerminalMenu($event, connection.id)"
-            >
-              <div
-                v-for="(line, index) in connection.terminalOutput"
-                :key="index"
-                class="terminal-line"
-                :class="{ 'error-line': line.type === 'error', 'success-line': line.type === 'success' }"
-              >
-                <span class="line-timestamp" v-if="line.timestamp">
-                  {{ formatTimestamp(line.timestamp) }}
-                </span>
-                <span class="line-content">{{ line.content }}</span>
+              class="resize-handle resize-handle-vertical"
+              @mousedown="startResize($event, 'files-terminal')"
+            ></div>
+
+            <!-- 终端面板 (可调整宽度) -->
+            <div class="panel-section terminal-panel" :style="{ width: panelWidths.terminal + '%' }">
+              <div class="panel-header">
+                <h3><span class="panel-icon">💻</span> SSH Terminal - {{ connection.host }}</h3>
+                <div class="panel-controls">
+                  <button class="control-btn" @click="clearTerminal(connection.id)" title="清空">
+                    🗑️
+                  </button>
+                  <button class="control-btn" @click="copyTerminalContent(connection.id)" title="复制">
+                    📋
+                  </button>
+                </div>
               </div>
-              <div v-if="connection.terminalOutput.length === 0" class="terminal-welcome">
-                欢迎使用SSH终端，输入命令开始操作...
+              <div class="panel-body">
+                <div class="terminal-content">
+                  <div
+                    class="terminal-output"
+                    :ref="`terminal-${connection.id}`"
+                    @contextmenu.prevent="handleTerminalContextMenu($event, connection.id)"
+                    @mouseup="handleTerminalMouseUp($event, connection.id)"
+                    @selectstart="handleTerminalSelectStart"
+                  >
+                    <div
+                      v-for="(line, index) in connection.terminalOutput"
+                      :key="index"
+                      class="terminal-line"
+                      :class="{ 'error-line': line.type === 'error', 'success-line': line.type === 'success' }"
+                    >
+                      <span class="line-timestamp" v-if="line.timestamp">
+                        {{ formatTimestamp(line.timestamp) }}
+                      </span>
+                      <span class="line-content">{{ line.content }}</span>
+                    </div>
+                    <div v-if="connection.terminalOutput.length === 0" class="terminal-welcome">
+                      欢迎使用SSH终端，输入命令开始操作...
+                    </div>
+                  </div>
+                  <div class="terminal-input-container">
+                    <div class="terminal-prompt">{{ connection.username }}@{{ connection.host }}:~$</div>
+                    <div class="terminal-input-wrapper">
+                      <input
+                        type="text"
+                        class="terminal-input"
+                        :ref="`input-${connection.id}`"
+                        v-model="connection.currentCommand"
+                        @keydown.enter="executeCommand(connection)"
+                        @keydown.tab.prevent="handleTabCompletion(connection)"
+                        @keydown="handleTerminalKeydown($event, connection)"
+                        @input="handleTerminalInput(connection)"
+                        @focus="handleTerminalFocus(connection)"
+                        @blur="handleTerminalBlur(connection)"
+                        placeholder="输入SSH命令..."
+                        :disabled="connection.status !== 'connected'"
+                      />
+                      <TerminalAutocomplete
+                        :ref="el => setAutocompleteRef(connection.id, el)"
+                        :current-input="connection.currentCommand"
+                        :is-visible="connection.showAutocomplete"
+                        @select="handleAutocompleteSelect"
+                        @hide="handleAutocompleteHide"
+                      />
+                    </div>
+                    <button
+                      class="execute-btn"
+                      @click="executeCommand(connection)"
+                      :disabled="!connection.currentCommand.trim() || connection.status !== 'connected'"
+                    >
+                      执行
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="terminal-input-container">
-              <div class="terminal-prompt">{{ connection.username }}@{{ connection.host }}:~$</div>
-              <input
-                type="text"
-                class="terminal-input"
-                :ref="`input-${connection.id}`"
-                v-model="connection.currentCommand"
-                @keydown.enter="executeCommand(connection)"
-                @keydown.tab.prevent="handleTabCompletion(connection)"
-                placeholder="输入SSH命令..."
-                :disabled="connection.status !== 'connected'"
-              />
-              <button
-                class="execute-btn"
-                @click="executeCommand(connection)"
-                :disabled="!connection.currentCommand.trim() || connection.status !== 'connected'"
-              >
-                执行
-              </button>
+
+            <!-- 第二个拖拽分隔符 -->
+            <div
+              class="resize-handle resize-handle-vertical"
+              @mousedown="startResize($event, 'terminal-ai')"
+            ></div>
+
+            <!-- AI助手面板 (可调整宽度) -->
+            <div class="panel-section ai-panel" :style="{ width: panelWidths.ai + '%' }">
+              <div class="panel-header">
+                <h3><span class="panel-icon">🤖</span> AI助手</h3>
+              </div>
+              <div class="panel-body">
+                <AIAssistant
+                  :connection-id="connection.id"
+                  :connection="connection"
+                  @show-notification="handleShowNotification"
+                  @execute-command="handleExecuteCommand"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 连接状态显示 (移动到底部) -->
+          <div class="connection-status-bar" v-if="connection.status === 'connected'">
+            <div class="status-left">
+              <div class="status-indicator" :class="connection.status">
+                <span class="status-dot"></span>
+                <span class="status-text">{{ getStatusText(connection.status) }}</span>
+              </div>
+              <div class="connection-time" v-if="connection.connectedAt">
+                连接时间: {{ formatConnectionTime(connection.connectedAt) }}
+              </div>
+            </div>
+            
+            <!-- 系统监控信息 -->
+            <div class="system-monitor" v-if="connection.systemInfo">
+              <div class="monitor-item cpu-monitor">
+                <span class="monitor-icon">🖥️</span>
+                <span class="monitor-label">CPU</span>
+                <span class="monitor-value" :class="{ 'high-usage': connection.systemInfo.cpu > 80 }">
+                  {{ connection.systemInfo.cpu }}%
+                </span>
+              </div>
+              
+              <div class="monitor-item memory-monitor">
+                <span class="monitor-icon">💾</span>
+                <span class="monitor-label">内存</span>
+                <span class="monitor-value" :class="{ 'high-usage': connection.systemInfo.memory > 80 }">
+                  {{ connection.systemInfo.memory }}%
+                </span>
+              </div>
+              
+              <div class="monitor-item disk-monitor">
+                <span class="monitor-icon">💿</span>
+                <span class="monitor-label">磁盘</span>
+                <span class="monitor-value" :class="{ 'high-usage': connection.systemInfo.disk > 80 }">
+                  {{ connection.systemInfo.disk }}%
+                </span>
+              </div>
+              
+              <div class="monitor-item network-monitor">
+                <span class="monitor-icon">🌐</span>
+                <span class="monitor-label">网络</span>
+                <span class="monitor-value">
+                  ↓{{ formatBytes(connection.systemInfo.networkDown) }}/s ↑{{ formatBytes(connection.systemInfo.networkUp) }}/s
+                </span>
+              </div>
             </div>
           </div>
 
@@ -230,24 +297,84 @@
         </div>
       </div>
     </div>
+
+    <!-- 右键菜单 -->
+    <ContextMenu
+      :visible="contextMenu.visible"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      :selected-text="contextMenu.selectedText"
+      @copy="handleContextMenuCopy"
+      @add-to-ai="handleContextMenuAddToAI"
+      @select-all="handleContextMenuSelectAll"
+      @close="hideContextMenu"
+      @update:position="updateContextMenuPosition"
+    />
   </div>
 </template>
 
 <script>
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import FileManager from './FileManager.vue'
+import AIAssistant from './AIAssistant.vue'
+import TerminalAutocomplete from './TerminalAutocomplete.vue'
+import ContextMenu from './ContextMenu.vue'
 
 export default {
   name: 'TabManager',
+  components: {
+    FileManager,
+    AIAssistant,
+    TerminalAutocomplete,
+    ContextMenu
+  },
   emits: ['session-connected', 'session-disconnected', 'show-notification', 'open-session-modal'],
   setup(props, { emit }) {
     // 状态管理
     const activeConnections = ref([])
     const activeTabId = ref(null)
     const connectionTimers = ref(new Map())
+    const systemMonitorTimers = ref(new Map())
+    const autocompleteRefs = ref([])
+
+    // 右键菜单状态
+    const contextMenu = reactive({
+      visible: false,
+      x: 0,
+      y: 0,
+      selectedText: '',
+      connectionId: null
+    })
+
+    // 面板定义
+    const panels = ref([
+      { id: 'files', title: '文件管理', icon: '📁' },
+      { id: 'terminal', title: '终端', icon: '💻' },
+      { id: 'ai', title: 'AI助手', icon: '🤖' }
+    ])
+
+    // 面板宽度状态 (初始3:4:3比例)
+    const panelWidths = reactive({
+      files: 30,
+      terminal: 40,
+      ai: 30
+    })
+
+    // 拖拽调整状态
+    const isResizing = ref(false)
+    const resizingHandle = ref(null)
+    const startMouseX = ref(0)
+    const startWidths = reactive({ files: 30, terminal: 40, ai: 30 })
 
     // 添加新的SSH连接
     const addConnection = async (sessionData) => {
-      const connection = {
+      console.log('➕ [TAB-MANAGER] 添加新连接到activeConnections:', {
+        name: sessionData.name,
+        id: sessionData.id
+      });
+
+      // 使用 reactive 确保连接对象的响应式
+      const connection = reactive({
         id: sessionData.id,
         name: sessionData.name,
         host: sessionData.host,
@@ -263,11 +390,25 @@ export default {
         connectedAt: null,
         terminalOutput: [],
         currentCommand: '',
-        lastActivity: new Date()
-      }
+        showAutocomplete: false,
+        lastActivity: new Date(),
+        activePanel: 'terminal', // 默认显示终端面板
+        systemInfo: {
+          cpu: 0,
+          memory: 0,
+          disk: 0,
+          networkUp: 0,
+          networkDown: 0,
+          lastUpdate: null
+        }
+      })
 
+      console.log('📋 [TAB-MANAGER] 连接对象创建完成，当前连接数:', activeConnections.value.length);
       activeConnections.value.push(connection)
       activeTabId.value = connection.id
+
+      console.log('🎯 [TAB-MANAGER] 设置活动标签页为:', connection.id);
+      console.log('📊 [TAB-MANAGER] 当前activeConnections:', activeConnections.value.map(c => ({id: c.id, name: c.name, status: c.status})));
 
       // 开始连接过程
       await establishConnection(connection)
@@ -275,29 +416,64 @@ export default {
 
     // 建立SSH连接
     const establishConnection = async (connection) => {
+      console.log('🔄 [TAB-MANAGER] 开始建立SSH连接:', {
+        id: connection.id,
+        name: connection.name,
+        host: connection.host,
+        username: connection.username,
+        authType: connection.authType
+      });
+
       try {
         connection.status = 'connecting'
         connection.connectStep = 1
         connection.errorMessage = null
 
+        console.log('📱 [TAB-MANAGER] 状态更新为connecting，发送通知');
+
         emit('show-notification', `正在连接到 ${connection.host}...`, 'info')
 
         // 模拟连接步骤
+        console.log('⏳ [TAB-MANAGER] 开始模拟连接步骤');
         await simulateConnectionStep(connection, 2, 1000) // 身份验证
+        console.log('✓ [TAB-MANAGER] 身份验证步骤完成');
         await simulateConnectionStep(connection, 3, 1500) // 建立连接
+        console.log('✓ [TAB-MANAGER] 建立连接步骤完成');
 
         // 实际SSH连接
         if (window.electronAPI) {
-          const result = await window.electronAPI.sshConnect({
+          console.log('🌐 [TAB-MANAGER] 使用ElectronAPI进行真实SSH连接');
+
+          const connectionParams = {
             id: connection.id,
             host: connection.host,
             port: connection.port,
             username: connection.username,
             password: connection.password,
-            privateKey: connection.keyContent
-          })
+            privateKey: connection.keyContent,
+            authType: connection.authType
+          };
+
+          console.log('📤 [TAB-MANAGER] 发送SSH连接参数:', {
+            id: connectionParams.id,
+            host: connectionParams.host,
+            port: connectionParams.port,
+            username: connectionParams.username,
+            authType: connectionParams.authType,
+            hasPassword: !!connectionParams.password,
+            hasPrivateKey: !!connectionParams.privateKey
+          });
+
+          const result = await window.electronAPI.sshConnect(connectionParams);
+
+          console.log('📥 [TAB-MANAGER] SSH连接结果:', {
+            success: result.success,
+            message: result.message,
+            error: result.error
+          });
 
           if (result.success) {
+            console.log('🎉 [TAB-MANAGER] SSH连接成功，更新状态');
             connection.status = 'connected'
             connection.connectedAt = new Date()
             connection.errorMessage = null
@@ -316,12 +492,17 @@ export default {
             })
 
             emit('show-notification', `已连接到 ${connection.name}`, 'success')
-            emit('session-connected', connection)
 
             // 启动连接监控
             startConnectionMonitoring(connection)
+            console.log('👁️ [TAB-MANAGER] 连接监控已启动');
+            
+            // 启动系统监控
+            startSystemMonitoring(connection)
+            console.log('📊 [TAB-MANAGER] 系统监控已启动');
 
           } else {
+            console.error('💥 [TAB-MANAGER] SSH连接失败:', result.error);
             connection.status = 'failed'
             connection.errorMessage = result.error
 
@@ -334,6 +515,7 @@ export default {
             emit('show-notification', `连接失败: ${result.error}`, 'error')
           }
         } else {
+          console.log('🔧 [TAB-MANAGER] 开发模式：模拟连接成功');
           // 开发模式模拟连接成功
           setTimeout(() => {
             connection.status = 'connected'
@@ -346,11 +528,11 @@ export default {
             })
 
             emit('show-notification', `已连接到 ${connection.name}`, 'success')
-            emit('session-connected', connection)
             startConnectionMonitoring(connection)
           }, 2000)
         }
       } catch (error) {
+        console.error('💥 [TAB-MANAGER] 连接异常:', error);
         connection.status = 'failed'
         connection.errorMessage = error.message
 
@@ -362,6 +544,8 @@ export default {
 
         emit('show-notification', `连接异常: ${error.message}`, 'error')
       }
+
+      console.log('🏁 [TAB-MANAGER] 连接尝试完成，最终状态:', connection.status);
     }
 
     // 模拟连接步骤
@@ -496,6 +680,9 @@ Swap:         2.0Gi          0B       2.0Gi`
 
         // 停止连接监控
         stopConnectionMonitoring(connectionId)
+        
+        // 停止系统监控
+        stopSystemMonitoring(connectionId)
 
       } catch (error) {
         emit('show-notification', `断开连接失败: ${error.message}`, 'error')
@@ -609,15 +796,94 @@ Swap:         2.0Gi          0B       2.0Gi`
       }
     }
 
-    // Tab补全
+    // Tab补全 - 与自动补全组件集成
     const handleTabCompletion = (connection) => {
-      // 简单的Tab补全实现
-      const command = connection.currentCommand
-      const commonCommands = ['ls', 'cd', 'pwd', 'cat', 'grep', 'find', 'ssh', 'scp', 'mv', 'cp', 'rm']
+      // 找到对应的自动补全组件
+      const autocompleteRef = autocompleteRefs.value[connection.id]
 
-      const match = commonCommands.find(cmd => cmd.startsWith(command))
-      if (match && match !== command) {
-        connection.currentCommand = match
+      if (autocompleteRef && autocompleteRef.filteredSuggestions && autocompleteRef.filteredSuggestions.value.length > 0) {
+        // 如果有建议项，选择第一个建议项
+        const firstSuggestion = autocompleteRef.filteredSuggestions.value[0]
+        handleAutocompleteSelect(firstSuggestion.command)
+      } else {
+        // 如果没有建议项，隐藏自动补全
+        connection.showAutocomplete = false
+      }
+    }
+
+    // 设置自动补全组件引用
+    const setAutocompleteRef = (connectionId, el) => {
+      if (el && connectionId) {
+        autocompleteRefs.value[connectionId] = el
+      }
+    }
+
+    // 终端输入框事件处理
+    const handleTerminalKeydown = (event, connection) => {
+      // 处理Tab键自动补全
+      if (event.key === 'Tab') {
+        event.preventDefault()
+        handleTabCompletion(connection)
+        return
+      }
+
+      // 如果自动补全组件可见，优先委托给自动补全组件处理上下箭头键
+      if (connection.showAutocomplete && (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Enter' || event.key === 'Escape')) {
+        // 找到对应的自动补全组件
+        const autocompleteRef = autocompleteRefs.value[connection.id]
+
+        if (autocompleteRef && autocompleteRef.handleKeyDown && autocompleteRef.handleKeyDown(event)) {
+          return // 如果自动补全组件处理了该事件，直接返回
+        }
+      }
+
+      // 处理其他按键事件
+      switch (event.key) {
+        case 'Escape':
+          connection.showAutocomplete = false
+          break
+      }
+    }
+
+    const handleTerminalInput = (connection) => {
+      // 显示自动补全建议（如果输入内容不为空）
+      connection.showAutocomplete = connection.currentCommand.trim().length > 0
+    }
+
+    const handleTerminalFocus = (connection) => {
+      // 获得焦点时显示自动补全（如果有输入内容）
+      connection.showAutocomplete = connection.currentCommand.trim().length > 0
+    }
+
+    const handleTerminalBlur = (connection) => {
+      // 延迟隐藏自动补全，以便处理点击事件
+      setTimeout(() => {
+        connection.showAutocomplete = false
+      }, 200)
+    }
+
+    // 自动补全选择处理
+    const handleAutocompleteSelect = (command) => {
+      const connection = activeConnections.value.find(c => c.id === activeTabId.value)
+      if (connection) {
+        connection.currentCommand = command
+        connection.showAutocomplete = false
+
+        // 聚焦回输入框
+        nextTick(() => {
+          const inputElement = document.querySelector(`[ref="input-${connection.id}"]`)
+          if (inputElement) {
+            inputElement.focus()
+          }
+        })
+      }
+    }
+
+    // 自动补全隐藏处理
+    const handleAutocompleteHide = () => {
+      const connection = activeConnections.value.find(c => c.id === activeTabId.value)
+      if (connection) {
+        connection.showAutocomplete = false
       }
     }
 
@@ -662,14 +928,340 @@ Swap:         2.0Gi          0B       2.0Gi`
       return new Date(timestamp).toLocaleTimeString()
     }
 
+    // 格式化字节数
+    const formatBytes = (bytes) => {
+      if (bytes === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+    }
+
+    // 系统监控
+    const startSystemMonitoring = (connection) => {
+      // 立即获取一次系统信息
+      updateSystemInfo(connection)
+      
+      // 每5秒更新一次系统信息
+      const timer = setInterval(() => {
+        if (connection.status === 'connected') {
+          updateSystemInfo(connection)
+        }
+      }, 5000)
+
+      systemMonitorTimers.value.set(connection.id, timer)
+    }
+
+    const stopSystemMonitoring = (connectionId) => {
+      const timer = systemMonitorTimers.value.get(connectionId)
+      if (timer) {
+        clearInterval(timer)
+        systemMonitorTimers.value.delete(connectionId)
+      }
+    }
+
+    const updateSystemInfo = async (connection) => {
+      try {
+        if (window.electronAPI && connection.status === 'connected') {
+          // 通过SSH命令获取系统信息
+          const systemInfo = await fetchSystemInfo(connection)
+          connection.systemInfo = {
+            ...systemInfo,
+            lastUpdate: new Date()
+          }
+        } else {
+          // 开发模式模拟系统信息
+          connection.systemInfo = generateMockSystemInfo()
+        }
+      } catch (error) {
+        console.error('获取系统信息失败:', error)
+        // 使用模拟数据作为后备
+        connection.systemInfo = generateMockSystemInfo()
+      }
+    }
+
+    const fetchSystemInfo = async (connection) => {
+      try {
+        // 获取CPU使用率
+        const cpuResult = await window.electronAPI.sshExecute(connection.id, "top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1}'")
+        const cpu = parseFloat(cpuResult.output.trim()) || 0
+
+        // 获取内存使用率
+        const memResult = await window.electronAPI.sshExecute(connection.id, "free | grep Mem | awk '{printf \"%.1f\", $3/$2 * 100.0}'")
+        const memory = parseFloat(memResult.output.trim()) || 0
+
+        // 获取磁盘使用率
+        const diskResult = await window.electronAPI.sshExecute(connection.id, "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'")
+        const disk = parseFloat(diskResult.output.trim()) || 0
+
+        // 获取网络使用情况（简化版本）
+        const networkResult = await window.electronAPI.sshExecute(connection.id, "cat /proc/net/dev | grep eth0 | awk '{print $2, $10}' || cat /proc/net/dev | grep enp | awk '{print $2, $10}' || echo '0 0'")
+        const networkData = networkResult.output.trim().split(' ')
+        const networkDown = parseInt(networkData[0]) || 0
+        const networkUp = parseInt(networkData[1]) || 0
+
+        return {
+          cpu: Math.round(cpu),
+          memory: Math.round(memory),
+          disk: Math.round(disk),
+          networkDown: networkDown,
+          networkUp: networkUp
+        }
+      } catch (error) {
+        console.error('获取系统信息命令执行失败:', error)
+        return generateMockSystemInfo()
+      }
+    }
+
+    const generateMockSystemInfo = () => {
+      return {
+        cpu: Math.floor(Math.random() * 30) + 10, // 10-40%
+        memory: Math.floor(Math.random() * 40) + 30, // 30-70%
+        disk: Math.floor(Math.random() * 20) + 20, // 20-40%
+        networkDown: Math.floor(Math.random() * 1024 * 1024), // 0-1MB/s
+        networkUp: Math.floor(Math.random() * 512 * 1024), // 0-512KB/s
+        lastUpdate: new Date()
+      }
+    }
+
     // 显示终端右键菜单
     const showTerminalMenu = (event, connectionId) => {
-      // 可以在这里实现右键菜单功能
+      // 保留作为备用
       console.log('Terminal context menu requested for:', connectionId)
+    }
+
+    // 处理终端右键菜单
+    const handleTerminalContextMenu = (event, connectionId) => {
+      const selection = window.getSelection()
+      const selectedText = selection.toString().trim()
+
+      if (selectedText || event.target.closest('.terminal-output')) {
+        contextMenu.visible = true
+        contextMenu.x = event.clientX
+        contextMenu.y = event.clientY
+        contextMenu.selectedText = selectedText
+        contextMenu.connectionId = connectionId
+      }
+    }
+
+    // 处理终端鼠标释放事件
+    const handleTerminalMouseUp = (event, connectionId) => {
+      // 延迟检查选择状态，确保选择完成
+      setTimeout(() => {
+        const selection = window.getSelection()
+        const selectedText = selection.toString().trim()
+
+        if (selectedText && event.button === 0) { // 左键释放且有选中内容
+          // 可以在这里添加选中后的其他处理逻辑
+        }
+      }, 10)
+    }
+
+    // 处理终端选择开始
+    const handleTerminalSelectStart = (event) => {
+      // 可以在这里添加选择开始时的处理逻辑
+    }
+
+    // 隐藏右键菜单
+    const hideContextMenu = () => {
+      contextMenu.visible = false
+      contextMenu.selectedText = ''
+      contextMenu.connectionId = null
+    }
+
+    // 更新右键菜单位置
+    const updateContextMenuPosition = ({ x, y }) => {
+      contextMenu.x = x
+      contextMenu.y = y
+    }
+
+    // 处理右键菜单复制
+    const handleContextMenuCopy = async () => {
+      if (contextMenu.selectedText) {
+        try {
+          await navigator.clipboard.writeText(contextMenu.selectedText)
+          emit('show-notification', '已复制到剪贴板', 'success')
+        } catch (error) {
+          // 降级到传统复制方法
+          const textArea = document.createElement('textarea')
+          textArea.value = contextMenu.selectedText
+          textArea.style.position = 'fixed'
+          textArea.style.opacity = '0'
+          document.body.appendChild(textArea)
+          textArea.select()
+
+          try {
+            document.execCommand('copy')
+            emit('show-notification', '已复制到剪贴板', 'success')
+          } catch (err) {
+            emit('show-notification', '复制失败', 'error')
+          }
+
+          document.body.removeChild(textArea)
+        }
+        hideContextMenu()
+      }
+    }
+
+    // 处理右键菜单添加到AI助手
+    const handleContextMenuAddToAI = () => {
+      if (contextMenu.selectedText && contextMenu.connectionId) {
+        const connection = activeConnections.value.find(c => c.id === contextMenu.connectionId)
+        if (connection) {
+          // 找到AI助手组件并添加内容
+          const aiAssistantElement = document.querySelector('.ai-assistant-component')
+          if (aiAssistantElement && aiAssistantElement.__vueParentComponent) {
+            // 如果AI助手组件有添加内容的方法，调用它
+            const aiAssistant = aiAssistantElement.__vueParentComponent.ctx
+            if (aiAssistant && aiAssistant.addUserInput) {
+              aiAssistant.addUserInput(contextMenu.selectedText)
+              emit('show-notification', '已添加到AI助手', 'success')
+            } else {
+              emit('show-notification', 'AI助手组件未就绪', 'warning')
+            }
+          } else {
+            // 备用方法：通过全局事件或其他方式通知AI助手
+            window.dispatchEvent(new CustomEvent('add-to-ai-assistant', {
+              detail: {
+                text: contextMenu.selectedText,
+                connectionId: contextMenu.connectionId
+              }
+            }))
+            emit('show-notification', '已添加到AI助手', 'success')
+          }
+        }
+      }
+      hideContextMenu()
+    }
+
+    // 处理右键菜单全选
+    const handleContextMenuSelectAll = (connectionId) => {
+      const targetConnectionId = connectionId || contextMenu.connectionId
+      if (targetConnectionId) {
+        const terminalElement = document.querySelector(`[ref="terminal-${targetConnectionId}"]`)
+        if (terminalElement) {
+          const range = document.createRange()
+          range.selectNodeContents(terminalElement)
+          const selection = window.getSelection()
+          selection.removeAllRanges()
+          selection.addRange(range)
+
+          // 更新选中的文本
+          contextMenu.selectedText = selection.toString().trim()
+        }
+      }
+      hideContextMenu()
+    }
+
+    // 面板切换
+    const switchPanel = (connection, panelId) => {
+      connection.activePanel = panelId
+      connection.lastActivity = new Date()
+    }
+
+    // 处理子组件事件
+    const handleShowNotification = (message, type = 'info') => {
+      emit('show-notification', message, type)
+    }
+
+    const handleExecuteCommand = (command) => {
+      // 找到对应的连接并执行命令
+      const connection = activeConnections.value.find(c => c.id === activeTabId.value)
+      if (connection && connection.status === 'connected') {
+        connection.currentCommand = command
+        executeCommand(connection)
+      }
+    }
+
+    // 开始调整面板大小
+    const startResize = (event, handleType) => {
+      event.preventDefault()
+      isResizing.value = true
+      resizingHandle.value = handleType
+      startMouseX.value = event.clientX
+
+      // 保存初始宽度
+      startWidths.files = panelWidths.files
+      startWidths.terminal = panelWidths.terminal
+      startWidths.ai = panelWidths.ai
+
+      // 添加全局鼠标事件监听器
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+
+      // 设置光标样式
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    }
+
+    // 处理鼠标移动
+    const handleMouseMove = (event) => {
+      if (!isResizing.value) return
+
+      const deltaX = event.clientX - startMouseX.value
+      const containerWidth = document.querySelector('.three-panel-layout')?.offsetWidth || 1000
+      const deltaPercent = (deltaX / containerWidth) * 100
+
+      if (resizingHandle.value === 'files-terminal') {
+        // 调整文件面板和终端面板之间的分隔符
+        const newFilesWidth = Math.max(10, Math.min(60, startWidths.files + deltaPercent))
+        const newTerminalWidth = Math.max(10, Math.min(60, startWidths.terminal - deltaPercent))
+
+        panelWidths.files = newFilesWidth
+        panelWidths.terminal = newTerminalWidth
+
+        // 调整AI面板宽度以保持总和为100%
+        panelWidths.ai = 100 - panelWidths.files - panelWidths.terminal
+
+      } else if (resizingHandle.value === 'terminal-ai') {
+        // 调整终端面板和AI面板之间的分隔符
+        const newTerminalWidth = Math.max(10, Math.min(60, startWidths.terminal + deltaPercent))
+        const newAiWidth = Math.max(10, Math.min(60, startWidths.ai - deltaPercent))
+
+        panelWidths.terminal = newTerminalWidth
+        panelWidths.ai = newAiWidth
+
+        // 调整文件面板宽度以保持总和为100%
+        panelWidths.files = 100 - panelWidths.terminal - panelWidths.ai
+      }
+    }
+
+    // 处理鼠标释放
+    const handleMouseUp = () => {
+      if (!isResizing.value) return
+
+      isResizing.value = false
+      resizingHandle.value = null
+
+      // 移除全局鼠标事件监听器
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+
+      // 恢复光标样式
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+
+      console.log('🎯 [TAB-MANAGER] 面板宽度已调整:', {
+        files: panelWidths.files.toFixed(1) + '%',
+        terminal: panelWidths.terminal.toFixed(1) + '%',
+        ai: panelWidths.ai.toFixed(1) + '%'
+      })
+    }
+
+    // 重置面板宽度到默认比例 (3:4:3)
+    const resetPanelWidths = () => {
+      panelWidths.files = 30
+      panelWidths.terminal = 40
+      panelWidths.ai = 30
     }
 
     // 处理外部连接请求
     const handleSessionConnected = (sessionData) => {
+      console.log('📬 [TAB-MANAGER] 收到handleSessionConnected调用:', {
+        name: sessionData.name,
+        id: sessionData.id,
+        host: sessionData.host
+      });
       addConnection(sessionData)
     }
 
@@ -677,14 +1269,26 @@ Swap:         2.0Gi          0B       2.0Gi`
     onUnmounted(() => {
       connectionTimers.value.forEach(timer => clearInterval(timer))
       connectionTimers.value.clear()
+      
+      systemMonitorTimers.value.forEach(timer => clearInterval(timer))
+      systemMonitorTimers.value.clear()
+
+      // 清理拖拽事件监听器
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
     })
 
     return {
       activeConnections,
       activeTabId,
+      panels,
+      panelWidths,
+      isResizing,
+      contextMenu,
       addConnection,
       handleSessionConnected,
       switchTab,
+      switchPanel,
       closeConnection,
       disconnectConnection,
       reconnectConnection,
@@ -692,11 +1296,33 @@ Swap:         2.0Gi          0B       2.0Gi`
       clearTerminal,
       copyTerminalContent,
       handleTabCompletion,
+      handleTerminalKeydown,
+      handleTerminalInput,
+      handleTerminalFocus,
+      handleTerminalBlur,
+      handleAutocompleteSelect,
+      handleAutocompleteHide,
+      setAutocompleteRef,
       showTerminalMenu,
+      handleTerminalContextMenu,
+      handleTerminalMouseUp,
+      handleTerminalSelectStart,
+      hideContextMenu,
+      updateContextMenuPosition,
+      handleContextMenuCopy,
+      handleContextMenuAddToAI,
+      handleContextMenuSelectAll,
+      handleShowNotification,
+      handleExecuteCommand,
+      startResize,
+      handleMouseMove,
+      handleMouseUp,
+      resetPanelWidths,
       getConnectionIcon,
       getStatusText,
       formatConnectionTime,
-      formatTimestamp
+      formatTimestamp,
+      formatBytes
     }
   }
 }
@@ -982,6 +1608,143 @@ Swap:         2.0Gi          0B       2.0Gi`
   flex-direction: column;
 }
 
+// 三部分布局样式 (可调整宽度)
+.three-panel-layout {
+  flex: 1;
+  display: flex;
+  gap: 0;
+  background: color(border);
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  background: color(surface);
+  overflow: hidden;
+  position: relative;
+  min-width: 10%; // 最小宽度限制
+  max-width: 60%; // 最大宽度限制
+  transition: width 0.1s ease-out;
+
+  &.files-panel {
+    // 宽度由内联样式控制
+    flex: none;
+  }
+
+  &.terminal-panel {
+    // 宽度由内联样式控制
+    flex: none;
+  }
+
+  &.ai-panel {
+    // 宽度由内联样式控制
+    flex: none;
+  }
+}
+
+// 拖拽分隔符样式
+.resize-handle {
+  background: color(border);
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: color(primary);
+  }
+
+  &.resize-handle-vertical {
+    width: 4px;
+    cursor: col-resize;
+    height: 100%;
+
+    // 添加悬停效果
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 100%;
+      background: transparent;
+      transition: background-color 0.2s ease;
+    }
+
+    &:hover::before {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+// 拖拽时的样式
+.three-panel-layout.resizing {
+  .resize-handle {
+    background: color(primary);
+  }
+
+  .panel-section {
+    pointer-events: none; // 拖拽时禁用面板内容交互
+  }
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: spacing(sm) spacing(md);
+  background: color(bg-secondary);
+  border-bottom: 1px solid color(border);
+  flex-shrink: 0;
+
+  h3 {
+    margin: 0;
+    font-size: font-size(sm);
+    font-weight: font-weight(medium);
+    color: color(text-primary);
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+  }
+
+  .panel-icon {
+    font-size: 14px;
+  }
+}
+
+.panel-controls {
+  display: flex;
+  gap: spacing(xs);
+
+  .control-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: color(text-secondary);
+    border-radius: border-radius(sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all transition(fast) ease;
+
+    &:hover {
+      background: color(bg-tertiary);
+      color: color(text-primary);
+    }
+  }
+}
+
+.panel-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
 .connection-header {
   display: flex;
   justify-content: space-between;
@@ -1042,7 +1805,8 @@ Swap:         2.0Gi          0B       2.0Gi`
   align-items: center;
   padding: spacing(sm) spacing(lg);
   background: color(surface);
-  border-bottom: 1px solid color(border);
+  border-top: 1px solid color(border);
+  flex-shrink: 0;
 }
 
 .status-indicator {
@@ -1084,48 +1848,82 @@ Swap:         2.0Gi          0B       2.0Gi`
   color: color(text-muted);
 }
 
-// 终端样式
-.terminal-container {
-  flex: 1;
+// 系统监控样式
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: spacing(md);
+}
+
+.system-monitor {
+  display: flex;
+  align-items: center;
+  gap: spacing(md);
+  flex-wrap: wrap;
+
+  .monitor-item {
+    display: flex;
+    align-items: center;
+    gap: spacing(xs);
+    padding: spacing(xs) spacing(sm);
+    background: color(bg-tertiary);
+    border: 1px solid color(border);
+    border-radius: border-radius(sm);
+    font-size: font-size(xs);
+    transition: all transition(fast) ease;
+
+    &:hover {
+      background: color(bg-secondary);
+      transform: translateY(-1px);
+    }
+
+    .monitor-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .monitor-label {
+      color: color(text-secondary);
+      font-weight: font-weight(medium);
+      flex-shrink: 0;
+    }
+
+    .monitor-value {
+      color: color(text-primary);
+      font-weight: font-weight(semibold);
+      font-family: font-family(mono);
+
+      &.high-usage {
+        color: color(error);
+        animation: pulse 2s infinite;
+      }
+    }
+  }
+
+  // 不同类型监控项的特殊样式
+  .cpu-monitor {
+    border-left: 3px solid color(info);
+  }
+
+  .memory-monitor {
+    border-left: 3px solid color(primary);
+  }
+
+  .disk-monitor {
+    border-left: 3px solid color(warning);
+  }
+
+  .network-monitor {
+    border-left: 3px solid color(success);
+  }
+}
+
+// 终端样式 (在新的三面板布局中)
+.terminal-content {
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: color(surface);
-}
-
-.terminal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: spacing(sm) spacing(lg);
-  background: color(bg-tertiary);
-  border-bottom: 1px solid color(border);
-}
-
-.terminal-title {
-  font-size: font-size(sm);
-  font-weight: font-weight(medium);
-  color: color(text-primary);
-}
-
-.terminal-controls {
-  display: flex;
-  gap: spacing(sm);
-}
-
-.terminal-control-btn {
-  padding: spacing(xs) spacing(sm);
-  background: color(bg-secondary);
-  border: 1px solid color(border);
-  border-radius: border-radius(sm);
-  color: color(text-secondary);
-  font-size: font-size(xs);
-  cursor: pointer;
-  transition: all transition(fast) ease;
-
-  &:hover {
-    background: color(bg-primary);
-    color: color(text-primary);
-  }
 }
 
 .terminal-output {
@@ -1190,8 +1988,13 @@ Swap:         2.0Gi          0B       2.0Gi`
   white-space: nowrap;
 }
 
-.terminal-input {
+.terminal-input-wrapper {
   flex: 1;
+  position: relative;
+}
+
+.terminal-input {
+  width: 100%;
   background: transparent;
   border: none;
   color: color(text-primary);
@@ -1406,6 +2209,31 @@ Swap:         2.0Gi          0B       2.0Gi`
 
   .failed-actions {
     flex-direction: column;
+  }
+
+  // 面板标签响应式
+  .panel-tabs {
+    padding: 0 spacing(xs);
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .panel-tab {
+    padding: spacing(xs) spacing(sm);
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: font-size(xs);
+  }
+
+  .panel-icon {
+    font-size: 14px;
   }
 }
 </style>

@@ -31,13 +31,6 @@
     </div>
 
     <div class="header-right">
-      <!-- 连接状态指示器 -->
-      <div class="connection-status" :class="{ connected: isConnected }">
-        <!-- 状态指示点 -->
-        <div class="status-dot" :class="{ connected: isConnected }"></div>
-        <span class="status-text">{{ isConnected ? '已连接' : '未连接' }}</span>
-      </div>
-
       <!-- 设置按钮 -->
       <button
         class="settings-btn"
@@ -55,24 +48,14 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 export default {
   name: 'Header',
-  props: {
-    connectionStatus: {
-      type: String,
-      default: '未连接'
-    }
-  },
   emits: ['open-session-modal', 'open-settings-modal'],
-  setup(props) {
+  setup() {
     const sessionBtn = ref(null)
     const settingsBtn = ref(null)
-
-    const isConnected = computed(() => {
-      return props.connectionStatus.includes('已连接')
-    })
 
     const onSessionBtnHover = (e) => {
       const btn = e.target
@@ -125,7 +108,6 @@ export default {
     return {
       sessionBtn,
       settingsBtn,
-      isConnected,
       onSessionBtnHover,
       onSessionBtnLeave,
       onSessionBtnDown,
@@ -232,49 +214,6 @@ export default {
   gap: spacing(sm);
 }
 
-.connection-status {
-  display: flex;
-  align-items: center;
-  gap: spacing(xs);
-  padding: spacing(xs) spacing(sm);
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(156, 163, 175, 0.2), rgba(156, 163, 175, 0.1));
-  border: 1px solid color(text-muted);
-  position: relative;
-  overflow: hidden;
-}
-
-.connection-status.connected {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
-  border-color: color(success);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: color(text-muted);
-  box-shadow: none;
-  animation: none;
-}
-
-.status-dot.connected {
-  background-color: color(success);
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
-  animation: pulse-success 2s infinite;
-}
-
-.status-text {
-  font-size: font-size(xs);
-  font-weight: font-weight(semibold);
-  color: color(text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.connection-status.connected .status-text {
-  color: color(success);
-}
 
 .settings-btn {
   display: flex;
@@ -294,15 +233,4 @@ export default {
   position: relative;
 }
 
-@keyframes pulse-success {
-  0% {
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
-  }
-  50% {
-    box-shadow: 0 0 16px rgba(34, 197, 94, 0.8);
-  }
-  100% {
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
-  }
-}
 </style>

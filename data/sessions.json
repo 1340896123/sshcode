@@ -2,14 +2,28 @@
   {
     "id": "session-1-1760197539245",
     "name": "生产服务器",
-    "host": "192.168.1.118",
+    "host": "81.71.66.200",
     "port": "22",
-    "username": "admin",
+    "username": "root",
     "description": "主要生产环境服务器",
+    "authType": "password",
+    "password": "AllstarPLM2022",
+    "keyPath": "",
+    "keyContent": "",
+    "updatedAt": "2025-10-12T12:23:08.832Z"
+  },
+  {
+    "id": "1760272697911",
+    "name": "192.168.1.118",
+    "host": "192.168.1.118",
+    "port": 22,
+    "username": "jieok",
+    "description": "",
     "authType": "password",
     "password": "1340896123",
     "keyPath": "",
     "keyContent": "",
-    "updatedAt": "2025-10-12T12:06:06.167Z"
+    "createdAt": "2025-10-12T12:38:17.911Z",
+    "updatedAt": "2025-10-12T12:38:17.911Z"
   }
 ]

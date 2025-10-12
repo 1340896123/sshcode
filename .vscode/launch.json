@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Main Process",
+      "name": "调试主进程",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -10,16 +10,18 @@
       "windows": {
         "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
       },
-      "args": [".", "--dev"],
+      "args": [
+        ".",
+        "--dev",
+        "--remote-debugging-port=9222"
+      ],
       "outputCapture": "std",
       "console": "integratedTerminal",
       "protocol": "inspector",
-      "env": {
-        "NODE_ENV": "development"
-      }
+      "port": 9229
     },
     {
-      "name": "Debug Renderer Process",
+      "name": "调试渲染进程",
       "type": "chrome",
       "request": "attach",
       "port": 9222,
@@ -27,7 +29,7 @@
       "timeout": 30000
     },
     {
-      "name": "Debug All Processes",
+      "name": "同时调试主进程和渲染进程",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -35,13 +37,46 @@
       "windows": {
         "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
       },
-      "args": [".", "--dev", "--remote-debugging-port=9222"],
+      "args": [
+        ".",
+        "--dev",
+        "--remote-debugging-port=9222",
+        "--inspect=9229"
+      ],
       "outputCapture": "std",
       "console": "integratedTerminal",
       "protocol": "inspector",
-      "env": {
-        "NODE_ENV": "development"
-      }
+      "port": 9229
+    },
+    {
+      "name": "调试主进程（断点暂停）",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
+      },
+      "args": [
+        ".",
+        "--dev",
+        "--remote-debugging-port=9222",
+        "--inspect-brk=9229"
+      ],
+      "outputCapture": "std",
+      "console": "integratedTerminal",
+      "protocol": "inspector",
+      "port": 9229
+    }
+  ],
+  "compounds": [
+    {
+      "name": "完整调试会话",
+      "configurations": [
+        "调试主进程（断点暂停）",
+        "调试渲染进程"
+      ],
+      "stopAll": true
     }
   ]
 }

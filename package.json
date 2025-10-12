@@ -5,9 +5,12 @@
   "main": "main.js",
   "scripts": {
     "start": "npm run build && electron .",
-    "dev": "vite",
-    "debug": "electron . --dev --remote-debugging-port=9222",
-    "debug-main": "electron . --dev",
+    "devUI": "vite",
+    "debug": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --remote-debugging-port=9222\"",
+    "debug-renderer": "vite",
+    "debug-main": "electron . --dev --remote-debugging-port=9222",
+    "debug:inspect": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --inspect=9229 --remote-debugging-port=9222\"",
+    "debug:break": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --inspect-brk=9229 --remote-debugging-port=9222\"",
     "build": "vite build",
     "build-electron": "npm run build && electron-builder",
     "dist": "npm run build-electron"
@@ -23,9 +26,11 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.56.0",
+    "concurrently": "^9.2.1",
     "electron": "^27.0.0",
     "electron-builder": "^24.6.4",
-    "vite": "^7.1.9"
+    "vite": "^7.1.9",
+    "wait-on": "^9.0.1"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
