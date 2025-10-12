@@ -46,7 +46,7 @@ aiCompletion:
 lastSavedProviders:
   aiChat: custom
   aiCompletion: custom
-  timestamp: '2025-10-12T16:23:58.196Z'
+  timestamp: '2025-10-12T16:40:44.484Z'
 providerPool:
   aiChat:
     openai:
@@ -74,7 +74,7 @@ providerPool:
       systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
       saveHistory: true
       historyRetentionDays: 30
-      lastUpdated: '2025-10-12T16:23:58.195Z'
+      lastUpdated: '2025-10-12T16:40:44.484Z'
   aiCompletion:
     openai:
       provider: openai
@@ -97,4 +97,4 @@ providerPool:
       triggerDelay: 500
       maxSuggestions: 5
       acceptOnTab: true
-      lastUpdated: '2025-10-12T16:23:58.196Z'
+      lastUpdated: '2025-10-12T16:40:44.484Z'
