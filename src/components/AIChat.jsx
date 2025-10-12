@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Button } from './ui/primitives/Button';
+import { Input } from './ui/primitives/Input';
+import ChatMessage, { ChatMessageLoading } from './ui/ai/ChatMessage';
 
 function AIChat({ tabId, isConnected, onShowNotification }) {
   const [messages, setMessages] = useState([
@@ -48,7 +51,7 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
     try {
       // 模拟AI响应
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       let aiResponse = '';
       if (message.toLowerCase().includes('文件') || message.toLowerCase().includes('file')) {
         aiResponse = '我可以帮您管理文件。您可以：\n• 查看文件列表\n• 创建新文件或目录\n• 上传或下载文件\n• 修改文件权限\n\n请告诉我您想要执行什么操作？';
@@ -104,71 +107,33 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
       <div className="flex justify-between items-center px-4 py-2.5 bg-[#2d2d30] border-b border-[#3e3e42]">
         <h3 className="text-sm text-[#cccccc]">AI助手</h3>
         <div className="flex gap-1.5">
-          <button 
-            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px" 
-            onClick={clearChat}
-          >
+          <Button onClick={clearChat}>
             清空
-          </button>
-          <button 
-            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px"
-          >
+          </Button>
+          <Button>
             设置
-          </button>
+          </Button>
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-4">
         {messages.map((message) => (
-          <div 
-            key={message.id} 
-            className={`mb-4 flex flex-col ${
-              message.type === 'user' ? 'items-end' : 'items-start'
-            }`}
-          >
-            <div 
-              className={`max-w-[80%] p-3.75 rounded-xl text-sm leading-7 break-words ${
-                message.type === 'user' 
-                  ? 'bg-[#007acc] text-white rounded-br-md' 
-                  : 'bg-[#3e3e42] text-[#d4d4d4] rounded-bl-md'
-              }`}
-            >
-              {message.content.split('\n').map((line, index) => (
-                <div key={index}>
-                  {line}
-                  {index < message.content.split('\n').length - 1 && <br />}
-                </div>
-              ))}
-            </div>
-            <div className="mt-1 flex gap-1">
-              <button 
-                className="px-2 py-1 border-none rounded cursor-pointer text-[10px] font-inherit transition-all duration-200 outline-none bg-[#3e3e42] text-[#d4d4d4] hover:bg-[#5a5a5a] hover:opacity-80 active:translate-y-px min-w-5" 
-                onClick={() => copyMessage(message.content)}
-                title="复制消息"
-              >
-                📋
-              </button>
-            </div>
-          </div>
+          <ChatMessage
+            key={message.id}
+            message={message}
+            onCopy={copyMessage}
+          />
         ))}
-        
-        {isLoading && (
-          <div className="mb-4 flex flex-col items-start">
-            <div className="bg-[#3e3e42] text-[#d4d4d4] rounded-xl rounded-bl-md p-3.75 text-sm leading-7">
-              <span>正在思考</span>
-              <span className="inline-block w-1 h-1 bg-[#d4d4d4] rounded-full animate-pulse ml-1"></span>
-              <span className="inline-block w-1 h-1 bg-[#d4d4d4] rounded-full animate-pulse ml-1" style={{animationDelay: '0.2s'}}></span>
-              <span className="inline-block w-1 h-1 bg-[#d4d4d4] rounded-full animate-pulse ml-1" style={{animationDelay: '0.4s'}}></span>
-            </div>
-          </div>
-        )}
-        
+
+        {isLoading && <ChatMessageLoading />}
+
         <div ref={messagesEndRef} />
       </div>
-      
+
       <div className="p-4 border-t border-[#3e3e42] flex gap-2.5 items-end">
-        <textarea
-          className="flex-1 bg-[#3e3e42] border border-[#5a5a5a] text-[#d4d4d4] rounded px-3 py-2 font-inherit text-sm resize-none outline-none transition-colors duration-200 focus:border-[#007acc]"
+        <Input
+          type="textarea"
+          className="flex-1"
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -176,13 +141,13 @@ function AIChat({ tabId, isConnected, onShowNotification }) {
           rows={3}
           disabled={!isConnected || isLoading}
         />
-        <button 
-          className="px-3 py-1.5 border-none rounded cursor-pointer text-xs font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed" 
+        <Button
+          size="large"
           onClick={sendMessage}
           disabled={!isConnected || isLoading || !input.trim()}
         >
           发送
-        </button>
+        </Button>
       </div>
     </section>
   );

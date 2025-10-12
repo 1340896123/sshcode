@@ -22,7 +22,11 @@ function createWindow() {
     titleBarStyle: 'default'
   });
 
-  mainWindow.loadFile('index.html');
+  // 在开发环境中加载本地文件，在生产环境中加载构建后的文件
+  const isDev = process.argv.includes('--dev');
+  const indexPath = isDev ? 'index.html' : path.join(__dirname, 'dist', 'index.html');
+  console.log('加载HTML文件:', indexPath);
+  mainWindow.loadFile(indexPath);
 
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();

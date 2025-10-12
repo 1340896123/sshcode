@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSessions } from '../hooks/useElectronAPI';
+import { Button } from './ui/primitives/Button';
+import { Input } from './ui/primitives/Input';
+import { Modal } from './ui/feedback/Modal';
+import { Select } from './ui/primitives/Select';
+import Textarea from './ui/primitives/Textarea';
 
 function SessionModal({ isOpen, onClose, onShowNotification }) {
   const { sessions, loading, loadSessions, saveSession, deleteSession } = useSessions();
@@ -56,9 +61,9 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
     if (confirm('确定要删除这个会话吗？')) {
       const success = await deleteSession(sessionId);
       if (success) {
-        onShowNotification('会话已删除', 'success');
+        onShowNotification.success('会话已删除');
       } else {
-        onShowNotification('删除会话失败', 'error');
+        onShowNotification.error('删除会话失败');
       }
     }
   };
@@ -68,11 +73,11 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
     
     const success = await saveSession(formData);
     if (success) {
-      onShowNotification(editingSession ? '会话已更新' : '会话已创建', 'success');
+      onShowNotification.success(editingSession ? '会话已更新' : '会话已创建');
       setShowForm(false);
       resetForm();
     } else {
-      onShowNotification('保存会话失败', 'error');
+      onShowNotification.error('保存会话失败');
     }
   };
 
@@ -92,16 +97,13 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
     (session.description && session.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (!isOpen) return null;
-
   return (
-    <div className="modal" style={{ display: 'block' }}>
-      <div className="modal-content modal-large">
-        <div className="modal-header">
-          <h2>SSH会话管理</h2>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </div>
-        <div className="modal-body">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="SSH会话管理"
+      size="large"
+    >
           {showForm ? (
             // 会话表单
             <div>
@@ -112,8 +114,7 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="session-name">会话名称:</label>
-                    <input
-                      type="text"
+                    <Input
                       id="session-name"
                       name="name"
                       value={formData.name}
@@ -124,7 +125,7 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                   </div>
                   <div className="form-group">
                     <label htmlFor="session-group">分组:</label>
-                    <select
+                    <Select
                       id="session-group"
                       name="group"
                       value={formData.group}
@@ -134,15 +135,14 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                       <option value="production">生产环境</option>
                       <option value="development">开发环境</option>
                       <option value="testing">测试环境</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="session-host">主机地址:</label>
-                    <input
-                      type="text"
+                    <Input
                       id="session-host"
                       name="host"
                       value={formData.host}
@@ -153,10 +153,10 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                   </div>
                   <div className="form-group">
                     <label htmlFor="session-port">端口:</label>
-                    <input
-                      type="number"
+                    <Input
                       id="session-port"
                       name="port"
+                      type="number"
                       value={formData.port}
                       onChange={handleInputChange}
                       min="1"
@@ -169,8 +169,7 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="session-username">用户名:</label>
-                    <input
-                      type="text"
+                    <Input
                       id="session-username"
                       name="username"
                       value={formData.username}
@@ -181,7 +180,7 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                   </div>
                   <div className="form-group">
                     <label htmlFor="session-auth-type">认证方式:</label>
-                    <select
+                    <Select
                       id="session-auth-type"
                       name="authType"
                       value={formData.authType}
@@ -189,17 +188,17 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                     >
                       <option value="password">密码认证</option>
                       <option value="key">密钥认证</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
                 {formData.authType === 'password' ? (
                   <div className="form-group">
                     <label htmlFor="session-password">密码:</label>
-                    <input
-                      type="password"
+                    <Input
                       id="session-password"
                       name="password"
+                      type="password"
                       value={formData.password}
                       onChange={handleInputChange}
                       placeholder="输入SSH密码"
@@ -208,8 +207,7 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                 ) : (
                   <div className="form-group">
                     <label htmlFor="session-key-path">私钥文件路径:</label>
-                    <input
-                      type="text"
+                    <Input
                       id="session-key-path"
                       name="keyPath"
                       value={formData.keyPath}
@@ -221,27 +219,26 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
 
                 <div className="form-group">
                   <label htmlFor="session-description">描述:</label>
-                  <textarea
+                  <Textarea
                     id="session-description"
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    rows="2"
+                    rows={2}
                     placeholder="可选的会话描述信息"
                   />
                 </div>
 
                 <div className="form-actions">
-                  <button type="submit" className="btn btn-primary">
+                  <Button type="submit">
                     💾 保存会话
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
+                  </Button>
+                  <Button 
+                    variant="secondary"
                     onClick={() => setShowForm(false)}
                   >
                     取消
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -249,16 +246,12 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
             // 会话列表
             <div>
               <div className="sessions-toolbar">
-                <button 
-                  id="btn-add-session" 
-                  className="btn btn-primary" 
-                  onClick={handleNewSession}
-                >
+                <Button onClick={handleNewSession}>
                   ➕ 新建会话
-                </button>
+                </Button>
                 <div className="search-box">
-                  <input
-                    type="text"
+                  <Input
+                    type="search"
                     placeholder="搜索会话..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -290,18 +283,20 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
                         )}
                       </div>
                       <div className="session-actions">
-                        <button 
-                          className="btn btn-small btn-edit"
+                        <Button 
+                          variant="edit"
+                          size="small"
                           onClick={() => handleEditSession(session)}
                         >
                           编辑
-                        </button>
-                        <button 
-                          className="btn btn-small btn-delete"
+                        </Button>
+                        <Button 
+                          variant="delete"
+                          size="small"
                           onClick={() => handleDeleteSession(session.id)}
                         >
                           删除
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))
@@ -309,9 +304,7 @@ function SessionModal({ isOpen, onClose, onShowNotification }) {
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

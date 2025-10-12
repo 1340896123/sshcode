@@ -3,16 +3,17 @@ import Header from './components/Header';
 import TabManager from './components/TabManager';
 import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
-import NotificationContainer from './components/NotificationContainer';
+import TailwindTestButton from './components/TailwindTestButton';
+import { ToastContainer, useToast } from './components/ui';
 import { useElectronAPI } from './hooks/useElectronAPI';
 
-function App() {
+function AppContent() {
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('未连接');
-  const [notifications, setNotifications] = useState([]);
   
   const electronAPI = useElectronAPI();
+  const toast = useToast();
 
   useEffect(() => {
     // 设置Electron API
@@ -63,18 +64,9 @@ function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const addNotification = (message, type = 'info') => {
-    const id = Date.now();
-    setNotifications(prev => [...prev, { id, message, type }]);
-    
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 3000);
-  };
-
   const handleSessionConnected = (sessionData) => {
     setConnectionStatus(`已连接 - ${sessionData.name}`);
-    addNotification(`已连接到 ${sessionData.name}`, 'success');
+    toast.success(`已连接到 ${sessionData.name}`);
   };
 
   const handleSessionDisconnected = () => {
@@ -92,23 +84,32 @@ function App() {
       <TabManager 
         onSessionConnected={handleSessionConnected}
         onSessionDisconnected={handleSessionDisconnected}
-        onShowNotification={addNotification}
+        onShowNotification={toast}
       />
 
       <SessionModal
         isOpen={isSessionModalOpen}
         onClose={() => setIsSessionModalOpen(false)}
-        onShowNotification={addNotification}
+        onShowNotification={toast}
       />
 
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
-        onShowNotification={addNotification}
+        onShowNotification={toast}
       />
 
-      <NotificationContainer notifications={notifications} />
+      <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
+      <TailwindTestButton />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <>
+      <AppContent />
+    </>
   );
 }
 

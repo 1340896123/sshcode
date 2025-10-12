@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Button } from './ui/primitives/Button';
+import { Input } from './ui/primitives/Input';
 
 function Terminal({ tabId, isConnected, sessionData, onExecuteCommand, onShowNotification }) {
   const [output, setOutput] = useState([]);
@@ -138,18 +140,12 @@ function Terminal({ tabId, isConnected, sessionData, onExecuteCommand, onShowNot
       <div className="flex justify-between items-center px-4 py-2.5 bg-[#2d2d30] border-b border-[#3e3e42]">
         <h3 className="text-sm text-[#cccccc]">终端</h3>
         <div className="flex gap-1.5">
-          <button 
-            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px" 
-            onClick={clearTerminal}
-          >
+          <Button onClick={clearTerminal}>
             清空
-          </button>
-          <button 
-            className="px-2 py-1 border-none rounded cursor-pointer text-[11px] font-inherit transition-all duration-200 outline-none bg-[#007acc] text-white hover:bg-[#005a9e] hover:opacity-80 active:translate-y-px" 
-            onClick={copyOutput}
-          >
+          </Button>
+          <Button onClick={copyOutput}>
             复制
-          </button>
+          </Button>
         </div>
       </div>
       <div className="flex-1 px-4 font-['Consolas','Monaco',monospace] text-sm overflow-y-auto flex flex-col" data-tab-id={tabId}>
@@ -171,10 +167,9 @@ function Terminal({ tabId, isConnected, sessionData, onExecuteCommand, onShowNot
         </div>
         <div className="flex items-center">
           <span className="text-[#4ec9b0] mr-1.25" data-tab-id={tabId}>$ </span>
-          <input
+          <Input
             ref={inputRef}
-            type="text"
-            className="flex-1 bg-transparent border-none text-[#d4d4d4] font-inherit text-sm outline-none disabled:text-[#666]"
+            className="flex-1 bg-transparent border-none px-0 py-0"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

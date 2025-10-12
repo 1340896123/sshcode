@@ -78,6 +78,81 @@ body {
     background: #5a5a5a;
 }
 
+/* 文件浏览器优化 */
+.file-explorer {
+    transition: all 0.3s ease;
+}
+
+.file-explorer .file-row {
+    transition: all 0.2s ease;
+}
+
+.file-explorer .file-row:hover {
+    transform: translateX(2px);
+}
+
+/* 按钮优化 */
+.btn-primary {
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 122, 204, 0.2);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 4px 8px rgba(0, 122, 204, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 122, 204, 0.2);
+}
+
+/* 输入框优化 */
+.input-path {
+    transition: all 0.2s ease;
+}
+
+.input-path:focus {
+    box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.15);
+}
+
+/* 加载动画优化 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+/* 文件类型图标颜色 */
+.file-icon-directory {
+    color: #dcdcaa;
+}
+
+.file-icon-file {
+    color: #9cdcfe;
+}
+
+.file-icon-code {
+    color: #4ec9b0;
+}
+
+.file-icon-image {
+    color: #ce9178;
+}
+
+.file-icon-archive {
+    color: #c586c0;
+}
+
 /* 响应式设计 */
 @media (max-width: 1600px) {
     :root {
@@ -85,6 +160,10 @@ body {
         --ai-chat-width: 340px;
         --min-file-explorer-width: 160px;
         --min-ai-chat-width: 260px;
+    }
+    
+    .file-explorer .grid-cols-12 {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
     }
 }
 
