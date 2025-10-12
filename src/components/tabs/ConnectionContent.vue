@@ -28,6 +28,7 @@
         @set-autocomplete-ref="$emit('set-autocomplete-ref', $event)"
         @execute-command-from-ai="$emit('execute-command-from-ai', $event)"
         @start-resize="$emit('start-resize', $event)"
+        @show-settings="$emit('show-settings')"
       />
 
       <!-- 连接状态栏 -->
@@ -123,7 +124,8 @@ export default {
     'handle-context-menu-add-to-ai',
     'handle-context-menu-select-all',
     'execute-command-from-ai',
-    'start-resize'
+    'start-resize',
+    'show-settings'
   ]
 }
 </script>

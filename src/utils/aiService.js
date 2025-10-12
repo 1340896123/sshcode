@@ -45,10 +45,10 @@ function isConfigValid(config) {
   return config && 
          config.baseUrl && 
          config.apiKey && 
-         config.model &&
+         (config.model || config.customModel) &&
          config.baseUrl.trim() !== '' &&
          config.apiKey.trim() !== '' &&
-         config.model.trim() !== ''
+         (config.model && config.model.trim() !== '' || config.customModel && config.customModel.trim() !== '')
 }
 
 /**
@@ -92,7 +92,7 @@ export async function callAIAPI(message, historyMessages, connection) {
 
   // 构建请求
   const requestData = {
-    model: config.model,
+    model: config.customModel || config.model,
     messages: [
       {
         role: 'system',
@@ -234,7 +234,7 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
         'Authorization': `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        model: config.model,
+        model: config.customModel || config.model,
         messages: followUpMessages,
         max_tokens: config.maxTokens,
         temperature: config.temperature
@@ -365,7 +365,7 @@ export function validateAIConfig(config) {
     return { valid: false, error: 'API密钥不能为空' }
   }
 
-  if (!config.model) {
+  if (!config.model && !config.customModel) {
     return { valid: false, error: '模型名称不能为空' }
   }
 
@@ -391,7 +391,7 @@ export async function testAIConnection(config) {
     }
 
     const testRequest = {
-      model: config.model,
+      model: config.customModel || config.model,
       messages: [
         {
           role: 'user',

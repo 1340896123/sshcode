@@ -10,6 +10,7 @@
       @session-connected="handleSessionConnected"
       @session-disconnected="handleSessionDisconnected"
       @show-notification="handleShowNotification"
+      @show-settings="isSettingsModalOpen = true"
     />
 
     <SessionModal

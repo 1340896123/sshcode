@@ -111,6 +111,7 @@
           :connection="connection"
           @show-notification="$emit('show-notification', $event)"
           @execute-command="$emit('execute-command-from-ai', $event)"
+          @show-settings="$emit('show-settings')"
         />
       </div>
     </div>
@@ -159,7 +160,8 @@ export default {
     'handle-autocomplete-hide',
     'set-autocomplete-ref',
     'execute-command-from-ai',
-    'start-resize'
+    'start-resize',
+    'show-settings'
   ],
   methods: {
     formatTimestamp(timestamp) {

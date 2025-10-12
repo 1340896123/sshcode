@@ -49,6 +49,7 @@
         @handle-context-menu-add-to-ai="handleContextMenuAddToAI"
         @handle-context-menu-select-all="handleContextMenuSelectAll"
         @execute-command-from-ai="handleExecuteCommand"
+        @show-settings="$emit('show-settings')"
       />
     </div>
 
@@ -87,7 +88,7 @@ export default {
     ConnectionContent,
     ContextMenu
   },
-  emits: ['session-connected', 'session-disconnected', 'show-notification', 'open-session-modal'],
+  emits: ['session-connected', 'session-disconnected', 'show-notification', 'open-session-modal', 'show-settings'],
   setup(props, { emit }) {
     // ANSI转换器实例
     const ansiConvert = new Convert({
