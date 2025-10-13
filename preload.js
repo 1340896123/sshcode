@@ -15,6 +15,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sshConnect: (connectionConfig) => ipcRenderer.invoke('ssh-connect', connectionConfig),
   sshExecute: (connectionId, command) => ipcRenderer.invoke('ssh-execute', connectionId, command),
   sshDisconnect: (connectionId) => ipcRenderer.invoke('ssh-disconnect', connectionId),
+
+  // SSH Shell 会话 (新增)
+  sshCreateShell: (connectionId, options) => ipcRenderer.invoke('ssh-create-shell', connectionId, options),
+  sshShellWrite: (connectionId, data) => ipcRenderer.invoke('ssh-shell-write', connectionId, data),
+  sshShellResize: (connectionId, rows, cols) => ipcRenderer.invoke('ssh-shell-resize', connectionId, rows, cols),
+  sshShellClose: (connectionId) => ipcRenderer.invoke('ssh-shell-close', connectionId),
   
   // 文件操作
   getFileList: (connectionId, remotePath) => ipcRenderer.invoke('get-file-list', connectionId, remotePath),
@@ -36,5 +42,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // 事件监听
   onFileChanged: (callback) => ipcRenderer.on('fileChanged', callback),
+  onTerminalData: (callback) => ipcRenderer.on('terminal-data', callback),
+  onTerminalClose: (callback) => ipcRenderer.on('terminal-close', callback),
+  onTerminalError: (callback) => ipcRenderer.on('terminal-error', callback),
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
 });

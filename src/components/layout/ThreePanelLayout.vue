@@ -36,60 +36,18 @@
       </div>
       <div class="panel-body">
         <div class="terminal-content">
-          <div
-            class="terminal-output"
-            :ref="`terminal-${connection.id}`"
-            @contextmenu.prevent="$emit('handle-terminal-context-menu', $event, connection.id)"
-            @mouseup="$emit('handle-terminal-mouse-up', $event, connection.id)"
-            @selectstart="$emit('handle-terminal-select-start')"
-          >
-            <div
-              v-for="(line, index) in connection.terminalOutput"
-              :key="index"
-              class="terminal-line"
-              :class="{ 'error-line': line.type === 'error', 'success-line': line.type === 'success' }"
-            >
-              <span class="line-timestamp" v-if="line.timestamp">
-                {{ formatTimestamp(line.timestamp) }}
-              </span>
-              <span class="line-content" v-if="line.isHtml" v-html="line.content"></span>
-              <span class="line-content" v-else>{{ line.content }}</span>
-            </div>
-            <div v-if="connection.terminalOutput.length === 0" class="terminal-welcome">
-              欢迎使用SSH终端，输入命令开始操作...
-            </div>
-          </div>
-          <div class="terminal-input-container">
-            <div class="terminal-prompt">{{ connection.username }}@{{ connection.host }}:~$</div>
-            <div class="terminal-input-wrapper">
-              <input
-                type="text"
-                class="terminal-input"
-                :ref="`input-${connection.id}`"
-                v-model="connection.currentCommand"
-                @keydown="$emit('handle-terminal-keydown', $event, connection)"
-                @input="$emit('handle-terminal-input', connection)"
-                @focus="$emit('handle-terminal-focus', connection)"
-                @blur="$emit('handle-terminal-blur', connection)"
-                placeholder="输入SSH命令..."
-                :disabled="connection.status !== 'connected'"
-              />
-              <TerminalAutocomplete
-                :ref="el => $emit('set-autocomplete-ref', connection.id, el)"
-                :current-input="connection.currentCommand"
-                :is-visible="connection.showAutocomplete"
-                @select="$emit('handle-autocomplete-select', $event)"
-                @hide="$emit('handle-autocomplete-hide')"
-              />
-            </div>
-            <button
-              class="execute-btn"
-              @click="$emit('execute-command', connection)"
-              :disabled="!connection.currentCommand.trim() || connection.status !== 'connected'"
-            >
-              执行
-            </button>
-          </div>
+          <!-- 新的XTerminal组件 -->
+          <XTerminal
+            :connection-id="connection.id"
+            :connection="connection"
+            :height="'400px'"
+            :font-size="14"
+            @data="handleTerminalData"
+            @resize="handleTerminalResize"
+            @focus="handleTerminalFocus"
+            @blur="handleTerminalBlur"
+            @contextmenu="handleTerminalContextMenu"
+          />
         </div>
       </div>
     </div>
@@ -122,13 +80,15 @@
 import FileManager from '../FileManager.vue'
 import AIAssistant from '../AIAssistant.vue'
 import TerminalAutocomplete from '../TerminalAutocomplete.vue'
+import XTerminal from '../XTerminal.vue'
 
 export default {
   name: 'ThreePanelLayout',
   components: {
     FileManager,
     AIAssistant,
-    TerminalAutocomplete
+    TerminalAutocomplete,
+    XTerminal
   },
   props: {
     connection: {
@@ -166,6 +126,28 @@ export default {
   methods: {
     formatTimestamp(timestamp) {
       return new Date(timestamp).toLocaleTimeString()
+    },
+
+    // 新的终端事件处理方法
+    handleTerminalData(data) {
+      // 可以在这里处理终端数据
+      console.log('Terminal data:', data)
+    },
+
+    handleTerminalResize({ cols, rows }) {
+      console.log('Terminal resized:', { cols, rows })
+    },
+
+    handleTerminalFocus() {
+      console.log('Terminal focused')
+    },
+
+    handleTerminalBlur() {
+      console.log('Terminal blurred')
+    },
+
+    handleTerminalContextMenu(event) {
+      this.$emit('handle-terminal-context-menu', event, this.connection.id)
     }
   }
 }

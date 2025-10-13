@@ -7,6 +7,7 @@ const axios = require('axios');
 let mainWindow;
 let sshConnections = {};
 let sshConnectionConfigs = {};
+let sshShells = {}; // 新增：存储SSH Shell会话
 let appConfig = {};
 
 function createWindow() {
@@ -253,13 +254,171 @@ ipcMain.handle('ssh-execute', async (event, connectionId, command) => {
   });
 });
 
+// 新增：创建SSH Shell会话
+ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => {
+  const conn = sshConnections[connectionId];
+  const config = sshConnectionConfigs[connectionId];
+
+  if (!conn || !config) {
+    return { success: false, error: 'SSH连接不存在或配置丢失' };
+  }
+
+  try {
+    return new Promise((resolve, reject) => {
+      const shellOptions = {
+        rows: options.rows || 24,
+        cols: options.cols || 80,
+        term: options.term || 'xterm-256color',
+        env: {
+          TERM: 'xterm-256color',
+          SHELL: '/bin/bash',
+          PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+          HOME: `/home/${config.username}`,
+          USER: config.username,
+          LANG: 'en_US.UTF-8',
+          LC_ALL: 'en_US.UTF-8'
+        }
+      };
+
+      conn.shell(shellOptions, (err, stream) => {
+        if (err) {
+          reject({ success: false, error: err.message });
+          return;
+        }
+
+        // 存储Shell会话
+        sshShells[connectionId] = stream;
+
+        let outputBuffer = '';
+
+        stream.on('data', (data) => {
+          const output = data.toString();
+          outputBuffer += output;
+
+          // 发送数据到渲染进程
+          mainWindow.webContents.send('terminal-data', {
+            connectionId,
+            data: output
+          });
+        });
+
+        stream.stderr.on('data', (data) => {
+          const output = data.toString();
+          outputBuffer += output;
+
+          // 发送错误数据到渲染进程
+          mainWindow.webContents.send('terminal-data', {
+            connectionId,
+            data: output,
+            isError: true
+          });
+        });
+
+        stream.on('close', (code, signal) => {
+          console.log(`SSH Shell会话关闭: ${connectionId}, code: ${code}, signal: ${signal}`);
+          delete sshShells[connectionId];
+
+          // 通知渲染进程会话已关闭
+          mainWindow.webContents.send('terminal-close', {
+            connectionId,
+            code,
+            signal
+          });
+        });
+
+        stream.on('error', (err) => {
+          console.error(`SSH Shell会话错误: ${connectionId}`, err);
+          delete sshShells[connectionId];
+
+          // 通知渲染进程会话错误
+          mainWindow.webContents.send('terminal-error', {
+            connectionId,
+            error: err.message
+          });
+        });
+
+        resolve({
+          success: true,
+          message: 'SSH Shell会话创建成功',
+          initialOutput: outputBuffer
+        });
+      });
+    });
+  } catch (error) {
+    console.error('创建SSH Shell会话失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 新增：向Shell发送数据
+ipcMain.handle('ssh-shell-write', async (event, connectionId, data) => {
+  console.log(`🔍 [SHELL-DEBUG] 尝试向Shell发送数据:`, {
+    connectionId,
+    data: data.toString().trim(),
+    fullData: data.toString(),
+    availableShells: Object.keys(sshShells),
+    shellExists: !!sshShells[connectionId]
+  });
+
+  const stream = sshShells[connectionId];
+  if (!stream) {
+    console.error(`❌ [SHELL-DEBUG] SSH Shell会话不存在: ${connectionId}`);
+    return { success: false, error: 'SSH Shell会话不存在' };
+  }
+
+  try {
+    stream.write(data);
+    console.log(`✅ [SHELL-DEBUG] 成功向Shell发送数据:`, data.toString().trim());
+    return { success: true };
+  } catch (error) {
+    console.error('❌ [SHELL-DEBUG] 向Shell发送数据失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 新增：调整Shell终端大小
+ipcMain.handle('ssh-shell-resize', async (event, connectionId, rows, cols) => {
+  const stream = sshShells[connectionId];
+  if (!stream) {
+    return { success: false, error: 'SSH Shell会话不存在' };
+  }
+
+  try {
+    stream.setWindow(rows, cols, 0, 0);
+    return { success: true };
+  } catch (error) {
+    console.error('调整Shell终端大小失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 新增：关闭Shell会话
+ipcMain.handle('ssh-shell-close', async (event, connectionId) => {
+  const stream = sshShells[connectionId];
+  if (stream) {
+    stream.end();
+    delete sshShells[connectionId];
+  }
+  return { success: true };
+});
+
 ipcMain.handle('ssh-disconnect', async (event, connectionId) => {
   const conn = sshConnections[connectionId];
+  const stream = sshShells[connectionId];
+
+  // 关闭Shell会话
+  if (stream) {
+    stream.end();
+    delete sshShells[connectionId];
+  }
+
+  // 关闭SSH连接
   if (conn) {
     conn.end();
     delete sshConnections[connectionId];
     delete sshConnectionConfigs[connectionId];
   }
+
   return { success: true };
 });
 

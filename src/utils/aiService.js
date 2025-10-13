@@ -2,6 +2,8 @@
  * AI服务工具模块
  */
 
+import { executeAICommand } from './aiCommandExecutor.js'
+
 /**
  * 获取AI配置
  */
@@ -196,75 +198,156 @@ function buildSystemPrompt(connection) {
  * 处理工具调用
  */
 async function handleToolCalls(toolCalls, requestData, config, connection) {
-  const toolResults = []
-  
-  for (const toolCall of toolCalls) {
-    if (toolCall.function.name === 'execute_command') {
-      try {
-        const args = JSON.parse(toolCall.function.arguments)
-        const result = await executeTerminalCommand(args.command, connection?.id)
-        
-        toolResults.push({
-          tool_call_id: toolCall.id,
-          result: result
+  let currentMessages = [...requestData.messages]
+  let iterationCount = 0
+  const maxIterations = 10 // 防止无限循环
+
+  while (iterationCount < maxIterations) {
+    iterationCount++
+    console.log(`🔄 [AI-DEBUG] 工具调用迭代 ${iterationCount}`)
+
+    const toolResults = []
+
+    for (const toolCall of toolCalls) {
+      if (toolCall.function.name === 'execute_command') {
+        try {
+          const args = JSON.parse(toolCall.function.arguments)
+          console.log(`🔧 [AI-DEBUG] 执行命令:`, args.command)
+
+          const result = await executeTerminalCommand(args.command, connection?.id)
+          console.log(`✅ [AI-DEBUG] 命令执行完成，结果长度:`, result.length)
+
+          toolResults.push({
+            tool_call_id: toolCall.id,
+            result: result
+          })
+        } catch (error) {
+          console.error(`❌ [AI-DEBUG] 命令执行失败:`, error)
+          toolResults.push({
+            tool_call_id: toolCall.id,
+            result: `命令执行失败: ${error.message}`
+          })
+        }
+      }
+    }
+
+    // 构建包含工具结果的消息
+    const messagesWithToolResults = [
+      ...currentMessages,
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: toolCalls
+      },
+      ...toolResults.map(result => ({
+        role: 'tool',
+        tool_call_id: result.tool_call_id,
+        content: result.result
+      }))
+    ]
+
+    try {
+      const followUpResponse = await fetch(config.baseUrl + '/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`
+        },
+        body: JSON.stringify({
+          model: config.customModel || config.model,
+          messages: messagesWithToolResults,
+          max_tokens: config.maxTokens,
+          temperature: config.temperature
         })
-      } catch (error) {
-        toolResults.push({
-          tool_call_id: toolCall.id,
-          result: `命令执行失败: ${error.message}`
-        })
+      })
+
+      if (!followUpResponse.ok) {
+        throw new Error(`后续API请求失败: ${followUpResponse.status} ${followUpResponse.statusText}`)
+      }
+
+      const followUpData = await followUpResponse.json()
+      console.log(`🔍 [AI-DEBUG] API响应数据:`, {
+        status: followUpResponse.status,
+        hasChoices: followUpData.choices && followUpData.choices.length > 0,
+        choicesCount: followUpData.choices?.length || 0,
+        usage: followUpData.usage
+      })
+
+      const choice = followUpData.choices[0]
+
+      if (!choice) {
+        console.error(`❌ [AI-DEBUG] API响应中没有choices字段`)
+        throw new Error('API返回了无效的响应：缺少choices字段')
+      }
+
+      console.log(`🎯 [AI-DEBUG] AI响应详情:`, {
+        hasMessage: !!choice.message,
+        hasToolCalls: !!(choice.message?.tool_calls),
+        toolCallsCount: choice.message?.tool_calls?.length || 0,
+        hasContent: !!choice.message?.content,
+        contentLength: choice.message?.content?.length || 0,
+        finishReason: choice.finish_reason
+      })
+
+      // 如果AI又调用了工具，继续循环
+      if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+        console.log(`🔄 [AI-DEBUG] AI发起新的工具调用，继续处理`)
+        toolCalls = choice.message.tool_calls
+        currentMessages = messagesWithToolResults
+        continue
+      }
+
+      // 检查AI响应的完整性
+      if (!choice.message) {
+        console.error(`❌ [AI-DEBUG] AI响应中没有message字段`)
+        return {
+          content: 'AI返回了无效的响应格式：缺少消息内容',
+          actions: null
+        }
+      }
+
+      // 如果AI返回了最终回复，结束循环
+      let finalContent = choice.message.content
+
+      // 处理各种可能的响应情况
+      if (!finalContent) {
+        console.warn(`⚠️ [AI-DEBUG] AI返回了空的内容字段，检查其他可能的信息`)
+
+        // 尝试从finish_reason推断状态
+        if (choice.finish_reason === 'stop') {
+          finalContent = '命令已执行完成，但AI没有提供额外说明。'
+        } else if (choice.finish_reason === 'length') {
+          finalContent = '命令已执行完成，但响应因长度限制被截断。'
+        } else if (choice.finish_reason === 'content_filter') {
+          finalContent = '命令已执行完成，但内容被安全过滤器阻止。'
+        } else {
+          finalContent = '命令已执行完成，但AI没有返回具体的分析结果。'
+        }
+
+        console.log(`🔧 [AI-DEBUG] 根据finish_reason生成默认回复:`, choice.finish_reason)
+      }
+
+      console.log(`✅ [AI-DEBUG] 获得最终回复，内容长度:`, finalContent.length)
+
+      return {
+        content: finalContent,
+        actions: null // AI已经执行了命令，不需要额外的操作按钮
+      }
+
+    } catch (error) {
+      console.error('工具调用后续处理失败:', error)
+      return {
+        content: `命令已执行，但处理结果时出现错误：${error.message}`,
+        actions: null
       }
     }
   }
 
-  // 发送工具结果回AI
-  const followUpMessages = [
-    ...requestData.messages,
-    {
-      role: 'assistant',
-      content: null,
-      tool_calls: toolCalls
-    },
-    ...toolResults.map(result => ({
-      role: 'tool',
-      tool_call_id: result.tool_call_id,
-      content: result.result
-    }))
-  ]
-
-  try {
-    const followUpResponse = await fetch(config.baseUrl + '/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`
-      },
-      body: JSON.stringify({
-        model: config.customModel || config.model,
-        messages: followUpMessages,
-        max_tokens: config.maxTokens,
-        temperature: config.temperature
-      })
-    })
-
-    if (!followUpResponse.ok) {
-      throw new Error(`后续API请求失败: ${followUpResponse.status} ${followUpResponse.statusText}`)
-    }
-
-    const followUpData = await followUpResponse.json()
-    const finalContent = followUpData.choices[0]?.message?.content || '抱歉，处理命令结果时出现问题。'
-
-    return {
-      content: finalContent,
-      actions: null // AI已经执行了命令，不需要额外的操作按钮
-    }
-
-  } catch (error) {
-    console.error('工具调用后续处理失败:', error)
-    return {
-      content: `命令已执行，但处理结果时出现错误：${error.message}`,
-      actions: null
-    }
+  // 达到最大迭代次数，强制返回
+  console.error(`⚠️ [AI-DEBUG] 达到最大工具调用迭代次数 (${maxIterations})，强制停止`)
+  return {
+    content: '抱歉，处理过程中遇到了过多的工具调用，已停止处理。请简化您的请求。',
+    actions: null
   }
 }
 
@@ -272,66 +355,13 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
  * 执行终端命令
  */
 export async function executeTerminalCommand(command, connectionId) {
-  return new Promise((resolve, reject) => {
-    // 创建一个唯一的命令执行ID
-    const commandId = `ai-cmd-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    let isResolved = false
-    
-    // 监听命令执行结果
-    const handleCommandResult = (event) => {
-      if (event.detail && event.detail.commandId === commandId && !isResolved) {
-        isResolved = true
-        window.removeEventListener('terminal-command-result', handleCommandResult)
-        
-        if (event.detail.success) {
-          resolve(event.detail.output)
-        } else {
-          reject(new Error(event.detail.error || '命令执行失败'))
-        }
-      }
-    }
-    
-    // 添加事件监听器
-    window.addEventListener('terminal-command-result', handleCommandResult)
-    
-    try {
-      // 发送命令执行请求
-      window.dispatchEvent(new CustomEvent('execute-terminal-command', {
-        detail: {
-          commandId,
-          command,
-          connectionId: connectionId || window.currentConnectionId
-        }
-      }))
-    } catch (error) {
-      isResolved = true
-      window.removeEventListener('terminal-command-result', handleCommandResult)
-      reject(new Error(`发送命令失败: ${error.message}`))
-      return
-    }
-    
-    // 设置超时（缩短到15秒）
-    const timeoutId = setTimeout(() => {
-      if (!isResolved) {
-        isResolved = true
-        window.removeEventListener('terminal-command-result', handleCommandResult)
-        reject(new Error('命令执行超时'))
-      }
-    }, 15000) // 15秒超时
-    
-    // 清理函数
-    const cleanup = () => {
-      clearTimeout(timeoutId)
-      window.removeEventListener('terminal-command-result', handleCommandResult)
-    }
-    
-    // 在Promise解决或拒绝时清理
-    Promise.resolve().then(() => {
-      // 确保清理函数在适当的时候被调用
-    }).catch(() => {
-      cleanup()
-    })
-  })
+  try {
+    // 使用AI命令执行器，能够等待命令完成并获取真实输出
+    return await executeAICommand(command, connectionId);
+  } catch (error) {
+    console.error('AI命令执行失败:', error);
+    throw error;
+  }
 }
 
 /**

@@ -17,6 +17,9 @@ terminal:
   scrollback: 1000
   copyShortcut: ctrl-c
   pasteShortcut: ctrl-v
+  idleTimeout: 600
+  autoReconnect: false
+  timeoutWarning: 30
 security:
   encryptPasswords: false
   sessionTimeout: 30

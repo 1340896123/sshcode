@@ -347,6 +347,49 @@
                   </select>
                 </div>
               </div>
+
+              <div class="settings-section">
+                <h3>超时设置</h3>
+                <div class="setting-item">
+                  <label>空闲超时 (分钟)</label>
+                  <input
+                    v-model="settings.terminal.idleTimeout"
+                    type="number"
+                    class="setting-input"
+                    min="1"
+                    max="1440"
+                  />
+                  <small style="color: color(text-muted); margin-top: 4px; display: block;">
+                    连接在无活动状态下保持的时间，0表示禁用自动断开
+                  </small>
+                </div>
+                <div class="setting-item">
+                  <label>超时警告时间 (秒)</label>
+                  <input
+                    v-model="settings.terminal.timeoutWarning"
+                    type="number"
+                    class="setting-input"
+                    min="10"
+                    max="300"
+                  />
+                  <small style="color: color(text-muted); margin-top: 4px; display: block;">
+                    在超时前多少秒显示警告
+                  </small>
+                </div>
+                <div class="setting-item">
+                  <label>
+                    <input
+                      v-model="settings.terminal.autoReconnect"
+                      type="checkbox"
+                      class="setting-checkbox"
+                    />
+                    自动重连
+                  </label>
+                  <small style="color: color(text-muted); margin-top: 4px; display: block;">
+                    超时断开后自动尝试重新连接
+                  </small>
+                </div>
+              </div>
             </div>
 
             <!-- 常规设置 -->
@@ -546,7 +589,10 @@ export default {
         cursorStyle: 'block',
         scrollback: 1000,
         copyShortcut: 'ctrl-c',
-        pasteShortcut: 'ctrl-v'
+        pasteShortcut: 'ctrl-v',
+        idleTimeout: 600,
+        timeoutWarning: 30,
+        autoReconnect: false
       },
       general: {
         language: 'zh-CN',

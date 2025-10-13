@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Electron-based SSH remote connection application that integrates file management, terminal operations, and AI assistant functionality. The application is built with Vue 3, Vite, and a comprehensive SCSS-based component library.
+This is an Electron-based SSH remote connection application that integrates file management, terminal operations, AI assistant functionality, and automatic timeout management. The application is built with Vue 3, Vite, and a comprehensive SCSS-based component library.
 
 ## Development Commands
 
@@ -61,13 +61,15 @@ The Vue 3 frontend follows a modular component architecture:
 - `ToastContainer.vue` - Global notification system
 
 **Additional Key Components:**
-- `AIAssistant.vue` - AI chat interface and command execution
+- `AIAssistant.vue` - AI chat interface with tool call integration
 - `FileManager.vue` - SFTP file browser and operations
+- `XTerminal.vue` - Advanced terminal with xterm.js integration and timeout management
 - `TerminalAutocomplete.vue` - Terminal command autocomplete functionality
 - `ContextMenu.vue` - Right-click context menus
 - `ThreePanelLayout.vue` - Main application layout with three panels
 - `ConnectionStatusBar.vue` - SSH connection status indicator
 - `WelcomeScreen.vue` - Initial screen for new users
+- `SettingsModal.vue` - Comprehensive settings interface with tabbed configuration
 
 ### State Management
 - Vue 3 Composition API with `reactive` and `ref`
@@ -86,6 +88,7 @@ The Vue 3 frontend follows a modular component architecture:
 - **Vite 7** - Build tool and dev server
 - **SSH2** - SSH client library
 - **ssh2-sftp-client** - SFTP file operations
+- **xterm.js** - Terminal emulator with rich features
 - **SCSS** - Styling with design tokens
 - **js-yaml** - YAML configuration parsing
 - **axios** - HTTP client for AI API calls
