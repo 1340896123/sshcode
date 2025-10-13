@@ -72,12 +72,7 @@ export function useConnectionManager(emit) {
       console.log('📱 [CONNECTION-MANAGER] 状态更新为connecting，发送通知')
       emit('show-notification', `正在连接到 ${connection.host}...`, 'info')
 
-      // 模拟连接步骤
-      console.log('⏳ [CONNECTION-MANAGER] 开始模拟连接步骤')
-      await simulateConnectionStep(connection, 2, 1000) // 身份验证
-      console.log('✓ [CONNECTION-MANAGER] 身份验证步骤完成')
-      await simulateConnectionStep(connection, 3, 1500) // 建立连接
-      console.log('✓ [CONNECTION-MANAGER] 建立连接步骤完成')
+      // 建立真实SSH连接，不使用模拟步骤
 
       // 实际SSH连接
       if (window.electronAPI) {
@@ -153,21 +148,17 @@ export function useConnectionManager(emit) {
           emit('show-notification', `连接失败: ${result.error}`, 'error')
         }
       } else {
-        console.log('🔧 [CONNECTION-MANAGER] 开发模式：模拟连接成功')
-        // 开发模式模拟连接成功
-        setTimeout(() => {
-          connection.status = 'connected'
-          connection.connectedAt = new Date()
+        console.error('💥 [CONNECTION-MANAGER] ElectronAPI不可用，无法建立SSH连接')
+        connection.status = 'failed'
+        connection.errorMessage = 'ElectronAPI不可用，请在Electron环境中运行应用'
 
-          addTerminalOutput(connection, {
-            type: 'success',
-            content: `成功连接到 ${connection.host} (开发模式)`,
-            timestamp: new Date()
-          })
+        addTerminalOutput(connection, {
+          type: 'error',
+          content: '连接失败: ElectronAPI不可用，请在Electron环境中运行应用',
+          timestamp: new Date()
+        })
 
-          emit('show-notification', `已连接到 ${connection.name}`, 'success')
-          startConnectionMonitoring(connection)
-        }, 2000)
+        emit('show-notification', 'ElectronAPI不可用，请在Electron环境中运行应用', 'error')
       }
     } catch (error) {
       console.error('💥 [CONNECTION-MANAGER] 连接异常:', error)
@@ -186,14 +177,34 @@ export function useConnectionManager(emit) {
     console.log('🏁 [CONNECTION-MANAGER] 连接尝试完成，最终状态:', connection.status)
   }
 
-  // 模拟连接步骤
-  const simulateConnectionStep = (connection, step, delay) => {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        connection.connectStep = step
-        resolve()
-      }, delay)
+  // 移除模拟连接步骤函数，现在使用真实SSH连接
+
+  // 取消连接
+  const cancelConnection = async (connectionId) => {
+    const connection = activeConnections.value.find(c => c.id === connectionId)
+    if (!connection || connection.status !== 'connecting') return
+
+    console.log('❌ [CONNECTION-MANAGER] 取消连接:', connectionId)
+    
+    connection.status = 'cancelled'
+    connection.errorMessage = '用户取消了连接'
+
+    addTerminalOutput(connection, {
+      type: 'warning',
+      content: '连接已被用户取消',
+      timestamp: new Date()
     })
+
+    emit('show-notification', `已取消连接到 ${connection.name}`, 'info')
+
+    // 停止任何进行中的连接尝试
+    if (window.electronAPI) {
+      try {
+        await window.electronAPI.sshDisconnect(connectionId)
+      } catch (error) {
+        console.log('取消连接时清理资源:', error.message)
+      }
+    }
   }
 
   // 添加终端输出
@@ -316,15 +327,24 @@ export function useConnectionManager(emit) {
 
   // 系统监控
   const startSystemMonitoring = (connection) => {
+    // 初始化网络数据历史记录
+    if (!connection.networkHistory) {
+      connection.networkHistory = {
+        lastNetworkDown: 0,
+        lastNetworkUp: 0,
+        lastUpdateTime: Date.now()
+      }
+    }
+    
     // 立即获取一次系统信息
     updateSystemInfo(connection)
     
-    // 每5秒更新一次系统信息
+    // 每秒更新一次系统信息
     const timer = setInterval(() => {
       if (connection.status === 'connected') {
         updateSystemInfo(connection)
       }
-    }, 5000)
+    }, 1000)
 
     systemMonitorTimers.value.set(connection.id, timer)
   }
@@ -347,13 +367,26 @@ export function useConnectionManager(emit) {
           lastUpdate: new Date()
         }
       } else {
-        // 开发模式模拟系统信息
-        connection.systemInfo = generateMockSystemInfo()
+        console.error('💥 [CONNECTION-MANAGER] ElectronAPI不可用，无法获取系统信息')
+        connection.systemInfo = {
+          cpu: 0,
+          memory: 0,
+          disk: 0,
+          networkDown: 0,
+          networkUp: 0,
+          lastUpdate: new Date()
+        }
       }
     } catch (error) {
       console.error('获取系统信息失败:', error)
-      // 使用模拟数据作为后备
-      connection.systemInfo = generateMockSystemInfo()
+      connection.systemInfo = {
+        cpu: 0,
+        memory: 0,
+        disk: 0,
+        networkDown: 0,
+        networkUp: 0,
+        lastUpdate: new Date()
+      }
     }
   }
 
@@ -371,34 +404,78 @@ export function useConnectionManager(emit) {
       const diskResult = await window.electronAPI.sshExecute(connection.id, "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'")
       const disk = parseFloat(diskResult.output.trim()) || 0
 
-      // 获取网络使用情况（简化版本）
-      const networkResult = await window.electronAPI.sshExecute(connection.id, "cat /proc/net/dev | grep eth0 | awk '{print $2, $10}' || cat /proc/net/dev | grep enp | awk '{print $2, $10}' || echo '0 0'")
+      // 获取网络使用情况（实时速率计算）
+      const networkResult = await window.electronAPI.sshExecute(
+        connection.id, 
+        "cat /proc/net/dev | grep -E '(eth0|enp|ens|eno|wlan0|wlp)' | head -1 | awk '{print $2, $10}' || echo '0 0'"
+      )
       const networkData = networkResult.output.trim().split(' ')
-      const networkDown = parseInt(networkData[0]) || 0
-      const networkUp = parseInt(networkData[1]) || 0
+      const currentNetworkDown = parseInt(networkData[0]) || 0
+      const currentNetworkUp = parseInt(networkData[1]) || 0
+
+      // 计算实时网络速率（字节/秒）
+      let networkDownRate = 0
+      let networkUpRate = 0
+      
+      if (connection.networkHistory) {
+        const currentTime = Date.now()
+        const timeDiff = (currentTime - connection.networkHistory.lastUpdateTime) / 1000 // 转换为秒
+        
+        if (timeDiff > 0) {
+          // 计算速率（字节/秒）
+          const downDiff = currentNetworkDown - connection.networkHistory.lastNetworkDown
+          const upDiff = currentNetworkUp - connection.networkHistory.lastNetworkUp
+          
+          networkDownRate = Math.max(0, Math.round(downDiff / timeDiff))
+          networkUpRate = Math.max(0, Math.round(upDiff / timeDiff))
+        }
+      }
+
+      // 更新网络历史记录
+      connection.networkHistory = {
+        lastNetworkDown: currentNetworkDown,
+        lastNetworkUp: currentNetworkUp,
+        lastUpdateTime: Date.now()
+      }
+
+      console.log('📊 [NETWORK] 实时网络速率:', {
+        down: formatBytes(networkDownRate) + '/s',
+        up: formatBytes(networkUpRate) + '/s',
+        downRaw: networkDownRate,
+        upRaw: networkUpRate
+      })
 
       return {
         cpu: Math.round(cpu),
         memory: Math.round(memory),
         disk: Math.round(disk),
-        networkDown: networkDown,
-        networkUp: networkUp
+        networkDown: networkDownRate, // 现在是速率（字节/秒）
+        networkUp: networkUpRate,      // 现在是速率（字节/秒）
+        networkDownTotal: currentNetworkDown, // 累计下载量
+        networkUpTotal: currentNetworkUp     // 累计上传量
       }
     } catch (error) {
       console.error('获取系统信息命令执行失败:', error)
-      return generateMockSystemInfo()
+      return {
+        cpu: 0,
+        memory: 0,
+        disk: 0,
+        networkDown: 0,
+        networkUp: 0,
+        networkDownTotal: 0,
+        networkUpTotal: 0,
+        lastUpdate: new Date()
+      }
     }
   }
 
-  const generateMockSystemInfo = () => {
-    return {
-      cpu: Math.floor(Math.random() * 30) + 10, // 10-40%
-      memory: Math.floor(Math.random() * 40) + 30, // 30-70%
-      disk: Math.floor(Math.random() * 20) + 20, // 20-40%
-      networkDown: Math.floor(Math.random() * 1024 * 1024), // 0-1MB/s
-      networkUp: Math.floor(Math.random() * 512 * 1024), // 0-512KB/s
-      lastUpdate: new Date()
-    }
+  // 格式化字节数为可读格式
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
   // 处理外部连接请求
@@ -425,11 +502,13 @@ export function useConnectionManager(emit) {
     closeConnection,
     disconnectConnection,
     reconnectConnection,
+    cancelConnection,
     startConnectionMonitoring,
     stopConnectionMonitoring,
     startSystemMonitoring,
     stopSystemMonitoring,
     addTerminalOutput,
-    updateSystemInfo
+    updateSystemInfo,
+    formatBytes
   }
 }

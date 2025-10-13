@@ -375,9 +375,9 @@ export default {
             emit('show-notification', `加载文件列表失败: ${error.value}`, 'error')
           }
         } else {
-          // 开发模式模拟数据
-          files.value = getMockFileList(path)
-          currentPath.value = path
+          // ElectronAPI不可用时显示错误
+          error.value = 'ElectronAPI不可用，请在Electron环境中运行应用'
+          emit('show-notification', 'ElectronAPI不可用，请在Electron环境中运行应用', 'error')
         }
       } catch (err) {
         error.value = err.message || '加载文件列表时发生异常'
@@ -387,32 +387,7 @@ export default {
       }
     }
 
-    // 获取模拟文件列表（开发模式）
-    const getMockFileList = (path) => {
-      const mockFiles = [
-        { name: 'Documents', type: 'd', size: 4096, modifyTime: new Date('2024-01-15'), owner: 'user', group: 'user', permissions: 'rwxr-xr-x' },
-        { name: 'Downloads', type: 'd', size: 4096, modifyTime: new Date('2024-01-20'), owner: 'user', group: 'user', permissions: 'rwxr-xr-x' },
-        { name: 'Pictures', type: 'd', size: 4096, modifyTime: new Date('2024-01-10'), owner: 'user', group: 'user', permissions: 'rwxr-xr-x' },
-        { name: 'Videos', type: 'd', size: 4096, modifyTime: new Date('2024-01-08'), owner: 'user', group: 'user', permissions: 'rwxr-xr-x' },
-        { name: 'Music', type: 'd', size: 4096, modifyTime: new Date('2024-01-05'), owner: 'user', group: 'user', permissions: 'rwxr-xr-x' },
-        { name: 'Desktop', type: 'd', size: 4096, modifyTime: new Date('2024-01-01'), owner: 'user', group: 'user', permissions: 'rwxr-xr-x' },
-        { name: 'readme.txt', type: '-', size: 1024, modifyTime: new Date('2024-01-25'), owner: 'user', group: 'user', permissions: 'rw-r--r--' },
-        { name: 'config.json', type: '-', size: 2048, modifyTime: new Date('2024-01-22'), owner: 'user', group: 'user', permissions: 'rw-r--r--' },
-        { name: 'app.log', type: '-', size: 5120, modifyTime: new Date('2024-01-26'), owner: 'user', group: 'user', permissions: 'rw-r--r--' },
-        { name: 'backup.tar.gz', type: '-', size: 1048576, modifyTime: new Date('2024-01-18'), owner: 'user', group: 'user', permissions: 'rw-r--r--' }
-      ]
-
-      // 根据路径返回不同的模拟数据
-      if (path === '/') {
-        return mockFiles
-      } else {
-        return [
-          { name: 'file1.txt', type: '-', size: 1024, modifyTime: new Date('2024-01-25'), owner: 'user', group: 'user', permissions: 'rw-r--r--' },
-          { name: 'file2.js', type: '-', size: 2048, modifyTime: new Date('2024-01-24'), owner: 'user', group: 'user', permissions: 'rw-r--r--' },
-          { name: 'subdir', type: 'd', size: 4096, modifyTime: new Date('2024-01-20'), owner: 'user', group: 'user', permissions: 'rwxr-xr-x' }
-        ]
-      }
-    }
+    // 移除模拟文件列表函数，现在使用真实的SSH文件操作
 
     // 导航方法
     const navigateToDirectory = (dirName) => {
@@ -498,7 +473,7 @@ export default {
             emit('show-notification', `下载失败: ${result.error}`, 'error')
           }
         } else {
-          emit('show-notification', `${file.name} 下载完成 (开发模式)`, 'success')
+          emit('show-notification', 'ElectronAPI不可用，无法下载文件', 'error')
         }
       } catch (err) {
         emit('show-notification', `下载文件失败: ${err.message}`, 'error')
@@ -519,7 +494,7 @@ export default {
             emit('show-notification', `打开文件失败: ${result.error}`, 'error')
           }
         } else {
-          emit('show-notification', `${file.name} 已打开 (开发模式)`, 'success')
+          emit('show-notification', 'ElectronAPI不可用，无法打开文件', 'error')
         }
       } catch (err) {
         emit('show-notification', `打开文件失败: ${err.message}`, 'error')
@@ -538,8 +513,7 @@ export default {
             emit('show-notification', `上传失败: ${result.error}`, 'error')
           }
         } else {
-          emit('show-notification', '文件上传成功 (开发模式)', 'success')
-          refreshDirectory()
+          emit('show-notification', 'ElectronAPI不可用，无法上传文件', 'error')
         }
       } catch (err) {
         emit('show-notification', `上传文件失败: ${err.message}`, 'error')
@@ -803,7 +777,7 @@ export default {
               emit('show-notification', `${file.name} 上传失败: ${result.error}`, 'error')
             }
           } else {
-            emit('show-notification', `${file.name} 上传成功 (开发模式)`, 'success')
+            emit('show-notification', 'ElectronAPI不可用，无法上传文件', 'error')
           }
         }
 

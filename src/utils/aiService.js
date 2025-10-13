@@ -16,7 +16,7 @@ export async function getAIConfig() {
         return config.aiChat
       }
     }
-    
+
     // 尝试从本地存储获取配置
     const localConfig = localStorage.getItem('ai-config')
     if (localConfig) {
@@ -25,10 +25,10 @@ export async function getAIConfig() {
         return parsedConfig
       }
     }
-    
+
     // 如果没有有效配置，抛出错误引导用户设置
     throw new Error('AI_CONFIG_NOT_SET')
-    
+
   } catch (error) {
     if (error.message === 'AI_CONFIG_NOT_SET') {
       // 触发配置设置引导
@@ -44,13 +44,13 @@ export async function getAIConfig() {
  * 检查配置是否有效
  */
 function isConfigValid(config) {
-  return config && 
-         config.baseUrl && 
-         config.apiKey && 
-         (config.model || config.customModel) &&
-         config.baseUrl.trim() !== '' &&
-         config.apiKey.trim() !== '' &&
-         (config.model && config.model.trim() !== '' || config.customModel && config.customModel.trim() !== '')
+  return config &&
+    config.baseUrl &&
+    config.apiKey &&
+    (config.model || config.customModel) &&
+    config.baseUrl.trim() !== '' &&
+    config.apiKey.trim() !== '' &&
+    (config.model && config.model.trim() !== '' || config.customModel && config.customModel.trim() !== '')
 }
 
 /**
@@ -70,20 +70,37 @@ function triggerConfigSetup() {
  */
 export async function callAIAPI(message, historyMessages, connection) {
   const config = await getAIConfig()
-  
+
+  // 获取操作系统信息
+  let osInfo = '未知系统'
+  try {
+    if (window.electronAPI && connection.status === 'connected') {
+      const osResult = await window.electronAPI.sshExecute(connection.id, "uname -s 2>/dev/null || echo 'Unknown'")
+      if (osResult.output) {
+        const osName = osResult.output.trim()
+        // 获取更详细的系统信息
+        const osVersionResult = await window.electronAPI.sshExecute(connection.id, "cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\"' 2>/dev/null || uname -r 2>/dev/null || echo ''")
+        const osVersion = osVersionResult.output.trim()
+        osInfo = osVersion ? `${osName} (${osVersion})` : osName
+      }
+    }
+  } catch (error) {
+    console.log('获取操作系统信息失败，使用默认值:', error.message)
+  }
+
   // 构建工具定义
   const tools = [
     {
       type: 'function',
       function: {
         name: 'execute_command',
-        description: '在终端中执行Linux命令并获取输出结果',
+        description: `在远程服务器上执行命令并获取输出结果。执行环境：${connection.username}@${connection.host}:${connection.currentWorkingDirectory || `~${connection.username}`}，操作系统：${osInfo}`,
         parameters: {
           type: 'object',
           properties: {
             command: {
               type: 'string',
-              description: '要执行的Linux命令'
+              description: `要在 ${connection.host} (${osInfo}) 上执行的命令，当前工作目录：${connection.currentWorkingDirectory || `~${connection.username}`}`
             }
           },
           required: ['command']
@@ -136,7 +153,7 @@ export async function callAIAPI(message, historyMessages, connection) {
 
     const data = await response.json()
     const choice = data.choices[0]
-    
+
     if (!choice) {
       throw new Error('API返回了无效的响应')
     }
@@ -147,10 +164,10 @@ export async function callAIAPI(message, historyMessages, connection) {
     }
 
     const aiContent = choice.message.content || '抱歉，我没有收到有效的回复。'
-    
+
     // 解析AI回复，提取命令建议
     const parsedResponse = parseAIResponse(aiContent)
-    
+
     return parsedResponse
 
   } catch (error) {
@@ -171,6 +188,7 @@ function buildSystemPrompt(connection) {
 - 登录用户: ${connection.username}
 - 认证方式: ${connection.authType === 'key' ? 'SSH密钥认证' : '密码认证'}
 - 连接状态: SSH已建立
+- 当前工作目录: ${connection.currentWorkingDirectory || `~${connection.username}`}
 
 **你的核心职责：**
 1. **实时系统监控**: 通过execute_command工具获取真实的系统状态信息
@@ -178,20 +196,35 @@ function buildSystemPrompt(connection) {
 3. **安全操作指导**: 推荐安全的Linux命令，避免危险操作
 4. **性能优化建议**: 根据系统资源使用情况提供优化建议
 
-**常用系统信息获取命令：**
-- 系统基本信息: \`uname -a\`, \`cat /etc/os-release\`
-- 资源使用情况: \`free -h\`, \`df -h\`, \`top -bn1\`
-- 进程管理: \`ps aux\`, \`systemctl status\`
-- 网络状态: \`netstat -tulpn\`, \`ss -tulpn\`, \`ip addr\`
-- 日志分析: \`journalctl -n 50\`, \`tail -f /var/log/syslog\`
+**系统环境信息获取：**
+- **当前工作目录**: \`pwd\` - 获取当前完整路径
+- **系统基本信息**: \`uname -a\`, \`cat /etc/os-release\`, \`hostname\`
+- **用户信息**: \`whoami\`, \`id\`, \`groups\`
+- **资源使用情况**: \`free -h\`, \`df -h\`, \`top -bn1\`, \`htop\`
+- **进程管理**: \`ps aux\`, \`systemctl status\`, \`journalctl -n 20\`
+- **网络状态**: \`netstat -tulpn\`, \`ss -tulpn\`, \`ip addr show\`, \`ping -c 3 8.8.8.8\`
+- **磁盘和文件**: \`ls -la\`, \`du -sh *\`, \`find . -name "*.log" -mtime -7\`
+- **系统负载**: \`uptime\`, \`w\`, \`iostat 1 3\`
+
+**execute_command工具使用说明：**
+- 此工具直接在SSH连接的远程服务器上执行命令
+- 命令执行环境: ${connection.username}@${connection.host}:${connection.currentWorkingDirectory || `~${connection.username}`}
+- 所有命令都在真实的服务器环境中运行
+- 返回的是实际的命令输出结果
 
 **重要提醒：**
-- 所有命令都通过真实的SSH连接执行
-- 命令执行环境为 ${connection.username}@${connection.host}
-- 请优先使用execute_command工具获取实时数据而非依赖记忆
-- 分析结果时要结合实际的系统环境
+- 每次分析前先使用 \`pwd\` 确认当前工作目录
+- 优先使用execute_command工具获取实时数据，不要依赖记忆或假设
+- 分析结果时必须结合实际的系统环境和当前目录
+- 推荐命令时要考虑当前用户的权限 level
+- 对于需要sudo权限的操作，要明确提醒用户
 
-请根据用户的实际需求，使用execute_command工具获取准确的系统信息并提供专业的建议。`
+**安全准则：**
+- 避免推荐危险的系统命令（如rm -rf /、dd if=/dev/zero等）
+- 文件操作前建议先备份或确认路径
+- 网络操作时考虑防火墙和安全策略
+
+请根据用户的实际需求，使用execute_command工具获取准确的系统信息，基于真实的命令输出提供专业的建议和解决方案。`
 }
 
 /**
@@ -214,8 +247,25 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
           const args = JSON.parse(toolCall.function.arguments)
           console.log(`🔧 [AI-DEBUG] 执行命令:`, args.command)
 
+          // 发射工具调用开始事件
+          window.dispatchEvent(new CustomEvent('ai-tool-call-start', {
+            detail: {
+              command: args.command,
+              toolCallId: toolCall.id
+            }
+          }))
+
           const result = await executeTerminalCommand(args.command, connection?.id)
           console.log(`✅ [AI-DEBUG] 命令执行完成，结果长度:`, result.length)
+
+          // 发射工具调用完成事件
+          window.dispatchEvent(new CustomEvent('ai-tool-call-complete', {
+            detail: {
+              command: args.command,
+              result: result,
+              toolCallId: toolCall.id
+            }
+          }))
 
           toolResults.push({
             tool_call_id: toolCall.id,
@@ -223,6 +273,16 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
           })
         } catch (error) {
           console.error(`❌ [AI-DEBUG] 命令执行失败:`, error)
+          
+          // 发射工具调用失败事件
+          window.dispatchEvent(new CustomEvent('ai-tool-call-error', {
+            detail: {
+              command: args.command,
+              error: error.message,
+              toolCallId: toolCall.id
+            }
+          }))
+
           toolResults.push({
             tool_call_id: toolCall.id,
             result: `命令执行失败: ${error.message}`
@@ -383,7 +443,7 @@ export function parseAIResponse(content) {
   // 查找行内代码
   const inlineCodeRegex = /`([^`]+)`/g
   const inlineCodes = []
-  
+
   while ((match = inlineCodeRegex.exec(content)) !== null) {
     const code = match[1].trim()
     // 只包含简单的命令，排除说明文字
@@ -397,7 +457,7 @@ export function parseAIResponse(content) {
 
   // 去重并生成操作按钮
   const uniqueCommands = [...new Map([...codeBlocks, ...inlineCodes].map(cmd => [cmd.command, cmd])).values()]
-  
+
   const actions = uniqueCommands.slice(0, 5).map((cmd, index) => ({
     id: `cmd-${index}`,
     type: 'command',
@@ -479,7 +539,7 @@ export async function testAIConnection(config) {
 
     const data = await response.json()
     return { success: true, data }
-    
+
   } catch (error) {
     return { success: false, error: error.message }
   }

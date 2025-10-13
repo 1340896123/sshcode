@@ -41,6 +41,7 @@
       <ConnectingState
         v-else-if="connection.status === 'connecting'"
         :connection="connection"
+        @cancel-connection="$emit('cancel-connection', $event)"
       />
 
       <!-- 连接失败状态 -->
@@ -106,6 +107,7 @@ export default {
     'copy-terminal-content',
     'reconnect-connection',
     'disconnect-connection',
+    'cancel-connection',
     'show-notification',
     'open-session-modal',
     'handle-terminal-context-menu',

@@ -31,6 +31,7 @@
         @copy-terminal-content="copyTerminalContent"
         @reconnect-connection="reconnectConnection"
         @disconnect-connection="disconnectConnection"
+        @cancel-connection="cancelConnection"
         @start-resize="startResize"
         @show-notification="handleShowNotification"
         @handle-terminal-context-menu="handleTerminalContextMenu"
@@ -108,6 +109,7 @@ export default {
       closeConnection,
       disconnectConnection,
       reconnectConnection,
+      cancelConnection,
       handleSessionConnected,
       startConnectionMonitoring,
       stopConnectionMonitoring,
@@ -225,19 +227,16 @@ export default {
             }))
           }
         } else {
-          // 开发模式模拟
-          setTimeout(() => {
-            const output = `模拟命令输出: ${command}`
-            addTerminalOutput(connection, {
-              type: 'output',
-              content: output,
-              timestamp: new Date()
-            })
+          // ElectronAPI不可用时返回错误
+          addTerminalOutput(connection, {
+            type: 'error',
+            content: 'ElectronAPI不可用，无法执行命令',
+            timestamp: new Date()
+          })
 
-            window.dispatchEvent(new CustomEvent('terminal-command-result', {
-              detail: { commandId, success: true, output }
-            }))
-          }, 500)
+          window.dispatchEvent(new CustomEvent('terminal-command-result', {
+            detail: { commandId, success: false, error: 'ElectronAPI不可用，无法执行命令' }
+          }))
         }
 
         await nextTick()
@@ -288,6 +287,7 @@ export default {
       closeConnection,
       disconnectConnection,
       reconnectConnection,
+      cancelConnection,
 
       // 终端管理
       executeCommand,

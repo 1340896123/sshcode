@@ -5,12 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "npm run build && electron .",
-    "devUI": "vite",
     "debug": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --remote-debugging-port=9222\"",
-    "debug-renderer": "vite",
-    "debug-main": "electron . --dev --remote-debugging-port=9222",
-    "debug:inspect": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --inspect=9229 --remote-debugging-port=9222\"",
-    "debug:break": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --inspect-brk=9229 --remote-debugging-port=9222\"",
     "build": "vite build",
     "build-electron": "npm run build && electron-builder",
     "dist": "npm run build-electron"

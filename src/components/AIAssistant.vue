@@ -49,27 +49,95 @@
             v-for="message in messages"
             :key="message.id"
             class="message"
-            :class="message.role"
+            :class="[message.role, message.type]"
           >
-            <div class="message-avatar">
-              <span v-if="message.role === 'user'">👤</span>
-              <span v-else>🤖</span>
-            </div>
-            <div class="message-content">
-              <div class="message-text" v-html="formatMessage(message.content)"></div>
-              <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-              
-              <!-- AI消息的操作按钮 -->
-              <div v-if="message.role === 'assistant' && message.actions" class="message-actions">
-                <button
-                  v-for="action in message.actions"
-                  :key="action.id"
-                  class="action-button"
-                  :class="action.type"
-                  @click="executeAction(action)"
+            <!-- 系统消息（工具调用提示） -->
+            <div v-if="message.role === 'system'" class="system-message">
+              <div class="system-message-header">
+                <div class="system-icon">
+                  <span v-if="message.type === 'tool-start'">🔧</span>
+                  <span v-else-if="message.type === 'tool-result'">
+                    <span v-if="message.metadata?.status === 'completed'">✅</span>
+                    <span v-else-if="message.metadata?.status === 'error'">❌</span>
+                    <span v-else>🔄</span>
+                  </span>
+                  <span v-else>ℹ️</span>
+                </div>
+                <div class="system-message-content">
+                  <div class="system-message-text" v-html="formatMessage(message.content)"></div>
+                  <div class="system-message-time">{{ formatTime(message.timestamp) }}</div>
+                  
+                  <!-- 执行时间显示 -->
+                  <div v-if="message.metadata?.executionTime" class="execution-time">
+                    执行时间: {{ (message.metadata.executionTime / 1000).toFixed(2) }}s
+                  </div>
+                </div>
+                
+                <!-- 折叠按钮 -->
+                <button 
+                  v-if="message.isCollapsible" 
+                  class="collapse-btn"
+                  @click="toggleCollapse(message.id)"
                 >
-                  {{ action.label }}
+                  {{ collapsedMessages.has(message.id) ? '▶' : '▼' }}
                 </button>
+              </div>
+              
+              <!-- 可折叠的结果区域 -->
+              <div 
+                v-if="message.isCollapsible && message.metadata?.result && !collapsedMessages.has(message.id)"
+                class="collapsible-result"
+              >
+                <div class="result-header">
+                  <span>命令输出结果:</span>
+                  <button class="copy-btn" @click="copyToClipboard(message.metadata.result)" title="复制结果">
+                    📋
+                  </button>
+                </div>
+                <div class="result-content">
+                  <pre>{{ message.metadata.result }}</pre>
+                </div>
+              </div>
+              
+              <!-- 错误信息显示 -->
+              <div 
+                v-if="message.type === 'tool-result' && message.metadata?.error && !collapsedMessages.has(message.id)"
+                class="error-result"
+              >
+                <div class="error-header">
+                  <span>错误信息:</span>
+                  <button class="copy-btn" @click="copyToClipboard(message.metadata.error)" title="复制错误">
+                    📋
+                  </button>
+                </div>
+                <div class="error-content">
+                  <pre>{{ message.metadata.error }}</pre>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 普通消息（用户和AI） -->
+            <div v-else class="regular-message">
+              <div class="message-avatar">
+                <span v-if="message.role === 'user'">👤</span>
+                <span v-else>🤖</span>
+              </div>
+              <div class="message-content">
+                <div class="message-text" v-html="formatMessage(message.content)"></div>
+                <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+                
+                <!-- AI消息的操作按钮 -->
+                <div v-if="message.role === 'assistant' && message.actions" class="message-actions">
+                  <button
+                    v-for="action in message.actions"
+                    :key="action.id"
+                    class="action-button"
+                    :class="action.type"
+                    @click="executeAction(action)"
+                  >
+                    {{ action.label }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -151,6 +219,9 @@ export default {
     const messagesContainer = ref(null)
     const messageInput = ref(null)
 
+    // 折叠状态管理
+    const collapsedMessages = ref(new Set())
+
     // 使用组合式函数
     const {
       messages,
@@ -224,6 +295,26 @@ export default {
       emit('show-notification', event.detail?.message || '请先配置AI服务设置', 'error')
     }
 
+    // 折叠/展开消息
+    const toggleCollapse = (messageId) => {
+      if (collapsedMessages.value.has(messageId)) {
+        collapsedMessages.value.delete(messageId)
+      } else {
+        collapsedMessages.value.add(messageId)
+      }
+    }
+
+    // 复制到剪贴板
+    const copyToClipboard = async (text) => {
+      try {
+        await navigator.clipboard.writeText(text)
+        emit('show-notification', '已复制到剪贴板', 'success')
+      } catch (error) {
+        console.error('复制失败:', error)
+        emit('show-notification', '复制失败', 'error')
+      }
+    }
+
     // 生命周期
     onMounted(() => {
       nextTick(() => {
@@ -253,6 +344,7 @@ export default {
       isConnected,
       canSendMessage,
       quickActions,
+      collapsedMessages,
       
       // 引用
       messagesContainer,
@@ -268,7 +360,9 @@ export default {
       adjustTextareaHeight,
       formatMessage,
       formatTime,
-      addUserInput
+      addUserInput,
+      toggleCollapse,
+      copyToClipboard
     }
   }
 }

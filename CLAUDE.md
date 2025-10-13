@@ -11,14 +11,20 @@ This is an Electron-based SSH remote connection application that integrates file
 ### Core Development
 - `npm run build` - Build the application for production using Vite
 - `npm start` - Build and start the Electron app (production mode)
-- `npm run devUI` - Start Vite development server for UI components
+- `npm run devUI` - Start Vite development server for UI components (port 3000)
 - `npm run debug` - Start Electron with DevTools and remote debugging (port 9222)
-- `npm run debug-renderer` - Start Vite dev server only
+- `npm run debug-renderer` - Start Vite dev server only (port 3000)
 - `npm run debug-main` - Start Electron in development mode with debugging
 - `npm run debug:inspect` - Start with Node.js inspector on port 9229
 - `npm run debug:break` - Start with inspector breaking on first line
 - `npm run build-electron` - Build and create distributable Electron app
 - `npm run dist` - Build and package for distribution
+
+### Development Workflow
+For development with hot reload:
+1. Run `npm run devUI` to start the Vite development server
+2. Run `npm run debug` to start Electron with debugging enabled
+3. Use `npm run debug:inspect` for Node.js debugging with inspector
 
 ### Testing
 - Test configuration setup available via @playwright/test

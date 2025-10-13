@@ -38,15 +38,12 @@ export function useTerminalManager(activeConnections, activeTabId, emit, ansiCon
           })
         }
       } else {
-        // 开发模式模拟命令执行
-        setTimeout(() => {
-          const output = simulateCommandOutput(command)
-          addTerminalOutput(connection, {
-            type: 'output',
-            content: output,
-            timestamp: new Date()
-          })
-        }, 500)
+        // ElectronAPI不可用时显示错误
+        addTerminalOutput(connection, {
+          type: 'error',
+          content: 'ElectronAPI不可用，无法执行命令',
+          timestamp: new Date()
+        })
       }
     } catch (error) {
       addTerminalOutput(connection, {
@@ -61,26 +58,7 @@ export function useTerminalManager(activeConnections, activeTabId, emit, ansiCon
     scrollToBottom(connection.id)
   }
 
-  // 模拟命令输出
-  const simulateCommandOutput = (command) => {
-    const outputs = {
-      'ls': 'Desktop  Documents  Downloads  Music  Pictures  Public  Templates  Videos',
-      'pwd': '/home/user',
-      'whoami': 'user',
-      'date': new Date().toString(),
-      'uname -a': 'Linux hostname 5.15.0-generic #1 SMP Ubuntu 5.15.0-52-generic x86_64 GNU/Linux',
-      'df -h': `Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda1        50G   15G   33G  32% /
-tmpfs           3.9G     0  3.9G   0% /dev/shm
-tmpfs           1.6G  1.2M  1.6G   1% /run
-/dev/sdb1       100G   20G   75G  21% /data`,
-      'free -h': `              total        used        free      shared  buff/cache   available
-Mem:          7.8Gi       2.1Gi       4.2Gi       1.0MiB       1.5Gi       5.3Gi
-Swap:         2.0Gi          0B       2.0Gi`
-    }
-
-    return outputs[command] || `${command}: command executed successfully (development mode)`
-  }
+  // 移除模拟命令输出函数，现在使用真实的SSH命令执行
 
   // 添加终端输出
   const addTerminalOutput = (connection, line) => {

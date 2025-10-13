@@ -26,6 +26,9 @@
       <div class="panel-header">
         <h3><span class="panel-icon">💻</span> SSH Terminal - {{ connection.host }}</h3>
         <div class="panel-controls">
+          <button class="control-btn" @click="showTerminalInput" title="显示浮动输入框 (Ctrl+Shift+T)">
+            ✏️
+          </button>
           <button class="control-btn" @click="$emit('clear-terminal', connection.id)" title="清空">
             🗑️
           </button>
@@ -47,6 +50,16 @@
             @focus="handleTerminalFocus"
             @blur="handleTerminalBlur"
             @contextmenu="handleTerminalContextMenu"
+          />
+          
+          <!-- 浮动输入框组件 -->
+          <TerminalInput
+            :is-visible="showTerminalInput"
+            :connection-id="connection.id"
+            :prompt="'$'"
+            @execute-command="handleTerminalInputCommand"
+            @hide-input="hideTerminalInput"
+            @show-notification="$emit('show-notification', $event)"
           />
         </div>
       </div>
@@ -80,6 +93,7 @@
 import FileManager from '../FileManager.vue'
 import AIAssistant from '../AIAssistant.vue'
 import TerminalAutocomplete from '../TerminalAutocomplete.vue'
+import TerminalInput from '../TerminalInput.vue'
 import XTerminal from '../XTerminal.vue'
 
 export default {
@@ -88,6 +102,7 @@ export default {
     FileManager,
     AIAssistant,
     TerminalAutocomplete,
+    TerminalInput,
     XTerminal
   },
   props: {
@@ -102,6 +117,11 @@ export default {
     isResizing: {
       type: Boolean,
       default: false
+    }
+  },
+  data() {
+    return {
+      showTerminalInput: false
     }
   },
   emits: [
@@ -123,6 +143,17 @@ export default {
     'start-resize',
     'show-settings'
   ],
+  mounted() {
+    // 监听键盘快捷键来显示/隐藏浮动输入框
+    document.addEventListener('keydown', this.handleGlobalKeydown)
+    
+    // 监听来自父组件的显示输入框请求
+    window.addEventListener('show-terminal-input', this.handleShowTerminalInput)
+  },
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.handleGlobalKeydown)
+    window.removeEventListener('show-terminal-input', this.handleShowTerminalInput)
+  },
   methods: {
     formatTimestamp(timestamp) {
       return new Date(timestamp).toLocaleTimeString()
@@ -148,6 +179,44 @@ export default {
 
     handleTerminalContextMenu(event) {
       this.$emit('handle-terminal-context-menu', event, this.connection.id)
+    },
+
+    // TerminalInput 相关方法
+    handleTerminalInputCommand(command) {
+      console.log('🎯 [ThreePanelLayout] 收到TerminalInput命令:', command)
+      // 将命令转发给父组件执行
+      this.$emit('execute-command', command)
+      // 执行后隐藏输入框
+      this.hideTerminalInput()
+    },
+
+    hideTerminalInput() {
+      this.showTerminalInput = false
+    },
+
+    showTerminalInput() {
+      this.showTerminalInput = true
+    },
+
+    // 全局键盘事件处理
+    handleGlobalKeydown(event) {
+      // Ctrl+Shift+T 显示浮动输入框
+      if (event.ctrlKey && event.shiftKey && event.key === 'T') {
+        event.preventDefault()
+        this.showTerminalInput = !this.showTerminalInput
+        console.log('🔧 [ThreePanelLayout] 切换TerminalInput显示状态:', this.showTerminalInput)
+      }
+      
+      // Escape 隐藏浮动输入框
+      if (event.key === 'Escape' && this.showTerminalInput) {
+        event.preventDefault()
+        this.hideTerminalInput()
+      }
+    },
+
+    // 处理显示输入框的事件
+    handleShowTerminalInput(event) {
+      this.showTerminalInput = true
     }
   }
 }

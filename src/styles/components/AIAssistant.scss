@@ -217,6 +217,221 @@
       color: var(--text-primary, #e0e0e0);
     }
   }
+  
+  // 系统消息样式
+  &.system {
+    align-self: center;
+    max-width: 90%;
+    width: 100%;
+  }
+}
+
+// 系统消息样式
+.system-message {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-surface, #2a2a2a);
+  border: 1px solid var(--border-color, #3a3a3a);
+  animation: fadeInUp 0.3s ease;
+  
+  &:hover {
+    border-color: var(--border-color-hover, #4a4a4a);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.system-message-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-tertiary, #1f1f1f);
+  border-bottom: 1px solid var(--border-color, #3a3a3a);
+}
+
+.system-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.system-message-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.system-message-text {
+  line-height: 1.4;
+  word-wrap: break-word;
+  color: var(--text-primary, #e0e0e0);
+  font-size: 14px;
+  
+  // 代码样式
+  :deep(code) {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    border: 1px solid var(--border-color, #4a4a4a);
+    color: var(--color-primary, #3b82f6);
+  }
+}
+
+.system-message-time {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+  color: var(--text-tertiary, #888);
+}
+
+.execution-time {
+  font-size: 11px;
+  color: var(--color-info, #3b82f6);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.collapse-btn {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid var(--border-color, #4a4a4a);
+  border-radius: 4px;
+  color: var(--text-secondary, #b0b0b0);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+  
+  &:hover {
+    background: var(--bg-hover, #3a3a3a);
+    color: var(--text-primary, #e0e0e0);
+    border-color: var(--border-color-hover, #5a5a5a);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// 可折叠结果区域
+.collapsible-result,
+.error-result {
+  border-top: 1px solid var(--border-color, #3a3a3a);
+  background: var(--bg-primary, #1a1a1a);
+  animation: slideDown 0.3s ease;
+}
+
+.result-header,
+.error-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--bg-tertiary, #1f1f1f);
+  border-bottom: 1px solid var(--border-color, #2a2a2a);
+  
+  span {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary, #b0b0b0);
+  }
+}
+
+.error-header {
+  background: rgba(239, 68, 68, 0.1);
+  border-bottom-color: var(--color-error, #ef4444);
+  
+  span {
+    color: var(--color-error, #ef4444);
+  }
+}
+
+.copy-btn {
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: 1px solid var(--border-color, #4a4a4a);
+  border-radius: 3px;
+  color: var(--text-secondary, #b0b0b0);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: var(--bg-hover, #3a3a3a);
+    color: var(--text-primary, #e0e0e0);
+    border-color: var(--border-color-hover, #5a5a5a);
+  }
+  
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.result-content,
+.error-content {
+  padding: 12px 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  
+  pre {
+    margin: 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-primary, #e0e0e0);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  
+  // 滚动条样式
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--bg-primary, #1a1a1a);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-color, #4a4a4a);
+    border-radius: 2px;
+    
+    &:hover {
+      background: var(--bg-hover, #5a5a5a);
+    }
+  }
+}
+
+.error-content {
+  pre {
+    color: var(--color-error, #ef4444);
+  }
+}
+
+// 普通消息容器
+.regular-message {
+  display: flex;
+  gap: 12px;
+  width: 100%;
 }
 
 .message-avatar {
@@ -533,6 +748,17 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 400px;
   }
 }
 

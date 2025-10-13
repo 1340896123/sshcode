@@ -70,14 +70,11 @@ export default {
     formatConnectionTime(connectedAt) {
       const now = new Date()
       const diff = now - connectedAt
-      const minutes = Math.floor(diff / 60000)
+      const seconds = Math.floor(diff / 1000)
+      const minutes = Math.floor(seconds / 60)
       const hours = Math.floor(minutes / 60)
 
-      if (hours > 0) {
-        return `${hours}小时${minutes % 60}分钟`
-      } else {
-        return `${minutes}分钟`
-      }
+      return `${hours}小时${minutes % 60}分${seconds % 60}秒`
     },
 
     formatBytes(bytes) {

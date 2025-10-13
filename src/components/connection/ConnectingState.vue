@@ -17,17 +17,53 @@
           <span class="step-text">建立SSH连接</span>
         </div>
       </div>
+      <div class="cancel-button-container">
+        <button 
+          class="cancel-button" 
+          @click="handleCancel"
+          :disabled="isCancelling"
+        >
+          <span v-if="!isCancelling" class="cancel-icon">✕</span>
+          <span v-else class="cancel-spinner"></span>
+          {{ isCancelling ? '取消中...' : '取消连接' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref } from 'vue'
+
 export default {
   name: 'ConnectingState',
   props: {
     connection: {
       type: Object,
       required: true
+    }
+  },
+  emits: ['cancel-connection'],
+  setup(props, { emit }) {
+    const isCancelling = ref(false)
+
+    const handleCancel = async () => {
+      if (isCancelling.value) return
+      
+      isCancelling.value = true
+      try {
+        emit('cancel-connection', props.connection.id)
+      } finally {
+        // 延迟重置状态，给用户反馈时间
+        setTimeout(() => {
+          isCancelling.value = false
+        }, 1000)
+      }
+    }
+
+    return {
+      isCancelling,
+      handleCancel
     }
   }
 }
@@ -88,6 +124,60 @@ export default {
   .completed & {
     color: color(success);
   }
+}
+
+.cancel-button-container {
+  margin-top: spacing(xl);
+  display: flex;
+  justify-content: center;
+}
+
+.cancel-button {
+  display: flex;
+  align-items: center;
+  gap: spacing(sm);
+  padding: spacing(sm) spacing(lg);
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  color: color(error);
+  border-radius: border-radius(sm);
+  font-size: font-size(sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all transition(normal) ease;
+  backdrop-filter: blur(4px);
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 77, 79, 0.15);
+    border-color: rgba(255, 77, 79, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(255, 77, 79, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.cancel-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.cancel-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 77, 79, 0.3);
+  border-top: 2px solid color(error);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
