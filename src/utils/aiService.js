@@ -158,17 +158,69 @@ export async function callAIAPI(message, historyMessages, connection) {
       throw new Error('API返回了无效的响应')
     }
 
+    console.log(`🎯 [AI-DEBUG] 初始AI响应详情:`, {
+      hasMessage: !!choice.message,
+      hasToolCalls: !!(choice.message?.tool_calls),
+      toolCallsCount: choice.message?.tool_calls?.length || 0,
+      hasContent: !!choice.message?.content,
+      contentLength: choice.message?.content?.length || 0,
+      finishReason: choice.finish_reason
+    })
+
     // 处理工具调用
-    if (choice.message.tool_calls) {
+    if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
+      console.log(`🔧 [AI-DEBUG] 检测到工具调用，进入工具处理流程`)
       return await handleToolCalls(choice.message.tool_calls, requestData, config, connection)
     }
 
-    const aiContent = choice.message.content || '抱歉，我没有收到有效的回复。'
+    // 处理普通文本响应
+    if (choice.message.content) {
+      console.log(`💬 [AI-DEBUG] 处理普通文本响应，finish_reason: ${choice.finish_reason}`)
 
-    // 解析AI回复，提取命令建议
-    const parsedResponse = parseAIResponse(aiContent)
+      let aiContent = choice.message.content
 
-    return parsedResponse
+      // 根据finish_reason进行特殊处理
+      if (choice.finish_reason === 'length') {
+        aiContent += '\n\n*(响应因长度限制被截断，可能不完整)*'
+      } else if (choice.finish_reason === 'content_filter') {
+        aiContent += '\n\n*(部分内容被安全过滤器阻止)*'
+      }
+
+      // 解析AI回复，提取命令建议
+      const parsedResponse = parseAIResponse(aiContent)
+      console.log(`✅ [AI-DEBUG] 解析完成，生成操作按钮:`, parsedResponse.actions?.length || 0)
+
+      return parsedResponse
+    }
+
+    // 处理空内容响应
+    console.warn(`⚠️ [AI-DEBUG] AI返回空内容，finish_reason: ${choice.finish_reason}`)
+
+    let fallbackContent = '抱歉，我没有收到有效的回复。'
+
+    // 根据finish_reason生成更具体的回退消息
+    switch (choice.finish_reason) {
+      case 'stop':
+        fallbackContent = '对话已完成，但我没有生成具体内容。请重新提问。'
+        break
+      case 'length':
+        fallbackContent = '回复因长度限制被截断，请尝试更简单的问题或让我分步回答。'
+        break
+      case 'content_filter':
+        fallbackContent = '回复内容被安全过滤器阻止。请尝试用其他方式表述您的问题。'
+        break
+      case 'tool_calls':
+        // 如果finish_reason是tool_calls但没有tool_calls内容，说明有异常
+        fallbackContent = '检测到工具调用请求但处理失败。请重试或检查命令格式。'
+        break
+      default:
+        fallbackContent = `AI响应异常 (finish_reason: ${choice.finish_reason})。请重试或联系技术支持。`
+    }
+
+    return {
+      content: fallbackContent,
+      actions: null
+    }
 
   } catch (error) {
     console.error('AI API调用失败:', error)
@@ -369,22 +421,53 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
       // 如果AI返回了最终回复，结束循环
       let finalContent = choice.message.content
 
+      console.log(`🎯 [AI-DEBUG] 工具调用后AI响应:`, {
+        hasContent: !!finalContent,
+        contentLength: finalContent?.length || 0,
+        finishReason: choice.finish_reason
+      })
+
       // 处理各种可能的响应情况
-      if (!finalContent) {
+      if (!finalContent || finalContent.trim() === '') {
         console.warn(`⚠️ [AI-DEBUG] AI返回了空的内容字段，检查其他可能的信息`)
 
         // 尝试从finish_reason推断状态
-        if (choice.finish_reason === 'stop') {
-          finalContent = '命令已执行完成，但AI没有提供额外说明。'
-        } else if (choice.finish_reason === 'length') {
-          finalContent = '命令已执行完成，但响应因长度限制被截断。'
-        } else if (choice.finish_reason === 'content_filter') {
-          finalContent = '命令已执行完成，但内容被安全过滤器阻止。'
-        } else {
-          finalContent = '命令已执行完成，但AI没有返回具体的分析结果。'
+        switch (choice.finish_reason) {
+          case 'stop':
+            finalContent = '命令已执行完成，但AI没有提供额外说明。'
+            break
+          case 'length':
+            finalContent = '命令已执行完成，但响应因长度限制被截断。如果需要更详细的分析，请让我分步处理。'
+            break
+          case 'content_filter':
+            finalContent = '命令已执行完成，但部分分析内容被安全过滤器阻止。请尝试用其他方式询问。'
+            break
+          case 'tool_calls':
+            finalContent = '命令执行完成，但AI可能需要执行更多操作。请让我知道是否需要继续。'
+            break
+          default:
+            finalContent = `命令已执行完成，但AI响应异常 (finish_reason: ${choice.finish_reason})。`
         }
 
         console.log(`🔧 [AI-DEBUG] 根据finish_reason生成默认回复:`, choice.finish_reason)
+      } else {
+        // 对于有内容的情况，根据finish_reason添加提示
+        switch (choice.finish_reason) {
+          case 'length':
+            finalContent += '\n\n*(响应因长度限制被截断，可能不完整。如果需要更详细的分析，请让我分步处理)*'
+            break
+          case 'content_filter':
+            finalContent += '\n\n*(部分内容被安全过滤器阻止。请尝试用其他方式表述问题)*'
+            break
+          case 'tool_calls':
+            finalContent += '\n\n*(AI可能需要执行更多操作来完成此任务)*'
+            break
+          case 'stop':
+            // 正常停止，无需额外提示
+            break
+          default:
+            finalContent += `\n\n*(响应状态: ${choice.finish_reason})*`
+        }
       }
 
       console.log(`✅ [AI-DEBUG] 获得最终回复，内容长度:`, finalContent.length)

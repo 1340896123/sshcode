@@ -51,94 +51,27 @@
             class="message"
             :class="[message.role, message.type]"
           >
-            <!-- 系统消息（工具调用提示） -->
-            <div v-if="message.role === 'system'" class="system-message">
-              <div class="system-message-header">
-                <div class="system-icon">
-                  <span v-if="message.type === 'tool-start'">🔧</span>
-                  <span v-else-if="message.type === 'tool-result'">
-                    <span v-if="message.metadata?.status === 'completed'">✅</span>
-                    <span v-else-if="message.metadata?.status === 'error'">❌</span>
-                    <span v-else>🔄</span>
-                  </span>
-                  <span v-else>ℹ️</span>
-                </div>
-                <div class="system-message-content">
-                  <div class="system-message-text" v-html="formatMessage(message.content)"></div>
-                  <div class="system-message-time">{{ formatTime(message.timestamp) }}</div>
-                  
-                  <!-- 执行时间显示 -->
-                  <div v-if="message.metadata?.executionTime" class="execution-time">
-                    执行时间: {{ (message.metadata.executionTime / 1000).toFixed(2) }}s
-                  </div>
-                </div>
-                
-                <!-- 折叠按钮 -->
-                <button 
-                  v-if="message.isCollapsible" 
-                  class="collapse-btn"
-                  @click="toggleCollapse(message.id)"
-                >
-                  {{ collapsedMessages.has(message.id) ? '▶' : '▼' }}
-                </button>
-              </div>
-              
-              <!-- 可折叠的结果区域 -->
-              <div 
-                v-if="message.isCollapsible && message.metadata?.result && !collapsedMessages.has(message.id)"
-                class="collapsible-result"
+            <!-- 统一的命令执行消息组件 -->
+            <CommandExecution
+              :message="message"
+              :collapsed-by-default="message.defaultCollapsed"
+              :realtime-output="getRealtimeOutput(message)"
+              :show-realtime-output="shouldShowRealtimeOutput(message)"
+              @copy-to-clipboard="handleCopyNotification"
+              @retry-command="handleRetryCommand"
+            />
+
+            <!-- AI消息的操作按钮 -->
+            <div v-if="message.role === 'assistant' && message.actions" class="message-actions">
+              <button
+                v-for="action in message.actions"
+                :key="action.id"
+                class="action-button"
+                :class="action.type"
+                @click="executeAction(action)"
               >
-                <div class="result-header">
-                  <span>命令输出结果:</span>
-                  <button class="copy-btn" @click="copyToClipboard(message.metadata.result)" title="复制结果">
-                    📋
-                  </button>
-                </div>
-                <div class="result-content">
-                  <pre>{{ message.metadata.result }}</pre>
-                </div>
-              </div>
-              
-              <!-- 错误信息显示 -->
-              <div 
-                v-if="message.type === 'tool-result' && message.metadata?.error && !collapsedMessages.has(message.id)"
-                class="error-result"
-              >
-                <div class="error-header">
-                  <span>错误信息:</span>
-                  <button class="copy-btn" @click="copyToClipboard(message.metadata.error)" title="复制错误">
-                    📋
-                  </button>
-                </div>
-                <div class="error-content">
-                  <pre>{{ message.metadata.error }}</pre>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 普通消息（用户和AI） -->
-            <div v-else class="regular-message">
-              <div class="message-avatar">
-                <span v-if="message.role === 'user'">👤</span>
-                <span v-else>🤖</span>
-              </div>
-              <div class="message-content">
-                <div class="message-text" v-html="formatMessage(message.content)"></div>
-                <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-                
-                <!-- AI消息的操作按钮 -->
-                <div v-if="message.role === 'assistant' && message.actions" class="message-actions">
-                  <button
-                    v-for="action in message.actions"
-                    :key="action.id"
-                    class="action-button"
-                    :class="action.type"
-                    @click="executeAction(action)"
-                  >
-                    {{ action.label }}
-                  </button>
-                </div>
-              </div>
+                {{ action.label }}
+              </button>
             </div>
           </div>
         </div>
@@ -200,9 +133,14 @@ import { useAIChat } from '@/composables/useAIChat'
 import { useMessageFormatter } from '@/composables/useMessageFormatter'
 import { useChatExport } from '@/composables/useChatExport'
 import { QUICK_ACTIONS } from '@/constants/aiConstants'
+import MarkdownIt from 'markdown-it'
+import CommandExecution from './ai/CommandExecution.vue'
 
 export default {
   name: 'AIAssistant',
+  components: {
+    CommandExecution
+  },
   props: {
     connectionId: {
       type: String,
@@ -222,12 +160,68 @@ export default {
     // 折叠状态管理
     const collapsedMessages = ref(new Set())
 
+    // Markdown 渲染器
+    const md = new MarkdownIt({
+      html: true,
+      linkify: true,
+      typographer: true,
+      breaks: true,
+      highlight: (code, lang) => {
+        if (lang) {
+          return `<div class="code-block-wrapper">
+            <div class="code-header">
+              <span class="code-language">${lang}</span>
+              <button class="copy-code-btn" onclick="this.parentElement.nextElementSibling.textContent.select(); document.execCommand('copy'); this.textContent='已复制!'; setTimeout(() => this.textContent='复制', 1000)">复制</button>
+            </div>
+            <pre class="code-block language-${lang}"><code class="language-${lang}">${code}</code></pre>
+          </div>`
+        }
+        return `<pre class="code-block"><code>${code}</code></pre>`
+      }
+    })
+
+    // 渲染Markdown内容
+    const renderMarkdown = (content) => {
+      try {
+        if (!content || typeof content !== 'string') {
+          return content || ''
+        }
+
+        // 基本的安全清理
+        const cleanContent = content
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+          .replace(/javascript:/gi, '')
+          .replace(/on\w+\s*=/gi, '')
+
+        return md.render(cleanContent)
+      } catch (error) {
+        console.error('Markdown渲染错误:', error)
+        // 降级到简单的文本处理
+        return content
+          .replace(/\n/g, '<br>')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+          .replace(/`(.*?)`/g, '<code>$1</code>')
+      }
+    }
+
+    // 初始化工具调用的默认折叠状态
+    const initializeCollapsedMessages = () => {
+      messages.value.forEach(message => {
+        if (message.defaultCollapsed) {
+          collapsedMessages.value.add(message.id)
+        }
+      })
+    }
+
     // 使用组合式函数
     const {
       messages,
       userInput,
       isProcessing,
       isConnected,
+      activeToolCall,
       sendMessage: sendAIMessage,
       executeAction,
       clearChat,
@@ -315,12 +309,41 @@ export default {
       }
     }
 
+    // 处理复制通知（来自CommandExecution组件）
+    const handleCopyNotification = (message, type = 'success') => {
+      emit('show-notification', message, type)
+    }
+
+    // 处理重试命令
+    const handleRetryCommand = (command) => {
+      emit('execute-command', command)
+      addMessage('assistant', `🔄 重试执行命令: \`${command}\``)
+    }
+
+    // 获取实时输出
+    const getRealtimeOutput = (message) => {
+      // 对于正在执行的工具调用，可以从状态管理中获取实时输出
+      if (message.type === 'tool-start' && message.metadata?.toolCallId) {
+        // 这里可以从useAIChat中获取实时输出
+        return ''
+      }
+      return ''
+    }
+
+    // 判断是否应该显示实时输出
+    const shouldShowRealtimeOutput = (message) => {
+      return message.type === 'tool-start' && activeToolCall.value?.id === message.metadata?.toolCallId
+    }
+
     // 生命周期
     onMounted(() => {
       nextTick(() => {
         messageInput.value?.focus()
       })
-      
+
+      // 初始化工具调用的默认折叠状态
+      initializeCollapsedMessages()
+
       // 确保事件监听器只添加一次
       window.removeEventListener('add-to-ai-assistant', handleExternalText)
       window.removeEventListener('ai-config-required', handleAIConfigRequired)
@@ -345,11 +368,12 @@ export default {
       canSendMessage,
       quickActions,
       collapsedMessages,
-      
+      activeToolCall,
+
       // 引用
       messagesContainer,
       messageInput,
-      
+
       // 方法
       sendMessage,
       executeAction,
@@ -362,7 +386,13 @@ export default {
       formatTime,
       addUserInput,
       toggleCollapse,
-      copyToClipboard
+      copyToClipboard,
+      handleCopyNotification,
+      handleRetryCommand,
+      getRealtimeOutput,
+      shouldShowRealtimeOutput,
+      initializeCollapsedMessages,
+      renderMarkdown
     }
   }
 }

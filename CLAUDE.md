@@ -11,23 +11,20 @@ This is an Electron-based SSH remote connection application that integrates file
 ### Core Development
 - `npm run build` - Build the application for production using Vite
 - `npm start` - Build and start the Electron app (production mode)
-- `npm run devUI` - Start Vite development server for UI components (port 3000)
-- `npm run debug` - Start Electron with DevTools and remote debugging (port 9222)
-- `npm run debug-renderer` - Start Vite dev server only (port 3000)
-- `npm run debug-main` - Start Electron in development mode with debugging
-- `npm run debug:inspect` - Start with Node.js inspector on port 9229
-- `npm run debug:break` - Start with inspector breaking on first line
+- `npm run debug` - Start Electron with Vite dev server and DevTools (port 9222)
 - `npm run build-electron` - Build and create distributable Electron app
 - `npm run dist` - Build and package for distribution
 
 ### Development Workflow
 For development with hot reload:
-1. Run `npm run devUI` to start the Vite development server
-2. Run `npm run debug` to start Electron with debugging enabled
-3. Use `npm run debug:inspect` for Node.js debugging with inspector
+1. Run `npm run debug` to start both Vite dev server (port 3000) and Electron with debugging
+2. The debug command uses concurrently to run both processes automatically
+3. Chrome DevTools will be available for debugging the renderer process
 
 ### Testing
-- Test configuration setup available via @playwright/test
+- Test configuration available via @playwright/test
+- Playwright configuration in `playwright.config.js`
+- Test files in `tests/` directory with `*.spec.js` pattern
 - Development server for testing runs on port 3003
 
 ## Architecture Overview
@@ -47,26 +44,25 @@ The Vue 3 frontend follows a modular component architecture:
 
 **Key Directories:**
 - `src/components/` - Vue components organized by functionality
-- `src/components/ui/` - Reusable UI components (ToastContainer)
-- `src/components/tabs/` - Tab-related components (TabBar, WelcomeScreen, ConnectionContent)
-- `src/components/connection/` - Connection state components (StatusBar, ConnectingState, etc.)
-- `src/components/layout/` - Layout components (ThreePanelLayout)
-- `src/hooks/` - Custom Vue 3 composition API hooks
 - `src/composables/` - Shared composables (useAIChat, useConnectionManager, etc.)
+- `src/hooks/` - Custom Vue 3 composition API hooks
 - `src/constants/` - Application constants (AI constants)
 - `src/utils/` - Utility functions (aiService)
 - `src/styles/` - SCSS styling utilities and design tokens
-- `src/styles/components/` - Component-specific styles
+
+**Core Application Structure:**
+- `src/App.vue` - Root component with layout, global state, and Electron API setup
+- `src/main.js` - Vue 3 application entry point
+- `index.html` - Main HTML file with Vue app mount point
 
 **Component Organization:**
-- `App.vue` - Root component with layout, global state, and Electron API setup
 - `Header.vue` - Application header with navigation and settings access
 - `TabManager.vue` - SSH session tab management and connection lifecycle
 - `ConnectionModal.vue` - SSH connection creation and management
 - `SettingsModal.vue` - Application settings interface with AI configuration
 - `ToastContainer.vue` - Global notification system
 
-**Additional Key Components:**
+**Feature Components:**
 - `AIAssistant.vue` - AI chat interface with tool call integration
 - `FileManager.vue` - SFTP file browser and operations
 - `XTerminal.vue` - Advanced terminal with xterm.js integration and timeout management
@@ -75,7 +71,6 @@ The Vue 3 frontend follows a modular component architecture:
 - `ThreePanelLayout.vue` - Main application layout with three panels
 - `ConnectionStatusBar.vue` - SSH connection status indicator
 - `WelcomeScreen.vue` - Initial screen for new users
-- `SettingsModal.vue` - Comprehensive settings interface with tabbed configuration
 
 ### State Management
 - Vue 3 Composition API with `reactive` and `ref`
@@ -94,10 +89,13 @@ The Vue 3 frontend follows a modular component architecture:
 - **Vite 7** - Build tool and dev server
 - **SSH2** - SSH client library
 - **ssh2-sftp-client** - SFTP file operations
-- **xterm.js** - Terminal emulator with rich features
-- **SCSS** - Styling with design tokens
+- **xterm.js** - Terminal emulator with addons (fit, web-links)
+- **SCSS** - Styling with design tokens and global variables
 - **js-yaml** - YAML configuration parsing
 - **axios** - HTTP client for AI API calls
+- **@playwright/test** - End-to-end testing framework
+- **concurrently** - Run multiple npm scripts simultaneously
+- **wait-on** - Wait for resources to become available
 
 ## Design System
 
@@ -282,10 +280,32 @@ Stores SSH connection configurations with support for:
 - Support for multiple AI providers through configurable endpoints
 
 ### Vite Configuration
-- Vue plugin configuration with SCSS support
-- Path aliases (`@/` maps to `src/`)
-- Build optimization for Electron distribution
-- Development server on port 3000
+The application uses Vite 7 as the build tool with the following configuration:
+- **Vue plugin** with SCSS preprocessing support
+- **Path aliases**: `@/` maps to `src/` directory
+- **SCSS variables**: Global SCSS variables automatically imported from `@/styles/variables.scss`
+- **Development server**: Runs on port 3000 with auto-open
+- **Build optimization**: Code splitting for vendor libraries (Vue)
+- **Asset management**: Assets directory and chunk size optimization
+
+### Vite Setup Details
+```javascript
+// vite.config.js highlights
+export default defineConfig({
+  plugins: [vue()],
+  root: '.',
+  base: './',
+  server: { port: 3000, open: true },
+  resolve: { alias: { '@': resolve(__dirname, 'src') } },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@use "@/styles/variables.scss" as *;`
+      }
+    }
+  }
+})
+```
 
 ## File Organization Best Practices
 
@@ -297,8 +317,33 @@ Stores SSH connection configurations with support for:
 
 ## Build and Distribution
 
-The application supports:
-- Development builds with hot reload via Vite
-- Production builds via Vite
-- Electron distribution packages (Windows NSIS, macOS DMG, Linux AppImage)
-- Automated build configuration in electron-builder
+### Build Process
+The application supports multiple build configurations:
+- **Development builds** with hot reload via Vite dev server
+- **Production builds** via Vite optimization
+- **Electron distribution packages** via electron-builder
+
+### Distribution Configuration
+```json
+"build": {
+  "appId": "com.example.ssh-remote-app",
+  "productName": "SSH Remote App",
+  "directories": { "output": "dist" },
+  "files": ["**/*", "!node_modules/**/*", "preload.js"],
+  "win": { "target": "nsis" },
+  "mac": { "target": "dmg" },
+  "linux": { "target": "AppImage" }
+}
+```
+
+### Available Distribution Formats
+- **Windows**: NSIS installer
+- **macOS**: DMG disk image
+- **Linux**: AppImage portable format
+
+## Preload Script
+
+The application uses `preload.js` to securely expose APIs to the renderer process:
+- IPC communication bridge between main and renderer processes
+- Electron APIs exposed through `window.electronAPI`
+- Security layer preventing direct Node.js access from renderer

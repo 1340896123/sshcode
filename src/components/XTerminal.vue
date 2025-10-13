@@ -7,9 +7,19 @@
       @contextmenu.prevent="handleContextMenu"
     ></div>
 
-    
+    <!-- 可拖动分割条 -->
+    <ResizeHandle
+      direction="horizontal"
+      :min-size="60"
+      :max-size="200"
+      :initial-size="inputHeight"
+      title="拖动调整终端和输入框大小"
+      @resize="handleResize"
+      @resize-start="handleResizeStart"
+      @resize-end="handleResizeEnd"
+    />
     <!-- 独立终端输入框 -->
-    <div class="terminal-input-wrapper">
+    <div class="terminal-input-wrapper" :style="{ height: inputHeight + 'px' }">
       <TerminalInputBox
         :connection-id="connectionId"
         @execute-command="handleInputCommand"
@@ -20,349 +30,529 @@
 </template>
 
 <script>
-import { Terminal } from '@xterm/xterm'
-import { FitAddon } from '@xterm/addon-fit'
-import { WebLinksAddon } from '@xterm/addon-web-links'
-import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
-import { handleAITerminalData, completeAllAICommands } from '../utils/aiCommandExecutor.js'
-import aiCompletionService from '../utils/aiCompletionService.js'
-import TerminalInputBox from './TerminalInputBox.vue'
-
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import "@xterm/xterm/css/xterm.css";
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from "vue";
+import {
+  handleAITerminalData,
+  completeAllAICommands,
+} from "../utils/aiCommandExecutor.js";
+import aiCompletionService from "../utils/aiCompletionService.js";
+import TerminalInputBox from "./TerminalInputBox.vue";
+import TerminalInput from "./TerminalInput.vue";
+import ResizeHandle from "./ui/ResizeHandle.vue";
 export default {
-  name: 'XTerminal',
+  name: "XTerminal",
+  components: {
+    TerminalInput,
+    TerminalInputBox,
+    ResizeHandle,
+  },
   props: {
     connectionId: {
       type: String,
-      required: true
+      required: true,
     },
     connection: {
       type: Object,
-      required: true
+      required: true,
     },
     enabled: {
       type: Boolean,
-      default: true
+      default: true,
     },
     height: {
       type: String,
-      default: '400px'
+      default: "400px",
     },
     fontSize: {
       type: Number,
-      default: 14
+      default: 14,
     },
     fontFamily: {
       type: String,
-      default: 'Consolas, Monaco, "Courier New", monospace'
-    }
+      default: 'Consolas, Monaco, "Courier New", monospace',
+    },
   },
-  emits: ['data', 'resize', 'focus', 'blur', 'contextmenu', 'show-notification'],
+  emits: [
+    "data",
+    "resize",
+    "focus",
+    "blur",
+    "contextmenu",
+    "show-notification",
+  ],
   setup(props, { emit }) {
-    const terminalContainer = ref(null)
-    let terminal = null
-    let fitAddon = null
-    let webLinksAddon = null
-    const isConnected = ref(false)
-    const containerHeight = ref(props.height)
+    const terminalContainer = ref(null);
+    let terminal = null;
+    let fitAddon = null;
+    let webLinksAddon = null;
+    const isConnected = ref(false);
+    const containerHeight = ref(props.height);
+    const inputHeight = ref(80); // 输入框初始高度
+    const isResizing = ref(false);
+    const startY = ref(0);
+    const startInputHeight = ref(0);
 
     // 智能补全相关状态
-    const showSuggestions = ref(false)
-    const suggestions = ref([])
-    const selectedSuggestionIndex = ref(0)
-    const currentInput = ref('')
-    const aiEnabled = ref(true)
-    const isAILoading = ref(false)
-    const showAIStatus = ref(false)
-    const suggestionsTitle = ref('命令补全')
-    const commandHistory = ref([])
-    const historyIndex = ref(-1)
+    const showSuggestions = ref(false);
+    const suggestions = ref([]);
+    const selectedSuggestionIndex = ref(0);
+    const currentInput = ref("");
+    const aiEnabled = ref(true);
+    const isAILoading = ref(false);
+    const showAIStatus = ref(false);
+    const suggestionsTitle = ref("命令补全");
+    const commandHistory = ref([]);
+    const historyIndex = ref(-1);
 
     // 本地命令数据库
     const localCommands = [
       // 文件操作
-      { command: 'ls', description: 'List directory contents', type: 'local' },
-      { command: 'ls -la', description: 'List all files including hidden ones', type: 'local' },
-      { command: 'cd', description: 'Change directory', type: 'local' },
-      { command: 'pwd', description: 'Print working directory', type: 'local' },
-      { command: 'mkdir', description: 'Create directory', type: 'local' },
-      { command: 'rm', description: 'Remove files or directories', type: 'local' },
-      { command: 'rm -rf', description: 'Force remove directory and contents', type: 'local' },
-      { command: 'cp', description: 'Copy files or directories', type: 'local' },
-      { command: 'mv', description: 'Move/rename files or directories', type: 'local' },
-      { command: 'touch', description: 'Create empty file or update timestamp', type: 'local' },
-      { command: 'cat', description: 'Display file contents', type: 'local' },
-      { command: 'less', description: 'View file contents page by page', type: 'local' },
-      { command: 'head', description: 'Display first lines of file', type: 'local' },
-      { command: 'tail', description: 'Display last lines of file', type: 'local' },
-      { command: 'tail -f', description: 'Follow file content in real-time', type: 'local' },
-      { command: 'find', description: 'Search for files', type: 'local' },
-      { command: 'grep', description: 'Search text patterns', type: 'local' },
-      { command: 'chmod', description: 'Change file permissions', type: 'local' },
-      { command: 'chown', description: 'Change file owner', type: 'local' },
+      { command: "ls", description: "List directory contents", type: "local" },
+      {
+        command: "ls -la",
+        description: "List all files including hidden ones",
+        type: "local",
+      },
+      { command: "cd", description: "Change directory", type: "local" },
+      { command: "pwd", description: "Print working directory", type: "local" },
+      { command: "mkdir", description: "Create directory", type: "local" },
+      {
+        command: "rm",
+        description: "Remove files or directories",
+        type: "local",
+      },
+      {
+        command: "rm -rf",
+        description: "Force remove directory and contents",
+        type: "local",
+      },
+      {
+        command: "cp",
+        description: "Copy files or directories",
+        type: "local",
+      },
+      {
+        command: "mv",
+        description: "Move/rename files or directories",
+        type: "local",
+      },
+      {
+        command: "touch",
+        description: "Create empty file or update timestamp",
+        type: "local",
+      },
+      { command: "cat", description: "Display file contents", type: "local" },
+      {
+        command: "less",
+        description: "View file contents page by page",
+        type: "local",
+      },
+      {
+        command: "head",
+        description: "Display first lines of file",
+        type: "local",
+      },
+      {
+        command: "tail",
+        description: "Display last lines of file",
+        type: "local",
+      },
+      {
+        command: "tail -f",
+        description: "Follow file content in real-time",
+        type: "local",
+      },
+      { command: "find", description: "Search for files", type: "local" },
+      { command: "grep", description: "Search text patterns", type: "local" },
+      {
+        command: "chmod",
+        description: "Change file permissions",
+        type: "local",
+      },
+      { command: "chown", description: "Change file owner", type: "local" },
 
       // 系统信息
-      { command: 'ps', description: 'Show running processes', type: 'local' },
-      { command: 'ps aux', description: 'Show all running processes', type: 'local' },
-      { command: 'top', description: 'Display system processes', type: 'local' },
-      { command: 'htop', description: 'Interactive process viewer', type: 'local' },
-      { command: 'kill', description: 'Terminate processes', type: 'local' },
-      { command: 'df', description: 'Display disk usage', type: 'local' },
-      { command: 'du', description: 'Display directory sizes', type: 'local' },
-      { command: 'free', description: 'Display memory usage', type: 'local' },
-      { command: 'uname', description: 'Display system information', type: 'local' },
-      { command: 'sudo', description: 'Execute command as superuser', type: 'local' },
+      { command: "ps", description: "Show running processes", type: "local" },
+      {
+        command: "ps aux",
+        description: "Show all running processes",
+        type: "local",
+      },
+      {
+        command: "top",
+        description: "Display system processes",
+        type: "local",
+      },
+      {
+        command: "htop",
+        description: "Interactive process viewer",
+        type: "local",
+      },
+      { command: "kill", description: "Terminate processes", type: "local" },
+      { command: "df", description: "Display disk usage", type: "local" },
+      { command: "du", description: "Display directory sizes", type: "local" },
+      { command: "free", description: "Display memory usage", type: "local" },
+      {
+        command: "uname",
+        description: "Display system information",
+        type: "local",
+      },
+      {
+        command: "sudo",
+        description: "Execute command as superuser",
+        type: "local",
+      },
 
       // 网络工具
-      { command: 'ping', description: 'Test network connectivity', type: 'local' },
-      { command: 'curl', description: 'Transfer data from servers', type: 'local' },
-      { command: 'wget', description: 'Download files from web', type: 'local' },
-      { command: 'ssh', description: 'Connect to remote server', type: 'local' },
-      { command: 'scp', description: 'Secure copy files remotely', type: 'local' },
-      { command: 'netstat', description: 'Display network connections', type: 'local' },
+      {
+        command: "ping",
+        description: "Test network connectivity",
+        type: "local",
+      },
+      {
+        command: "curl",
+        description: "Transfer data from servers",
+        type: "local",
+      },
+      {
+        command: "wget",
+        description: "Download files from web",
+        type: "local",
+      },
+      {
+        command: "ssh",
+        description: "Connect to remote server",
+        type: "local",
+      },
+      {
+        command: "scp",
+        description: "Secure copy files remotely",
+        type: "local",
+      },
+      {
+        command: "netstat",
+        description: "Display network connections",
+        type: "local",
+      },
 
       // Git 命令
-      { command: 'git', description: 'Version control system', type: 'local' },
-      { command: 'git status', description: 'Show working tree status', type: 'local' },
-      { command: 'git add', description: 'Add files to staging area', type: 'local' },
-      { command: 'git commit', description: 'Record changes to repository', type: 'local' },
-      { command: 'git push', description: 'Push changes to remote repository', type: 'local' },
-      { command: 'git pull', description: 'Fetch from and merge with remote repository', type: 'local' },
-      { command: 'git branch', description: 'List, create, or delete branches', type: 'local' },
-      { command: 'git checkout', description: 'Switch branches or restore working tree files', type: 'local' },
-      { command: 'git log', description: 'Show commit logs', type: 'local' },
-      { command: 'git diff', description: 'Show changes between commits', type: 'local' },
+      { command: "git", description: "Version control system", type: "local" },
+      {
+        command: "git status",
+        description: "Show working tree status",
+        type: "local",
+      },
+      {
+        command: "git add",
+        description: "Add files to staging area",
+        type: "local",
+      },
+      {
+        command: "git commit",
+        description: "Record changes to repository",
+        type: "local",
+      },
+      {
+        command: "git push",
+        description: "Push changes to remote repository",
+        type: "local",
+      },
+      {
+        command: "git pull",
+        description: "Fetch from and merge with remote repository",
+        type: "local",
+      },
+      {
+        command: "git branch",
+        description: "List, create, or delete branches",
+        type: "local",
+      },
+      {
+        command: "git checkout",
+        description: "Switch branches or restore working tree files",
+        type: "local",
+      },
+      { command: "git log", description: "Show commit logs", type: "local" },
+      {
+        command: "git diff",
+        description: "Show changes between commits",
+        type: "local",
+      },
 
       // 包管理器
-      { command: 'apt-get', description: 'Debian/Ubuntu package manager', type: 'local' },
-      { command: 'apt-get update', description: 'Update package lists', type: 'local' },
-      { command: 'apt-get install', description: 'Install packages', type: 'local' },
-      { command: 'yum', description: 'RHEL/CentOS package manager', type: 'local' },
-      { command: 'npm', description: 'Node.js package manager', type: 'local' },
-      { command: 'npm install', description: 'Install npm packages', type: 'local' },
-      { command: 'npm run', description: 'Run npm scripts', type: 'local' },
-      { command: 'pip', description: 'Python package manager', type: 'local' },
+      {
+        command: "apt-get",
+        description: "Debian/Ubuntu package manager",
+        type: "local",
+      },
+      {
+        command: "apt-get update",
+        description: "Update package lists",
+        type: "local",
+      },
+      {
+        command: "apt-get install",
+        description: "Install packages",
+        type: "local",
+      },
+      {
+        command: "yum",
+        description: "RHEL/CentOS package manager",
+        type: "local",
+      },
+      { command: "npm", description: "Node.js package manager", type: "local" },
+      {
+        command: "npm install",
+        description: "Install npm packages",
+        type: "local",
+      },
+      { command: "npm run", description: "Run npm scripts", type: "local" },
+      { command: "pip", description: "Python package manager", type: "local" },
 
       // 其他常用命令
-      { command: 'clear', description: 'Clear terminal screen', type: 'local' },
-      { command: 'history', description: 'Display command history', type: 'local' },
-      { command: 'man', description: 'Display manual pages', type: 'local' },
-      { command: 'vim', description: 'Text editor', type: 'local' },
-      { command: 'vi', description: 'Text editor', type: 'local' },
-      { command: 'nano', description: 'Text editor', type: 'local' },
-      { command: 'exit', description: 'Exit shell', type: 'local' }
-    ]
+      { command: "clear", description: "Clear terminal screen", type: "local" },
+      {
+        command: "history",
+        description: "Display command history",
+        type: "local",
+      },
+      { command: "man", description: "Display manual pages", type: "local" },
+      { command: "vim", description: "Text editor", type: "local" },
+      { command: "vi", description: "Text editor", type: "local" },
+      { command: "nano", description: "Text editor", type: "local" },
+      { command: "exit", description: "Exit shell", type: "local" },
+    ];
 
     // 智能补全方法
     const filterSuggestions = async (input) => {
-      console.log(`🔍 [XTerminal] 开始过滤建议，输入: "${input}"`)
+      console.log(`🔍 [XTerminal] 开始过滤建议，输入: "${input}"`);
 
       if (!input || input.trim().length < 1) {
-        suggestions.value = []
-        showSuggestions.value = false
-        console.log(`📝 [XTerminal] 输入为空，隐藏建议`)
-        return
+        suggestions.value = [];
+        showSuggestions.value = false;
+        console.log(`📝 [XTerminal] 输入为空，隐藏建议`);
+        return;
       }
 
-      const trimmedInput = input.trim().toLowerCase()
-      console.log(`📝 [XTerminal] 处理输入: "${trimmedInput}"`)
+      const trimmedInput = input.trim().toLowerCase();
+      console.log(`📝 [XTerminal] 处理输入: "${trimmedInput}"`);
 
       // 本地命令匹配
-      const localMatches = localCommands.filter(cmd =>
-        cmd.command.toLowerCase().includes(trimmedInput)
-      ).map(cmd => ({
-        ...cmd,
-        confidence: cmd.command.toLowerCase().startsWith(trimmedInput) ? 0.9 : 0.6
-      }))
+      const localMatches = localCommands
+        .filter((cmd) => cmd.command.toLowerCase().includes(trimmedInput))
+        .map((cmd) => ({
+          ...cmd,
+          confidence: cmd.command.toLowerCase().startsWith(trimmedInput)
+            ? 0.9
+            : 0.6,
+        }));
 
-      console.log(`📋 [XTerminal] 本地匹配结果: ${localMatches.length} 个`)
+      console.log(`📋 [XTerminal] 本地匹配结果: ${localMatches.length} 个`);
 
       // AI 建议获取
-      let aiMatches = []
+      let aiMatches = [];
       if (aiEnabled.value && trimmedInput.length > 2) {
         try {
-          isAILoading.value = true
-          showAIStatus.value = true
-          console.log(`🤖 [XTerminal] 开始获取AI建议...`)
+          isAILoading.value = true;
+          showAIStatus.value = true;
+          console.log(`🤖 [XTerminal] 开始获取AI建议...`);
 
           const context = {
-            currentDirectory: '', // 可以从终端输出中解析
+            currentDirectory: "", // 可以从终端输出中解析
             recentCommands: commandHistory.value.slice(-5),
-            connectionId: props.connectionId
-          }
+            connectionId: props.connectionId,
+          };
 
-          aiMatches = await aiCompletionService.getCommandSuggestions(trimmedInput, context)
-          aiMatches = aiMatches.map(suggestion => ({
+          aiMatches = await aiCompletionService.getCommandSuggestions(
+            trimmedInput,
+            context
+          );
+          aiMatches = aiMatches.map((suggestion) => ({
             ...suggestion,
-            type: 'ai'
-          }))
+            type: "ai",
+          }));
 
-          console.log(`🤖 [XTerminal] AI建议获取完成: ${aiMatches.length} 个`)
+          console.log(`🤖 [XTerminal] AI建议获取完成: ${aiMatches.length} 个`);
         } catch (error) {
-          console.error('❌ [XTerminal] 获取AI建议失败:', error)
+          console.error("❌ [XTerminal] 获取AI建议失败:", error);
         } finally {
-          isAILoading.value = false
+          isAILoading.value = false;
         }
       }
 
       // 合并和排序建议
       const allSuggestions = [...localMatches, ...aiMatches]
         .sort((a, b) => b.confidence - a.confidence)
-        .slice(0, 8)
+        .slice(0, 8);
 
-      suggestions.value = allSuggestions
-      selectedSuggestionIndex.value = 0
-      showSuggestions.value = allSuggestions.length > 0
+      suggestions.value = allSuggestions;
+      selectedSuggestionIndex.value = 0;
+      showSuggestions.value = allSuggestions.length > 0;
 
-      console.log(`✅ [XTerminal] 建议处理完成: ${allSuggestions.length} 个，显示: ${showSuggestions.value}`)
+      console.log(
+        `✅ [XTerminal] 建议处理完成: ${allSuggestions.length} 个，显示: ${showSuggestions.value}`
+      );
 
       // 更新标题
       if (aiMatches.length > 0) {
-        suggestionsTitle.value = '🤖 AI + 本地补全'
+        suggestionsTitle.value = "🤖 AI + 本地补全";
       } else {
-        suggestionsTitle.value = '📋 本地补全'
+        suggestionsTitle.value = "📋 本地补全";
       }
-    }
+    };
 
     const applySuggestion = (suggestion) => {
-      console.log(`🎯 [XTerminal] 应用建议: "${suggestion.command}"`)
+      console.log(`🎯 [XTerminal] 应用建议: "${suggestion.command}"`);
 
       if (!terminal || !suggestion) {
-        console.log(`❌ [XTerminal] 无法应用建议: terminal=${!!terminal}, suggestion=${!!suggestion}`)
-        return
+        console.log(
+          `❌ [XTerminal] 无法应用建议: terminal=${!!terminal}, suggestion=${!!suggestion}`
+        );
+        return;
       }
 
       try {
         // 获取当前缓冲区内容
-        const buffer = terminal.buffer.active
-        const cursorY = buffer.cursorY
-        const line = buffer.getLine(cursorY)
+        const buffer = terminal.buffer.active;
+        const cursorY = buffer.cursorY;
+        const line = buffer.getLine(cursorY);
 
         if (!line) {
-          console.log(`❌ [XTerminal] 无法获取当前行数据`)
-          return
+          console.log(`❌ [XTerminal] 无法获取当前行数据`);
+          return;
         }
 
         // 获取当前行的文本内容
-        let currentLineText = ''
+        let currentLineText = "";
         for (let i = 0; i < line.length; i++) {
-          const cell = line.getCell(i)
+          const cell = line.getCell(i);
           if (cell && cell.getChars()) {
-            currentLineText += cell.getChars()
+            currentLineText += cell.getChars();
           }
         }
 
-        console.log(`📝 [XTerminal] 当前行内容: "${currentLineText}"`)
+        console.log(`📝 [XTerminal] 当前行内容: "${currentLineText}"`);
 
         // 找到命令开始的位置（最后一个换行符后）
-        const lastNewlineIndex = currentLineText.lastIndexOf('\n')
-        const commandStart = lastNewlineIndex + 1
-        const currentCommand = currentLineText.substring(commandStart).trim()
+        const lastNewlineIndex = currentLineText.lastIndexOf("\n");
+        const commandStart = lastNewlineIndex + 1;
+        const currentCommand = currentLineText.substring(commandStart).trim();
 
-        console.log(`📝 [XTerminal] 当前命令: "${currentCommand}", 位置: ${commandStart}-${buffer.cursorX}`)
+        console.log(
+          `📝 [XTerminal] 当前命令: "${currentCommand}", 位置: ${commandStart}-${buffer.cursorX}`
+        );
 
         // 计算需要删除的字符数
-        const charsToDelete = currentCommand.length
-        const cursorPosition = buffer.cursorX
+        const charsToDelete = currentCommand.length;
+        const cursorPosition = buffer.cursorX;
 
         // 先移动光标到命令开始位置
-        const backspacesNeeded = cursorPosition - commandStart
-        console.log(`⬅️ [XTerminal] 需要退格: ${backspacesNeeded} 个字符`)
+        const backspacesNeeded = cursorPosition - commandStart;
+        console.log(`⬅️ [XTerminal] 需要退格: ${backspacesNeeded} 个字符`);
 
         for (let i = 0; i < backspacesNeeded; i++) {
-          terminal.write('\b')
+          terminal.write("\b");
         }
 
         // 删除当前命令
-        console.log(`🗑️ [XTerminal] 删除 ${charsToDelete} 个字符`)
+        console.log(`🗑️ [XTerminal] 删除 ${charsToDelete} 个字符`);
         for (let i = 0; i < charsToDelete; i++) {
-          terminal.write(' \b')
+          terminal.write(" \b");
         }
 
         // 写入新命令
-        console.log(`✍️ [XTerminal] 写入新命令: "${suggestion.command}"`)
-        terminal.write(suggestion.command)
-        currentInput.value = suggestion.command
+        console.log(`✍️ [XTerminal] 写入新命令: "${suggestion.command}"`);
+        terminal.write(suggestion.command);
+        currentInput.value = suggestion.command;
 
         // 隐藏建议
-        showSuggestions.value = false
-        console.log(`✅ [XTerminal] 建议应用完成`)
+        showSuggestions.value = false;
+        console.log(`✅ [XTerminal] 建议应用完成`);
       } catch (error) {
-        console.error('❌ [XTerminal] 应用建议失败:', error)
+        console.error("❌ [XTerminal] 应用建议失败:", error);
         // 如果失败，直接发送建议命令
-        terminal.write(`\r\n${suggestion.command}`)
-        currentInput.value = suggestion.command
-        showSuggestions.value = false
+        terminal.write(`\r\n${suggestion.command}`);
+        currentInput.value = suggestion.command;
+        showSuggestions.value = false;
       }
-    }
+    };
 
     const hideSuggestions = () => {
-      showSuggestions.value = false
-      selectedSuggestionIndex.value = 0
-    }
+      showSuggestions.value = false;
+      selectedSuggestionIndex.value = 0;
+    };
 
     const showSuggestionsForCurrentInput = async () => {
-      if (!terminal) return
+      if (!terminal) return;
 
       try {
         // 从终端缓冲区获取当前输入
-        const buffer = terminal.buffer.active
-        const cursorY = buffer.cursorY
-        const line = buffer.getLine(cursorY)
+        const buffer = terminal.buffer.active;
+        const cursorY = buffer.cursorY;
+        const line = buffer.getLine(cursorY);
 
         if (line) {
-          let currentLineText = ''
+          let currentLineText = "";
           for (let i = 0; i < line.length; i++) {
-            const cell = line.getCell(i)
+            const cell = line.getCell(i);
             if (cell && cell.getChars()) {
-              currentLineText += cell.getChars()
+              currentLineText += cell.getChars();
             }
           }
 
           // 找到当前命令（最后一个换行符后的内容）
-          const lastNewlineIndex = currentLineText.lastIndexOf('\n')
-          const currentCommand = currentLineText.substring(lastNewlineIndex + 1).trim()
+          const lastNewlineIndex = currentLineText.lastIndexOf("\n");
+          const currentCommand = currentLineText
+            .substring(lastNewlineIndex + 1)
+            .trim();
 
-          currentInput.value = currentCommand
-          await filterSuggestions(currentCommand)
+          currentInput.value = currentCommand;
+          await filterSuggestions(currentCommand);
         }
       } catch (error) {
-        console.error('获取当前输入失败:', error)
+        console.error("获取当前输入失败:", error);
       }
-    }
+    };
 
     const navigateSuggestions = (direction) => {
-      if (!showSuggestions.value || suggestions.value.length === 0) return
+      if (!showSuggestions.value || suggestions.value.length === 0) return;
 
-      if (direction === 'down') {
-        selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % suggestions.value.length
-      } else if (direction === 'up') {
-        selectedSuggestionIndex.value = selectedSuggestionIndex.value === 0
-          ? suggestions.value.length - 1
-          : selectedSuggestionIndex.value - 1
+      if (direction === "down") {
+        selectedSuggestionIndex.value =
+          (selectedSuggestionIndex.value + 1) % suggestions.value.length;
+      } else if (direction === "up") {
+        selectedSuggestionIndex.value =
+          selectedSuggestionIndex.value === 0
+            ? suggestions.value.length - 1
+            : selectedSuggestionIndex.value - 1;
       }
-    }
+    };
 
     const toggleAI = () => {
-      aiEnabled.value = !aiEnabled.value
-      showAIStatus.value = true
+      aiEnabled.value = !aiEnabled.value;
+      showAIStatus.value = true;
       setTimeout(() => {
-        showAIStatus.value = false
-      }, 2000)
+        showAIStatus.value = false;
+      }, 2000);
 
-      emit('show-notification', {
-        type: 'info',
-        message: aiEnabled.value ? 'AI补全已启用' : 'AI补全已禁用'
-      })
+      emit("show-notification", {
+        type: "info",
+        message: aiEnabled.value ? "AI补全已启用" : "AI补全已禁用",
+      });
 
       // 重新过滤建议
       if (currentInput.value) {
-        filterSuggestions(currentInput.value)
+        filterSuggestions(currentInput.value);
       }
-    }
+    };
 
     // 初始化终端
     const initTerminal = async () => {
-      if (!terminalContainer.value) return
+      if (!terminalContainer.value) return;
 
       // 创建终端实例
       terminal = new Terminal({
@@ -371,320 +561,350 @@ export default {
         fontSize: props.fontSize,
         fontFamily: props.fontFamily,
         theme: {
-          background: '#1e1e1e',
-          foreground: '#f0f0f0',
-          cursor: '#74c0fc',
-          cursorAccent: '#1e1e1e',
-          selectionBackground: 'rgba(116, 192, 252, 0.3)',
-          selectionForeground: '#ffffff',
-          black: '#000000',
-          red: '#ff6b6b',
-          green: '#51cf66',
-          yellow: '#ffd43b',
-          blue: '#74c0fc',
-          magenta: '#f06595',
-          cyan: '#22b8cf',
-          white: '#ffffff',
-          brightBlack: '#495057',
-          brightRed: '#ff8787',
-          brightGreen: '#69db7c',
-          brightYellow: '#ffe066',
-          brightBlue: '#91a7ff',
-          brightMagenta: '#f77fad',
-          brightCyan: '#66d9e8',
-          brightWhite: '#ffffff'
+          background: "#1e1e1e",
+          foreground: "#f0f0f0",
+          cursor: "#74c0fc",
+          cursorAccent: "#1e1e1e",
+          selectionBackground: "rgba(116, 192, 252, 0.3)",
+          selectionForeground: "#ffffff",
+          black: "#000000",
+          red: "#ff6b6b",
+          green: "#51cf66",
+          yellow: "#ffd43b",
+          blue: "#74c0fc",
+          magenta: "#f06595",
+          cyan: "#22b8cf",
+          white: "#ffffff",
+          brightBlack: "#495057",
+          brightRed: "#ff8787",
+          brightGreen: "#69db7c",
+          brightYellow: "#ffe066",
+          brightBlue: "#91a7ff",
+          brightMagenta: "#f77fad",
+          brightCyan: "#66d9e8",
+          brightWhite: "#ffffff",
         },
         allowTransparency: false,
         cursorBlink: true,
-        cursorStyle: 'block',
+        cursorStyle: "block",
         scrollback: 1000,
         tabStopWidth: 4,
-        fastScrollModifier: 'alt',
+        fastScrollModifier: "alt",
         rightClickSelectsWord: true,
-        rendererType: 'dom',
+        rendererType: "dom",
         // 启用文本选择功能
         convertEol: true,
         cols: 80,
-        rows: 24
-      })
+        rows: 24,
+      });
 
       // 添加插件
-      fitAddon = new FitAddon()
-      webLinksAddon = new WebLinksAddon()
+      fitAddon = new FitAddon();
+      webLinksAddon = new WebLinksAddon();
 
-      terminal.loadAddon(fitAddon)
-      terminal.loadAddon(webLinksAddon)
+      terminal.loadAddon(fitAddon);
+      terminal.loadAddon(webLinksAddon);
 
       // 绑定事件
-      terminal.onData(handleTerminalData)
-      terminal.onResize(handleTerminalResize)
-      terminal.onTitleChange(handleTitleChange)
+      terminal.onData(handleTerminalData);
+      terminal.onResize(handleTerminalResize);
+      terminal.onTitleChange(handleTitleChange);
 
       // 添加键盘事件监听器用于智能补全
       terminal.attachCustomKeyEventHandler(async (event) => {
-        console.log(`⌨️ [XTerminal] 键盘事件: ${event.key}, Ctrl: ${event.ctrlKey}, Alt: ${event.altKey}, Shift: ${event.shiftKey}`)
+        console.log(
+          `⌨️ [XTerminal] 键盘事件: ${event.key}, Ctrl: ${event.ctrlKey}, Alt: ${event.altKey}, Shift: ${event.shiftKey}`
+        );
 
         // Tab 键自动补全
-        if (event.key === 'Tab' && !event.ctrlKey && !event.altKey) {
-          event.preventDefault()
-          console.log(`🔤 [XTerminal] Tab键触发，当前建议数量: ${suggestions.value.length}`)
+        if (event.key === "Tab" && !event.ctrlKey && !event.altKey) {
+          event.preventDefault();
+          console.log(
+            `🔤 [XTerminal] Tab键触发，当前建议数量: ${suggestions.value.length}`
+          );
 
           if (showSuggestions.value && suggestions.value.length > 0) {
             // 应用选中的建议
-            console.log(`✅ [XTerminal] 应用选中的建议`)
-            applySuggestion(suggestions.value[selectedSuggestionIndex.value])
+            console.log(`✅ [XTerminal] 应用选中的建议`);
+            applySuggestion(suggestions.value[selectedSuggestionIndex.value]);
           } else {
             // 触发补全
-            console.log(`🔍 [XTerminal] 触发补全获取`)
-            await showSuggestionsForCurrentInput()
+            console.log(`🔍 [XTerminal] 触发补全获取`);
+            await showSuggestionsForCurrentInput();
           }
-          return true
+          return true;
         }
 
         // Esc 键隐藏建议
-        if (event.key === 'Escape') {
-          event.preventDefault()
-          console.log(`🚫 [XTerminal] Esc键，隐藏建议`)
-          hideSuggestions()
-          return true
+        if (event.key === "Escape") {
+          event.preventDefault();
+          console.log(`🚫 [XTerminal] Esc键，隐藏建议`);
+          hideSuggestions();
+          return true;
         }
 
         // 上下键导航建议
-        if (event.key === 'ArrowUp' && event.ctrlKey) {
-          event.preventDefault()
-          console.log(`⬆️ [XTerminal] Ctrl+上箭头，向上导航建议`)
-          navigateSuggestions('up')
-          return true
+        if (event.key === "ArrowUp" && event.ctrlKey) {
+          event.preventDefault();
+          console.log(`⬆️ [XTerminal] Ctrl+上箭头，向上导航建议`);
+          navigateSuggestions("up");
+          return true;
         }
 
-        if (event.key === 'ArrowDown' && event.ctrlKey) {
-          event.preventDefault()
-          console.log(`⬇️ [XTerminal] Ctrl+下箭头，向下导航建议`)
-          navigateSuggestions('down')
-          return true
+        if (event.key === "ArrowDown" && event.ctrlKey) {
+          event.preventDefault();
+          console.log(`⬇️ [XTerminal] Ctrl+下箭头，向下导航建议`);
+          navigateSuggestions("down");
+          return true;
         }
 
         // Ctrl+Space 显示/隐藏补全
-        if (event.ctrlKey && event.code === 'Space') {
-          event.preventDefault()
-          console.log(`🔍 [XTerminal] Ctrl+Space，切换补全显示`)
+        if (event.ctrlKey && event.code === "Space") {
+          event.preventDefault();
+          console.log(`🔍 [XTerminal] Ctrl+Space，切换补全显示`);
           if (showSuggestions.value) {
-            hideSuggestions()
+            hideSuggestions();
           } else {
-            await showSuggestionsForCurrentInput()
+            await showSuggestionsForCurrentInput();
           }
-          return true
+          return true;
         }
 
         // F4 切换AI补全
-        if (event.key === 'F4') {
-          event.preventDefault()
-          console.log(`🤖 [XTerminal] F4键，切换AI补全`)
-          toggleAI()
-          return true
+        if (event.key === "F4") {
+          event.preventDefault();
+          console.log(`🤖 [XTerminal] F4键，切换AI补全`);
+          toggleAI();
+          return true;
         }
 
-        return false
-      })
+        return false;
+      });
 
       // 监听键入事件以触发自动补全
       terminal.onKey(async ({ key, domEvent }) => {
         // 忽略特殊键
         if (domEvent.ctrlKey || domEvent.altKey || domEvent.metaKey) {
-          return
+          return;
         }
 
         // 延迟触发补全以避免影响正常输入
         setTimeout(async () => {
-          if (key !== '\r' && key !== '\n' && key !== '\t') {
-            await showSuggestionsForCurrentInput()
+          if (key !== "\r" && key !== "\n" && key !== "\t") {
+            await showSuggestionsForCurrentInput();
           }
-        }, 100)
-      })
+        }, 100);
+      });
 
       // 挂载终端到DOM
-      terminal.open(terminalContainer.value)
+      terminal.open(terminalContainer.value);
 
       // 在终端打开后绑定focus和blur事件
       setTimeout(() => {
         if (terminal.textarea) {
-          terminal.textarea.addEventListener('focus', () => {
-            emit('focus')
-          })
+          terminal.textarea.addEventListener("focus", () => {
+            emit("focus");
+          });
 
-          terminal.textarea.addEventListener('blur', () => {
-            emit('blur')
-          })
+          terminal.textarea.addEventListener("blur", () => {
+            emit("blur");
+          });
         }
-      }, 100)
+      }, 100);
 
       // 自适应大小
-      await nextTick()
-      fitAddon.fit()
+      await nextTick();
+      fitAddon.fit();
 
-      console.log('✅ [XTerminal] 终端初始化完成，连接ID:', props.connectionId)
-      console.log(`🎯 [XTerminal] 终端尺寸: ${terminal.cols}x${terminal.rows}`)
-      console.log(`⌨️ [XTerminal] 智能补全已配置：本地命令=${localCommands.length}个，AI=${aiEnabled.value ? '启用' : '禁用'}`)
-    }
+      console.log("✅ [XTerminal] 终端初始化完成，连接ID:", props.connectionId);
+      console.log(`🎯 [XTerminal] 终端尺寸: ${terminal.cols}x${terminal.rows}`);
+      console.log(
+        `⌨️ [XTerminal] 智能补全已配置：本地命令=${
+          localCommands.length
+        }个，AI=${aiEnabled.value ? "启用" : "禁用"}`
+      );
+    };
 
     // 处理终端输入
     const handleTerminalData = (data) => {
-      if (!isConnected.value || !props.enabled) return
+      if (!isConnected.value || !props.enabled) return;
 
       // 如果是回车键，记录命令到历史
-      if (data === '\r' || data === '\n') {
+      if (data === "\r" || data === "\n") {
         if (currentInput.value && currentInput.value.trim()) {
           // 添加到历史记录
           if (!commandHistory.value.includes(currentInput.value.trim())) {
-            commandHistory.value.push(currentInput.value.trim())
+            commandHistory.value.push(currentInput.value.trim());
             // 限制历史记录数量
             if (commandHistory.value.length > 100) {
-              commandHistory.value = commandHistory.value.slice(-100)
+              commandHistory.value = commandHistory.value.slice(-100);
             }
           }
         }
         // 清除当前输入和建议
-        currentInput.value = ''
-        hideSuggestions()
+        currentInput.value = "";
+        hideSuggestions();
       }
 
       // 发送数据到SSH Shell
       if (window.electronAPI?.sshShellWrite) {
-        window.electronAPI.sshShellWrite(props.connectionId, data)
+        window.electronAPI.sshShellWrite(props.connectionId, data);
       }
 
-      emit('data', data)
-    }
+      emit("data", data);
+    };
 
     // 处理终端大小变化
     const handleTerminalResize = ({ cols, rows }) => {
-      emit('resize', { cols, rows })
+      emit("resize", { cols, rows });
 
       // 调整SSH Shell终端大小
       if (isConnected.value && window.electronAPI?.sshShellResize) {
-        window.electronAPI.sshShellResize(props.connectionId, rows, cols)
+        window.electronAPI.sshShellResize(props.connectionId, rows, cols);
       }
-    }
+    };
 
     // 处理标题变化
     const handleTitleChange = (title) => {
-      console.log('Terminal title changed:', title)
-    }
+      console.log("Terminal title changed:", title);
+    };
 
-  
+    // 规范化换行符，避免多余的空行但保持必要的分隔
+    const normalizeLineBreaks = (data) => {
+      // 只处理连续的3个或更多换行符，简化为最多2个
+      let normalized = data.replace(/\r\n\r\n\r\n+/g, '\r\n\r\n');
+      
+      // 处理开头的多余换行符（保留最多1个）
+      normalized = normalized.replace(/^\r\n\r\n+/, '\r\n');
+      
+      // 处理结尾的多余换行符（保留最多1个）
+      normalized = normalized.replace(/\r\n\r\n+$/, '\r\n');
+      
+      return normalized;
+    };
+
     // 写入数据到终端
     const write = (data) => {
       if (terminal) {
-        terminal.write(data)
+        const normalizedData = normalizeLineBreaks(data);
+        terminal.write(normalizedData);
       }
-    }
+    };
 
     // 写入数据到终端并捕获输出（用于AI工具调用）
     const writeAndCapture = (data) => {
       if (terminal) {
-        terminal.write(data)
+        terminal.write(data);
         // 存储最近的输出用于AI工具调用
-        lastOutput.value = data
+        lastOutput.value = data;
       }
-    }
+    };
 
     // 用于AI工具调用的输出捕获
-    const lastOutput = ref('')
+    const lastOutput = ref("");
 
     // 写入UTF8数据到终端
     const writeUtf8 = (data) => {
       if (terminal) {
-        terminal.writeUtf8(data)
+        terminal.writeUtf8(data);
       }
-    }
+    };
 
     // 清空终端
     const clear = () => {
       if (terminal) {
-        terminal.clear()
+        terminal.clear();
       }
-    }
+    };
 
     // 重置终端
     const reset = () => {
       if (terminal) {
-        terminal.reset()
+        terminal.reset();
       }
-    }
+    };
 
     // 聚焦终端
     const focus = () => {
       if (terminal) {
-        console.log(`🎯 [XTerminal] 聚焦终端`)
-        terminal.focus()
+        console.log(`🎯 [XTerminal] 聚焦终端`);
+        terminal.focus();
       } else {
-        console.log(`❌ [XTerminal] 无法聚焦终端：终端未初始化`)
+        console.log(`❌ [XTerminal] 无法聚焦终端：终端未初始化`);
       }
-    }
+    };
 
     // 设置连接状态
     const setConnected = (connected) => {
-      console.log(`🔌 [XTerminal] 设置连接状态: ${connected}`)
-      isConnected.value = connected
+      console.log(`🔌 [XTerminal] 设置连接状态: ${connected}`);
+      isConnected.value = connected;
 
       if (connected) {
-        write('\r\n\x1b[32m✓ SSH Shell连接成功\x1b[0m\r\n')
-        write('\x1b[36m💡 独立输入框已启用 - 支持自动补全和AI建议\x1b[0m\r\n')
-        console.log(`✅ [XTerminal] SSH Shell连接成功`)
+        write("\r\n\x1b[32m✓ SSH Shell连接成功\x1b[0m\r\n");
+        write("\x1b[36m💡 独立输入框已启用 - 支持自动补全和AI建议\x1b[0m\r\n");
+        console.log(`✅ [XTerminal] SSH Shell连接成功`);
       } else {
-        write('\r\n\x1b[31m✗ SSH Shell连接已断开\x1b[0m\r\n')
-        console.log(`❌ [XTerminal] SSH Shell连接已断开`)
+        write("\r\n\x1b[31m✗ SSH Shell连接已断开\x1b[0m\r\n");
+        console.log(`❌ [XTerminal] SSH Shell连接已断开`);
       }
-    }
+    };
 
-    
     // 处理右键菜单
     const handleContextMenu = (event) => {
-      emit('contextmenu', event)
-    }
+      emit("contextmenu", event);
+    };
 
     // 计算状态样式
     const statusClass = computed(() => ({
-      'connected': isConnected.value,
-      'disconnected': !isConnected.value
-    }))
+      connected: isConnected.value,
+      disconnected: !isConnected.value,
+    }));
 
     // 监听高度变化
-    watch(() => props.height, (newHeight) => {
-      containerHeight.value = newHeight
-      nextTick(() => {
-        if (fitAddon) {
-          fitAddon.fit()
-        }
-      })
-    })
+    watch(
+      () => props.height,
+      (newHeight) => {
+        containerHeight.value = newHeight;
+        nextTick(() => {
+          if (fitAddon) {
+            fitAddon.fit();
+          }
+        });
+      }
+    );
 
     // 监听字体大小变化
-    watch(() => props.fontSize, (newSize) => {
-      if (terminal) {
-        terminal.options.fontSize = newSize
+    watch(
+      () => props.fontSize,
+      (newSize) => {
+        if (terminal) {
+          terminal.options.fontSize = newSize;
+        }
       }
-    })
+    );
 
     // 监听字体族变化
-    watch(() => props.fontFamily, (newFamily) => {
-      if (terminal) {
-        terminal.options.fontFamily = newFamily
+    watch(
+      () => props.fontFamily,
+      (newFamily) => {
+        if (terminal) {
+          terminal.options.fontFamily = newFamily;
+        }
       }
-    })
+    );
 
     // 组件挂载
     onMounted(async () => {
       // 初始化AI服务
       try {
-        await aiCompletionService.initialize()
-        console.log('✅ AI completion service initialized')
+        await aiCompletionService.initialize();
+        console.log("✅ AI completion service initialized");
       } catch (error) {
-        console.warn('⚠️ AI completion service initialization failed:', error)
-        aiEnabled.value = false
+        console.warn("⚠️ AI completion service initialization failed:", error);
+        aiEnabled.value = false;
       }
 
-      await initTerminal()
+      await initTerminal();
 
       // 监听终端数据事件
       if (window.electronAPI?.onTerminalData) {
@@ -694,134 +914,169 @@ export default {
             dataConnectionId: data.connectionId,
             dataLength: data.data.length,
             dataPreview: data.data.toString().substring(0, 100),
-            isMatch: data.connectionId === props.connectionId
+            isMatch: data.connectionId === props.connectionId,
           });
 
           if (data.connectionId === props.connectionId) {
-            write(data.data)
+            write(data.data);
             // 通知AI命令执行器有新的终端输出
             console.log(`🔄 [XTerminal] 转发数据到AI命令执行器:`, {
               connectionId: props.connectionId,
-              dataLength: data.data.length
+              dataLength: data.data.length,
             });
-            handleAITerminalData(props.connectionId, data.data)
+            handleAITerminalData(props.connectionId, data.data);
           } else {
             console.log(`⚠️ [XTerminal] 连接ID不匹配，忽略数据:`, {
               expected: props.connectionId,
-              received: data.connectionId
+              received: data.connectionId,
             });
           }
-        })
+        });
 
         window.electronAPI.onTerminalClose((event, data) => {
           if (data.connectionId === props.connectionId) {
-            setConnected(false)
-            write(`\r\n\x1b[33mShell会话已关闭 (code: ${data.code})\x1b[0m\r\n`)
+            setConnected(false);
+            write(
+              `\r\n\x1b[33mShell会话已关闭 (code: ${data.code})\x1b[0m\r\n`
+            );
             // 完成所有待执行的AI命令
-            completeAllAICommands(props.connectionId)
+            completeAllAICommands(props.connectionId);
           }
-        })
+        });
 
         window.electronAPI.onTerminalError((event, data) => {
           if (data.connectionId === props.connectionId) {
-            write(`\r\n\x1b[31m错误: ${data.error}\x1b[0m\r\n`)
-            setConnected(false)
+            write(`\r\n\x1b[31m错误: ${data.error}\x1b[0m\r\n`);
+            setConnected(false);
           }
-        })
+        });
       }
 
       // 自动连接SSH Shell
-      if (props.connection.status === 'connected') {
-        connectShell()
+      if (props.connection.status === "connected") {
+        connectShell();
       }
-    })
+    });
 
     // 处理输入框命令
     const handleInputCommand = (command) => {
-      console.log(`📥 [XTerminal] 收到输入命令: "${command}"`)
+      console.log(`📥 [XTerminal] 收到输入命令: "${command}"`);
 
-      // 显示命令在终端中
-      write(`\r\n\x1b[36m$ ${command}\x1b[0m\r\n`)
+      // 显示命令在终端中（不添加最后的换行符，让SSH返回的提示符处理换行）
+      write(`\r\n\x1b[36m$ ${command}\x1b[0m`);
 
       // 发送命令到SSH
       if (isConnected.value && window.electronAPI?.sshShellWrite) {
-        window.electronAPI.sshShellWrite(props.connectionId, command + '\r\n')
-        console.log(`📤 [XTerminal] 命令已发送到SSH: "${command}"`)
+        window.electronAPI.sshShellWrite(props.connectionId, command + "\r\n");
+        console.log(`📤 [XTerminal] 命令已发送到SSH: "${command}"`);
       } else {
-        console.warn(`⚠️ [XTerminal] 无法发送命令，连接状态: ${isConnected.value}`)
-        write(`\x1b[33m命令发送失败: 未连接到SSH服务器\x1b[0m\r\n`)
+        console.warn(
+          `⚠️ [XTerminal] 无法发送命令，连接状态: ${isConnected.value}`
+        );
+        write(`\x1b[33m命令发送失败: 未连接到SSH服务器\x1b[0m\r\n`);
       }
-    }
+    };
 
     // 处理通知
     const handleNotification = (notification) => {
-      console.log(`📢 [XTerminal] 收到通知:`, notification)
-      emit('show-notification', notification)
-    }
+      console.log(`📢 [XTerminal] 收到通知:`, notification);
+      emit("show-notification", notification);
+    };
 
     // 组件卸载
     onUnmounted(() => {
       if (isConnected.value) {
-        disconnectShell()
+        disconnectShell();
       }
       // 完成所有待执行的AI命令
-      completeAllAICommands(props.connectionId)
+      completeAllAICommands(props.connectionId);
 
       if (terminal) {
-        terminal.dispose()
+        terminal.dispose();
       }
-    })
+    });
 
     // 连接SSH Shell
     const connectShell = async () => {
       try {
         if (!window.electronAPI?.sshCreateShell) {
-          console.error('sshCreateShell not available')
-          return
+          console.error("sshCreateShell not available");
+          return;
         }
 
-        const result = await window.electronAPI.sshCreateShell(props.connectionId, {
-          rows: terminal?.rows || 24,
-          cols: terminal?.cols || 80,
-          term: 'xterm-256color'
-        })
+        const result = await window.electronAPI.sshCreateShell(
+          props.connectionId,
+          {
+            rows: terminal?.rows || 24,
+            cols: terminal?.cols || 80,
+            term: "xterm-256color",
+          }
+        );
 
         if (result.success) {
-          setConnected(true)
-          console.log('SSH Shell connected successfully')
+          setConnected(true);
+          console.log("SSH Shell connected successfully");
         } else {
-          write(`\r\n\x1b[31m连接失败: ${result.error}\x1b[0m\r\n`)
+          write(`\r\n\x1b[31m连接失败: ${result.error}\x1b[0m\r\n`);
         }
       } catch (error) {
-        console.error('Failed to connect SSH Shell:', error)
-        write(`\r\n\x1b[31m连接异常: ${error.message}\x1b[0m\r\n`)
+        console.error("Failed to connect SSH Shell:", error);
+        write(`\r\n\x1b[31m连接异常: ${error.message}\x1b[0m\r\n`);
       }
-    }
+    };
 
     // 断开SSH Shell
     const disconnectShell = async () => {
       try {
         if (window.electronAPI?.sshShellClose) {
-          await window.electronAPI.sshShellClose(props.connectionId)
+          await window.electronAPI.sshShellClose(props.connectionId);
         }
-        setConnected(false)
+        setConnected(false);
         // 完成所有待执行的AI命令
-        completeAllAICommands(props.connectionId)
+        completeAllAICommands(props.connectionId);
       } catch (error) {
-        console.error('Failed to disconnect SSH Shell:', error)
+        console.error("Failed to disconnect SSH Shell:", error);
       }
-    }
+    };
+
+    // 拖动分割条相关方法
+    const handleResizeStart = (data) => {
+      console.log(`🔄 [XTerminal] 开始调整大小:`, data);
+      isResizing.value = true;
+    };
+
+    const handleResize = (data) => {
+      console.log(`📏 [XTerminal] 调整大小中:`, data);
+      inputHeight.value = data.size;
+
+      // 重新计算终端高度
+      nextTick(() => {
+        if (fitAddon) {
+          fitAddon.fit();
+        }
+      });
+    };
+
+    const handleResizeEnd = (data) => {
+      console.log(`✅ [XTerminal] 调整大小完成:`, data);
+      isResizing.value = false;
+    };
 
     // 监听连接状态
-    watch(() => props.connection.status, (newStatus) => {
-      if (newStatus === 'connected' && !isConnected.value) {
-        connectShell()
-      } else if (newStatus !== 'connected' && isConnected.value) {
-        disconnectShell()
+    watch(
+      () => props.connection.status,
+      (newStatus) => {
+        if (newStatus === "connected" && !isConnected.value) {
+          connectShell();
+        } else if (newStatus !== "connected" && isConnected.value) {
+          disconnectShell();
+        }
       }
-    })
+    );
 
     return {
+      inputHeight,
+      isResizing,
       terminalContainer,
       isConnected,
       containerHeight,
@@ -851,10 +1106,13 @@ export default {
       navigateSuggestions,
       toggleAI,
       handleInputCommand,
-      handleNotification
-    }
-  }
-}
+      handleNotification,
+      handleResizeStart,
+      handleResize,
+      handleResizeEnd,
+    };
+  },
+};
 </script>
 
 <style lang="scss" scoped>
@@ -1030,7 +1288,6 @@ export default {
   }
 }
 
-
 // 智能补全建议样式
 .autocomplete-suggestions {
   position: absolute;
@@ -1111,7 +1368,7 @@ export default {
         .command {
           display: block;
           color: #fff;
-          font-family: 'Consolas', 'Monaco', monospace;
+          font-family: "Consolas", "Monaco", monospace;
           font-size: 13px;
           font-weight: 500;
           margin-bottom: 2px;
@@ -1222,8 +1479,12 @@ export default {
 
 // 动画
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
@@ -1237,12 +1498,51 @@ export default {
   }
 }
 
+
 // 终端输入框包装器
 .terminal-input-wrapper {
   position: relative;
   padding: 16px;
   background: #1a1a1a;
   border-top: 1px solid #444;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible; // 确保自动补全建议不被遮挡
+
+  // 确保输入框组件可见
+  :deep(.terminal-input-box) {
+    width: 100%;
+    max-width: 100%;
+    opacity: 1;
+    visibility: visible;
+    position: relative;
+    z-index: 5;
+
+    .input-container {
+      background: #2a2a2a;
+      border: 1px solid #555;
+      border-radius: 8px;
+
+      .command-input {
+        background: transparent;
+        color: #fff;
+        border: none;
+        outline: none;
+      }
+    }
+
+    // 确保自动补全建议不被遮挡
+    .suggestions-dropdown {
+      position: absolute !important;
+      bottom: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 1000 !important;
+      margin-bottom: 4px !important;
+    }
+  }
 }
 
 // 响应式设计

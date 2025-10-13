@@ -1,4 +1,5 @@
 import { ref, reactive } from 'vue'
+import { useSSHConnectionPool } from './useSSHConnectionPool.js'
 
 export function useConnectionManager(emit) {
   // 状态管理
@@ -6,6 +7,19 @@ export function useConnectionManager(emit) {
   const activeTabId = ref(null)
   const connectionTimers = ref(new Map())
   const systemMonitorTimers = ref(new Map())
+  
+  // SSH连接池
+  const { 
+    createPersistentConnection, 
+    executeBatchCommand, 
+    checkConnectionHealth: checkPoolHealth,
+    closePersistentConnection,
+    getConnectionStatus,
+    startCleanupTimer
+  } = useSSHConnectionPool()
+  
+  // 启动连接池清理
+  startCleanupTimer()
 
   // 添加新的SSH连接
   const addConnection = async (sessionData) => {
@@ -111,6 +125,14 @@ export function useConnectionManager(emit) {
           connection.status = 'connected'
           connection.connectedAt = new Date()
           connection.errorMessage = null
+
+          // 创建持久连接池条目
+          try {
+            await createPersistentConnection(connection.id, connectionParams)
+            console.log('🔗 [CONNECTION-MANAGER] 持久连接池创建成功')
+          } catch (poolError) {
+            console.warn('⚠️ [CONNECTION-MANAGER] 持久连接池创建失败，使用普通模式:', poolError.message)
+          }
 
           addTerminalOutput(connection, {
             type: 'success',
@@ -234,6 +256,14 @@ export function useConnectionManager(emit) {
     try {
       connection.status = 'disconnected'
 
+      // 关闭连接池中的持久连接
+      try {
+        await closePersistentConnection(connectionId)
+        console.log('🔌 [CONNECTION-MANAGER] 持久连接已关闭:', connectionId)
+      } catch (poolError) {
+        console.warn('⚠️ [CONNECTION-MANAGER] 关闭持久连接失败:', poolError.message)
+      }
+
       if (window.electronAPI) {
         await window.electronAPI.sshDisconnect(connectionId)
       }
@@ -259,6 +289,13 @@ export function useConnectionManager(emit) {
 
   // 重新连接
   const reconnectConnection = async (connection) => {
+    // 先关闭现有的持久连接
+    try {
+      await closePersistentConnection(connection.id)
+    } catch (error) {
+      console.warn('⚠️ [CONNECTION-MANAGER] 重新连接时关闭持久连接失败:', error.message)
+    }
+    
     await establishConnection(connection)
   }
 
@@ -270,6 +307,13 @@ export function useConnectionManager(emit) {
     // 先断开连接
     if (connection.status === 'connected') {
       await disconnectConnection(connectionId)
+    }
+
+    // 确保连接池也被清理
+    try {
+      await closePersistentConnection(connectionId)
+    } catch (error) {
+      console.warn('⚠️ [CONNECTION-MANAGER] 关闭连接时清理连接池失败:', error.message)
     }
 
     // 移除连接
@@ -359,26 +403,27 @@ export function useConnectionManager(emit) {
 
   const updateSystemInfo = async (connection) => {
     try {
-      if (window.electronAPI && connection.status === 'connected') {
-        // 通过SSH命令获取系统信息
-        const systemInfo = await fetchSystemInfo(connection)
-        connection.systemInfo = {
-          ...systemInfo,
-          lastUpdate: new Date()
-        }
-      } else {
-        console.error('💥 [CONNECTION-MANAGER] ElectronAPI不可用，无法获取系统信息')
-        connection.systemInfo = {
-          cpu: 0,
-          memory: 0,
-          disk: 0,
-          networkDown: 0,
-          networkUp: 0,
-          lastUpdate: new Date()
+      if (connection.status !== 'connected') {
+        return
+      }
+
+      // 优先使用连接池
+      const poolStatus = getConnectionStatus(connection.id)
+      if (poolStatus && poolStatus.status === 'connected') {
+        // 使用连接池批量获取系统信息
+        const systemData = await executeBatchCommand(connection.id)
+        if (systemData) {
+          const processedInfo = processSystemData(connection, systemData)
+          connection.systemInfo = {
+            ...processedInfo,
+            lastUpdate: new Date()
+          }
+          return
         }
       }
     } catch (error) {
-      console.error('获取系统信息失败:', error)
+      console.error('💥 [CONNECTION-MANAGER] 获取系统信息失败:', error)
+      // 设置默认值，避免界面显示异常
       connection.systemInfo = {
         cpu: 0,
         memory: 0,
@@ -390,21 +435,82 @@ export function useConnectionManager(emit) {
     }
   }
 
-  const fetchSystemInfo = async (connection) => {
+  // 处理从连接池获取的系统数据
+  const processSystemData = (connection, systemData) => {
+    // 初始化网络历史记录
+    if (!connection.networkHistory) {
+      connection.networkHistory = {
+        lastNetworkDown: 0,
+        lastNetworkUp: 0,
+        lastUpdateTime: Date.now()
+      }
+    }
+
+    const currentNetworkDown = systemData.networkDown || 0
+    const currentNetworkUp = systemData.networkUp || 0
+    const currentTime = systemData.timestamp * 1000 || Date.now()
+
+    // 计算网络速率
+    let networkDownRate = 0
+    let networkUpRate = 0
+    
+    if (connection.networkHistory.lastUpdateTime > 0) {
+      const timeDiff = (currentTime - connection.networkHistory.lastUpdateTime) / 1000
+      
+      if (timeDiff > 0) {
+        const downDiff = currentNetworkDown - connection.networkHistory.lastNetworkDown
+        const upDiff = currentNetworkUp - connection.networkHistory.lastNetworkUp
+        
+        networkDownRate = Math.max(0, Math.round(downDiff / timeDiff))
+        networkUpRate = Math.max(0, Math.round(upDiff / timeDiff))
+      }
+    }
+
+    // 更新网络历史记录
+    connection.networkHistory = {
+      lastNetworkDown: currentNetworkDown,
+      lastNetworkUp: currentNetworkUp,
+      lastUpdateTime: currentTime
+    }
+
+    return {
+      cpu: Math.round(systemData.cpu || 0),
+      memory: Math.round(systemData.memory || 0),
+      disk: Math.round(systemData.disk || 0),
+      networkDown: networkDownRate,
+      networkUp: networkUpRate,
+      networkDownTotal: currentNetworkDown,
+      networkUpTotal: currentNetworkUp,
+      processCount: systemData.processCount || 0,
+      loadAverage: systemData.loadAverage || { load1: 0, load5: 0, load15: 0 }
+    }
+  }
+
+  // 传统的系统信息获取方式（降级方案）
+  const fetchSystemInfoLegacy = async (connection) => {
     try {
       // 获取CPU使用率
-      const cpuResult = await window.electronAPI.sshExecute(connection.id, "top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1}'")
+      const cpuResult = await window.electronAPI.sshExecute(
+        connection.id, 
+        "top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1}'"
+      )
       const cpu = parseFloat(cpuResult.output.trim()) || 0
 
       // 获取内存使用率
-      const memResult = await window.electronAPI.sshExecute(connection.id, "free | grep Mem | awk '{printf \"%.1f\", $3/$2 * 100.0}'")
+      const memResult = await window.electronAPI.sshExecute(
+        connection.id, 
+        "free | grep Mem | awk '{printf \"%.1f\", $3/$2 * 100.0}'"
+      )
       const memory = parseFloat(memResult.output.trim()) || 0
 
       // 获取磁盘使用率
-      const diskResult = await window.electronAPI.sshExecute(connection.id, "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'")
+      const diskResult = await window.electronAPI.sshExecute(
+        connection.id, 
+        "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'"
+      )
       const disk = parseFloat(diskResult.output.trim()) || 0
 
-      // 获取网络使用情况（实时速率计算）
+      // 获取网络使用情况
       const networkResult = await window.electronAPI.sshExecute(
         connection.id, 
         "cat /proc/net/dev | grep -E '(eth0|enp|ens|eno|wlan0|wlp)' | head -1 | awk '{print $2, $10}' || echo '0 0'"
@@ -413,16 +519,15 @@ export function useConnectionManager(emit) {
       const currentNetworkDown = parseInt(networkData[0]) || 0
       const currentNetworkUp = parseInt(networkData[1]) || 0
 
-      // 计算实时网络速率（字节/秒）
+      // 计算网络速率
       let networkDownRate = 0
       let networkUpRate = 0
       
       if (connection.networkHistory) {
         const currentTime = Date.now()
-        const timeDiff = (currentTime - connection.networkHistory.lastUpdateTime) / 1000 // 转换为秒
+        const timeDiff = (currentTime - connection.networkHistory.lastUpdateTime) / 1000
         
         if (timeDiff > 0) {
-          // 计算速率（字节/秒）
           const downDiff = currentNetworkDown - connection.networkHistory.lastNetworkDown
           const upDiff = currentNetworkUp - connection.networkHistory.lastNetworkUp
           
@@ -438,34 +543,19 @@ export function useConnectionManager(emit) {
         lastUpdateTime: Date.now()
       }
 
-      console.log('📊 [NETWORK] 实时网络速率:', {
-        down: formatBytes(networkDownRate) + '/s',
-        up: formatBytes(networkUpRate) + '/s',
-        downRaw: networkDownRate,
-        upRaw: networkUpRate
-      })
-
       return {
         cpu: Math.round(cpu),
         memory: Math.round(memory),
         disk: Math.round(disk),
-        networkDown: networkDownRate, // 现在是速率（字节/秒）
-        networkUp: networkUpRate,      // 现在是速率（字节/秒）
-        networkDownTotal: currentNetworkDown, // 累计下载量
-        networkUpTotal: currentNetworkUp     // 累计上传量
+        networkDown: networkDownRate,
+        networkUp: networkUpRate,
+        networkDownTotal: currentNetworkDown,
+        networkUpTotal: currentNetworkUp
       }
     } catch (error) {
-      console.error('获取系统信息命令执行失败:', error)
-      return {
-        cpu: 0,
-        memory: 0,
-        disk: 0,
-        networkDown: 0,
-        networkUp: 0,
-        networkDownTotal: 0,
-        networkUpTotal: 0,
-        lastUpdate: new Date()
-      }
+      debugger
+      console.error('💥 [CONNECTION-MANAGER] 传统方式获取系统信息失败:', error)
+      throw error
     }
   }
 

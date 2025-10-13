@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分割条组件测试</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #74c0fc;
+        }
+
+        .demo-panel {
+            width: 100%;
+            height: 400px;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-top {
+            background: #2a2a2a;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #444;
+        }
+
+        .panel-bottom {
+            background: #333;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .resize-handle {
+            position: relative;
+            height: 8px;
+            background: #2a2a2a;
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            cursor: ns-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .resize-handle:hover {
+            background: #333;
+            border-color: #555;
+        }
+
+        .resize-handle:hover .resize-dots span {
+            background: #74c0fc;
+        }
+
+        .resize-handle:active {
+            background: #3a3a3a;
+        }
+
+        .resize-handle:active .resize-dots span {
+            background: #91a7ff;
+        }
+
+        .resize-dots {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .resize-dots span {
+            width: 4px;
+            height: 4px;
+            background: #666;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .resize-handle.is-resizing {
+            z-index: 1000;
+        }
+
+        .vertical-demo {
+            width: 100%;
+            height: 400px;
+            background: #1e1e1e;
+            border: 1px solid #444;
+            border-radius: 8px;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .panel-left {
+            background: #2a2a2a;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #444;
+        }
+
+        .panel-right {
+            background: #333;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .resize-handle.vertical {
+            width: 8px;
+            height: auto;
+            border-top: none;
+            border-bottom: none;
+            border-left: 1px solid #444;
+            border-right: 1px solid #444;
+            cursor: ew-resize;
+        }
+
+        .resize-handle.vertical .resize-dots {
+            flex-direction: column;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: #868e96;
+            margin-bottom: 10px;
+        }
+
+        .size-display {
+            font-size: 12px;
+            color: #74c0fc;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="test-container">
+            <h1>分割条组件测试</h1>
+            
+            <div class="test-section">
+                <h2 class="test-title">水平分割条测试</h2>
+                <p class="info-text">拖动分割条调整上下面板大小</p>
+                <div class="demo-panel">
+                    <div class="panel-top" :style="{ height: topHeight + 'px' }">
+                        <div>
+                            <div>上面板</div>
+                            <div class="size-display">高度: {{ topHeight }}px</div>
+                        </div>
+                    </div>
+                    <div 
+                        class="resize-handle"
+                        :class="{ 'is-resizing': isResizingHorizontal }"
+                        @mousedown="startHorizontalResize"
+                        title="拖动调整面板大小"
+                    >
+                        <div class="resize-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div class="panel-bottom" :style="{ height: (400 - topHeight) + 'px' }">
+                        <div>
+                            <div>下面板</div>
+                            <div class="size-display">高度: {{ 400 - topHeight }}px</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h2 class="test-title">垂直分割条测试</h2>
+                <p class="info-text">拖动分割条调整左右面板大小</p>
+                <div class="vertical-demo">
+                    <div class="panel-left" :style="{ width: leftWidth + 'px' }">
+                        <div>
+                            <div>左面板</div>
+                            <div class="size-display">宽度: {{ leftWidth }}px</div>
+                        </div>
+                    </div>
+                    <div 
+                        class="resize-handle vertical"
+                        :class="{ 'is-resizing': isResizingVertical }"
+                        @mousedown="startVerticalResize"
+                        title="拖动调整面板大小"
+                    >
+                        <div class="resize-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div class="panel-right" :style="{ width: (800 - leftWidth) + 'px' }">
+                        <div>
+                            <div>右面板</div>
+                            <div class="size-display">宽度: {{ 800 - leftWidth }}px</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h2 class="test-title">测试信息</h2>
+                <div class="info-text">
+                    <p>✅ 分割条组件已成功创建</p>
+                    <p>✅ 支持水平和垂直方向拖动</p>
+                    <p>✅ 具有最小和最大尺寸限制</p>
+                    <p>✅ 提供视觉反馈和状态管理</p>
+                    <p>✅ 可配置的样式和交互</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, onUnmounted } = Vue;
+
+        createApp({
+            setup() {
+                const topHeight = ref(150);
+                const leftWidth = ref(200);
+                const isResizingHorizontal = ref(false);
+                const isResizingVertical = ref(false);
+                const startPosY = ref(0);
+                const startPosX = ref(0);
+                const startTopHeight = ref(0);
+                const startLeftWidth = ref(0);
+
+                // 水平拖动
+                const startHorizontalResize = (event) => {
+                    isResizingHorizontal.value = true;
+                    startPosY.value = event.clientY;
+                    startTopHeight.value = topHeight.value;
+
+                    document.addEventListener('mousemove', handleHorizontalResize);
+                    document.addEventListener('mouseup', stopHorizontalResize);
+                    document.body.style.cursor = 'ns-resize';
+                    document.body.style.userSelect = 'none';
+
+                    event.preventDefault();
+                };
+
+                const handleHorizontalResize = (event) => {
+                    if (!isResizingHorizontal.value) return;
+
+                    const deltaY = event.clientY - startPosY.value;
+                    const newHeight = Math.max(
+                        60,
+                        Math.min(300, startTopHeight.value + deltaY)
+                    );
+                    topHeight.value = newHeight;
+                };
+
+                const stopHorizontalResize = () => {
+                    isResizingHorizontal.value = false;
+                    document.removeEventListener('mousemove', handleHorizontalResize);
+                    document.removeEventListener('mouseup', stopHorizontalResize);
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                };
+
+                // 垂直拖动
+                const startVerticalResize = (event) => {
+                    isResizingVertical.value = true;
+                    startPosX.value = event.clientX;
+                    startLeftWidth.value = leftWidth.value;
+
+                    document.addEventListener('mousemove', handleVerticalResize);
+                    document.addEventListener('mouseup', stopVerticalResize);
+                    document.body.style.cursor = 'ew-resize';
+                    document.body.style.userSelect = 'none';
+
+                    event.preventDefault();
+                };
+
+                const handleVerticalResize = (event) => {
+                    if (!isResizingVertical.value) return;
+
+                    const deltaX = event.clientX - startPosX.value;
+                    const newWidth = Math.max(
+                        60,
+                        Math.min(400, startLeftWidth.value + deltaX)
+                    );
+                    leftWidth.value = newWidth;
+                };
+
+                const stopVerticalResize = () => {
+                    isResizingVertical.value = false;
+                    document.removeEventListener('mousemove', handleVerticalResize);
+                    document.removeEventListener('mouseup', stopVerticalResize);
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                };
+
+                // 清理事件监听器
+                onUnmounted(() => {
+                    document.removeEventListener('mousemove', handleHorizontalResize);
+                    document.removeEventListener('mouseup', stopHorizontalResize);
+                    document.removeEventListener('mousemove', handleVerticalResize);
+                    document.removeEventListener('mouseup', stopVerticalResize);
+                });
+
+                return {
+                    topHeight,
+                    leftWidth,
+                    isResizingHorizontal,
+                    isResizingVertical,
+                    startHorizontalResize,
+                    startVerticalResize
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

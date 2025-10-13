@@ -12,8 +12,10 @@ let appConfig = {};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: 1200,
+    height: 750,
+    minWidth: 1000,
+    minHeight: 650,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -295,10 +297,19 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
           const output = data.toString();
           outputBuffer += output;
 
+          // 规范化输出数据，只处理严重的多余换行符
+          let normalizedOutput = output;
+          
+          // 只处理连续的3个或更多换行符，简化为最多2个
+          normalizedOutput = normalizedOutput.replace(/\r\n\r\n\r\n+/g, '\r\n\r\n');
+          
+          // 处理开头的多余换行符（保留最多1个）
+          normalizedOutput = normalizedOutput.replace(/^\r\n\r\n+/, '\r\n');
+
           // 发送数据到渲染进程
           mainWindow.webContents.send('terminal-data', {
             connectionId,
-            data: output
+            data: normalizedOutput
           });
         });
 

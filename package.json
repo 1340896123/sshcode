@@ -37,6 +37,8 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "js-yaml": "^4.1.0",
+    "markdown-it": "^14.1.0",
+    "marked": "^16.4.0",
     "sass": "^1.93.2",
     "ssh2": "^1.14.0",
     "ssh2-sftp-client": "^9.0.0",

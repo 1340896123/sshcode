@@ -7,7 +7,7 @@ class AICommandExecutor {
   constructor() {
     this.pendingCommands = new Map() // 存储待执行的命令
     this.commandBuffers = new Map() // 存储命令输出缓冲区
-    this.commandTimeout = 30000 // 30秒超时
+    this.commandTimeout = 60000 // 60秒超时，给AI命令更多执行时间
   }
 
   /**
@@ -66,7 +66,9 @@ class AICommandExecutor {
           fullCommand: command + '\r\n'
         });
 
-        const result = await window.electronAPI.sshShellWrite(connectionId, command + '\r\n')
+        // 确保命令不包含多余的换行符，避免双重换行
+        const cleanCommand = command.replace(/\r?\n$/, '');
+        const result = await window.electronAPI.sshShellWrite(connectionId, cleanCommand + '\r\n')
         console.log(`📤 [AI-DEBUG] SSH Shell写入结果:`, result);
 
         if (!result.success) {
@@ -237,7 +239,8 @@ class AICommandExecutor {
                      (hasErrorAndPrompt && output.length > 50) ||
                      (hasWindowsPathAndArrow && output.length > 50) ||
                      (hasCommandEndPattern && output.length > 50) ||
-                     (hasSudoPrompt || hasYesNoPrompt); // 特殊提示符也认为完成
+                     (hasSudoPrompt || hasYesNoPrompt) || // 特殊提示符也认为完成
+                     (output.length > 500 && hasPrompt); // 对于输出较长的命令，只要有提示符就认为完成
 
     console.log(`🎯 [AI-DEBUG] 最终命令完成判断:`, {
       isComplete,
@@ -259,10 +262,23 @@ class AICommandExecutor {
    */
   completeCommand(commandId) {
     const commandInfo = this.pendingCommands.get(commandId)
-    if (!commandInfo) return
+    if (!commandInfo) {
+      console.warn(`⚠️ [AI-DEBUG] 尝试完成不存在的命令: ${commandId}`)
+      return
+    }
 
     const buffer = this.commandBuffers.get(commandId) || []
     const output = buffer.join('')
+    const executionTime = Date.now() - commandInfo.startTime
+
+    console.log(`✅ [AI-DEBUG] 命令执行完成:`, {
+      commandId,
+      command: commandInfo.command,
+      connectionId: commandInfo.connectionId,
+      executionTime,
+      outputLength: output.length,
+      outputPreview: output.substring(0, 200).replace(/\n/g, '\\n')
+    })
 
     // 清理资源
     this.cleanupCommand(commandId)

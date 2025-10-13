@@ -136,6 +136,9 @@ export default {
 .connection-time {
   font-size: font-size(xs);
   color: color(text-muted);
+  min-width: 140px;
+  width: 140px;
+  text-align: left;
 }
 
 // 系统监控样式
@@ -161,6 +164,9 @@ export default {
     border-radius: border-radius(sm);
     font-size: font-size(xs);
     transition: all transition(fast) ease;
+    min-width: 120px;
+    width: 120px;
+    justify-content: flex-start;
 
     &:hover {
       background: color(bg-secondary);
@@ -170,18 +176,24 @@ export default {
     .monitor-icon {
       font-size: 14px;
       flex-shrink: 0;
+      width: 16px;
+      text-align: center;
     }
 
     .monitor-label {
       color: color(text-secondary);
       font-weight: font-weight(medium);
       flex-shrink: 0;
+      width: 32px;
     }
 
     .monitor-value {
       color: color(text-primary);
       font-weight: font-weight(semibold);
       font-family: font-family(mono);
+      flex: 1;
+      text-align: right;
+      min-width: 45px;
 
       &.high-usage {
         color: color(error);
@@ -205,6 +217,12 @@ export default {
 
   .network-monitor {
     border-left: 3px solid color(success);
+    min-width: 200px;
+    width: 200px;
+    
+    .monitor-value {
+      min-width: 125px;
+    }
   }
 }
 

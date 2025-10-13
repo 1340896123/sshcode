@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI工具调用状态同步测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .test-section-header {
+            background: #f7fafc;
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+        }
+
+        .test-section-content {
+            padding: 15px;
+        }
+
+        .log-container {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-start { color: #68d391; }
+        .log-complete { color: #63b3ed; }
+        .log-error { color: #fc8181; }
+        .log-debug { color: #fbd38d; }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+        }
+
+        .button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-idle { background: #cbd5e0; }
+        .status-executing { background: #f6ad55; }
+        .status-completed { background: #68d391; }
+        .status-error { background: #fc8181; }
+
+        .tool-call-status {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .command-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 AI工具调用状态同步测试</h1>
+            <p>测试AI工具调用事件与命令执行状态的同步</p>
+        </div>
+
+        <div class="content">
+            <!-- 工具调用状态监控 -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <h3>📊 工具调用状态监控</h3>
+                </div>
+                <div class="test-section-content">
+                    <div id="tool-call-status">
+                        <div class="tool-call-status">
+                            <span class="status-indicator status-idle"></span>
+                            等待工具调用事件...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 手动测试触发 -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <h3>🎮 手动测试触发</h3>
+                </div>
+                <div class="test-section-content">
+                    <input type="text" id="test-command" class="command-input"
+                           placeholder="输入测试命令，如: ls -la" value="ls -la">
+                    <br>
+                    <button class="button" onclick="simulateToolCallStart()">模拟工具调用开始</button>
+                    <button class="button" onclick="simulateToolCallComplete()">模拟工具调用完成</button>
+                    <button class="button" onclick="simulateToolCallError()">模拟工具调用失败</button>
+                    <button class="button" onclick="clearLogs()">清空日志</button>
+                </div>
+            </div>
+
+            <!-- 实时日志 -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <h3>📝 实时事件日志</h3>
+                </div>
+                <div class="test-section-content">
+                    <div id="log-container" class="log-container">
+                        <div class="log-entry log-debug">等待事件...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 工具调用状态管理
+        const toolCallStates = new Map();
+
+        function addLog(message, type = 'debug') {
+            const logContainer = document.getElementById('log-container');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateToolCallStatus(toolCallId, status, command = null) {
+            const statusContainer = document.getElementById('tool-call-status');
+
+            if (!toolCallStates.has(toolCallId)) {
+                toolCallStates.set(toolCallId, {
+                    command: command || '未知命令',
+                    status: 'idle',
+                    startTime: null,
+                    endTime: null
+                });
+            }
+
+            const toolCall = toolCallStates.get(toolCallId);
+            toolCall.status = status;
+
+            if (status === 'executing' && !toolCall.startTime) {
+                toolCall.startTime = Date.now();
+            } else if (status === 'completed' || status === 'error') {
+                toolCall.endTime = Date.now();
+            }
+
+            // 更新UI显示
+            statusContainer.innerHTML = '';
+            toolCallStates.forEach((call, id) => {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'tool-call-status';
+
+                let statusClass = 'status-idle';
+                let statusText = '空闲';
+
+                switch (call.status) {
+                    case 'executing':
+                        statusClass = 'status-executing';
+                        statusText = '执行中';
+                        break;
+                    case 'completed':
+                        statusClass = 'status-completed';
+                        statusText = '已完成';
+                        break;
+                    case 'error':
+                        statusClass = 'status-error';
+                        statusText = '失败';
+                        break;
+                }
+
+                const duration = call.endTime ?
+                    `${((call.endTime - call.startTime) / 1000).toFixed(2)}秒` :
+                    (call.startTime ? `${((Date.now() - call.startTime) / 1000).toFixed(2)}秒` : '0秒');
+
+                statusDiv.innerHTML = `
+                    <span class="status-indicator ${statusClass}"></span>
+                    <strong>ID:</strong> ${id} |
+                    <strong>命令:</strong> ${call.command} |
+                    <strong>状态:</strong> ${statusText} |
+                    <strong>耗时:</strong> ${duration}
+                `;
+
+                statusContainer.appendChild(statusDiv);
+            });
+        }
+
+        function simulateToolCallStart() {
+            const command = document.getElementById('test-command').value || 'ls -la';
+            const toolCallId = `test-${Date.now()}`;
+
+            addLog(`🚀 模拟工具调用开始: ${command} (ID: ${toolCallId})`, 'start');
+
+            // 触发工具调用开始事件
+            window.dispatchEvent(new CustomEvent('ai-tool-call-start', {
+                detail: {
+                    command: command,
+                    toolCallId: toolCallId
+                }
+            }));
+
+            // 更新状态
+            updateToolCallStatus(toolCallId, 'executing', command);
+        }
+
+        function simulateToolCallComplete() {
+            const command = document.getElementById('test-command').value || 'ls -la';
+            const toolCallId = `test-${Date.now()}`;
+
+            addLog(`✅ 模拟工具调用完成: ${command} (ID: ${toolCallId})`, 'complete');
+
+            // 触发工具调用完成事件
+            window.dispatchEvent(new CustomEvent('ai-tool-call-complete', {
+                detail: {
+                    command: command,
+                    result: `模拟执行结果:\n文件1\n文件2\n文件3`,
+                    toolCallId: toolCallId
+                }
+            }));
+
+            // 更新状态
+            updateToolCallStatus(toolCallId, 'completed', command);
+        }
+
+        function simulateToolCallError() {
+            const command = document.getElementById('test-command').value || 'ls -la';
+            const toolCallId = `test-${Date.now()}`;
+
+            addLog(`❌ 模拟工具调用失败: ${command} (ID: ${toolCallId})`, 'error');
+
+            // 触发工具调用失败事件
+            window.dispatchEvent(new CustomEvent('ai-tool-call-error', {
+                detail: {
+                    command: command,
+                    error: '模拟执行错误',
+                    toolCallId: toolCallId
+                }
+            }));
+
+            // 更新状态
+            updateToolCallStatus(toolCallId, 'error', command);
+        }
+
+        function clearLogs() {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '<div class="log-entry log-debug">日志已清空...</div>';
+            toolCallStates.clear();
+            updateToolCallStatus('initial', 'idle');
+        }
+
+        // 监听工具调用事件
+        window.addEventListener('ai-tool-call-start', (event) => {
+            const { command, toolCallId } = event.detail;
+            addLog(`🔧 收到工具调用开始事件: ${command} (ID: ${toolCallId})`, 'start');
+            updateToolCallStatus(toolCallId, 'executing', command);
+        });
+
+        window.addEventListener('ai-tool-call-complete', (event) => {
+            const { command, result, toolCallId } = event.detail;
+            addLog(`✅ 收到工具调用完成事件: ${command} (ID: ${toolCallId})`, 'complete');
+            addLog(`📄 命令结果长度: ${result.length} 字符`, 'debug');
+            updateToolCallStatus(toolCallId, 'completed', command);
+        });
+
+        window.addEventListener('ai-tool-call-error', (event) => {
+            const { command, error, toolCallId } = event.detail;
+            addLog(`❌ 收到工具调用失败事件: ${command} (ID: ${toolCallId}) - ${error}`, 'error');
+            updateToolCallStatus(toolCallId, 'error', command);
+        });
+
+        // 初始化
+        addLog('🚀 工具调用状态同步测试页面已加载', 'debug');
+        addLog('📝 等听AI工具调用事件中...', 'debug');
+    </script>
+</body>
+</html>
