@@ -185,20 +185,13 @@ export default {
       }
 
       try {
-        const commandLine = `${connection.username}@${connection.host}:~$ ${command}`
-        addTerminalOutput(connection, {
-          type: 'command',
-          content: commandLine,
-          timestamp: new Date()
-        })
-
         if (window.electronAPI) {
           // 优先使用Shell会话（如果存在且连接）
           let result;
 
           try {
             // 尝试使用Shell写入
-            await window.electronAPI.sshShellWrite(connection.id, command + '\n');
+            await window.electronAPI.sshShellWrite(connection.id, command + '\r\n');
             result = { success: true, output: `命令已发送到Shell: ${command}` };
           } catch (shellError) {
             // Shell不可用，回退到单次命令执行

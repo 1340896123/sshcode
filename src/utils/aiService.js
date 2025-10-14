@@ -297,15 +297,7 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
       if (toolCall.function.name === 'execute_command') {
         try {
           const args = JSON.parse(toolCall.function.arguments)
-          console.log(`🔧 [AI-DEBUG] 执行命令:`, args.command)
-
-          // 发射工具调用开始事件
-          window.dispatchEvent(new CustomEvent('ai-tool-call-start', {
-            detail: {
-              command: args.command,
-              toolCallId: toolCall.id
-            }
-          }))
+          console.log(`🔧 [AI-DEBUG] 准备执行命令:`, args.command)
 
           const result = await executeTerminalCommand(args.command, connection?.id)
           console.log(`✅ [AI-DEBUG] 命令执行完成，结果长度:`, result.length)
@@ -325,7 +317,7 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
           })
         } catch (error) {
           console.error(`❌ [AI-DEBUG] 命令执行失败:`, error)
-          
+
           // 发射工具调用失败事件
           window.dispatchEvent(new CustomEvent('ai-tool-call-error', {
             detail: {

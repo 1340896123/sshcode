@@ -8,15 +8,7 @@ export function useTerminalManager(activeConnections, activeTabId, emit, ansiCon
     const command = connection.currentCommand.trim()
     if (!command) return
 
-    const commandLine = `${connection.username}@${connection.host}:~$ ${command}`
-
-    // 添加命令到输出
-    addTerminalOutput(connection, {
-      type: 'command',
-      content: commandLine,
-      timestamp: new Date()
-    })
-
+    // 清空当前命令
     connection.currentCommand = ''
     connection.lastActivity = new Date()
 

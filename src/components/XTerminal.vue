@@ -772,14 +772,16 @@ export default {
     // 规范化换行符，避免多余的空行但保持必要的分隔
     const normalizeLineBreaks = (data) => {
       // 只处理连续的3个或更多换行符，简化为最多2个
-      let normalized = data.replace(/\r\n\r\n\r\n+/g, '\r\n\r\n');
-      
+      let normalized = data.replace(/\r\n\r\n\r\n+/g, "\r\n\r\n");
+
       // 处理开头的多余换行符（保留最多1个）
-      normalized = normalized.replace(/^\r\n\r\n+/, '\r\n');
-      
+      normalized = normalized.replace(/^\r\n\r\n+/, "\r\n");
+
       // 处理结尾的多余换行符（保留最多1个）
-      normalized = normalized.replace(/\r\n\r\n+$/, '\r\n');
-      
+      normalized = normalized.replace(/\r\n\r\n+$/, "\r\n");
+
+      // 不再强制添加换行符，让SSH返回的提示符自然处理换行
+
       return normalized;
     };
 
@@ -807,6 +809,51 @@ export default {
     const writeUtf8 = (data) => {
       if (terminal) {
         terminal.writeUtf8(data);
+      }
+    };
+
+    // 模式1：终端直接输入执行 - 用户在终端中输入，由终端的handleTerminalData处理
+    // 这种方式不需要手动显示命令，SSH会自动echo显示
+
+    // 模式2：外部写入执行 - 外部组件写入命令并执行
+    const writeAndExecute = (command, options = {}) => {
+      console.log(`📝 [XTerminal] 外部写入执行模式: "${command}"`, options);
+
+      if (!terminal) {
+        console.warn('⚠️ [XTerminal] 终端未初始化');
+        return;
+      }
+
+      const {
+        showCommand = true,           // 是否在终端中显示命令
+        addLineBreak = true,          // 是否添加换行符
+        executeCommand = true,        // 是否执行命令
+        useEcho = false               // 是否使用SSH echo模式
+      } = options;
+
+      // 如果需要显示命令
+      if (showCommand) {
+        if (useEcho) {
+          // 使用SSH echo模式：发送命令让SSH自动显示
+          if (isConnected.value && window.electronAPI?.sshShellWrite) {
+            // 对于echo模式，使用\r作为换行符，让SSH Shell自然处理
+            window.electronAPI.sshShellWrite(props.connectionId, command + '\r');
+          }
+        } else {
+          // 直接写入模式：手动显示命令然后执行
+          const commandWithColor = `\x1b[36m$ ${command}\x1b[0m${addLineBreak ? '\r\n' : ''}`;
+          write(commandWithColor);
+
+          // 执行命令
+          if (executeCommand && isConnected.value && window.electronAPI?.sshShellWrite) {
+            window.electronAPI.sshShellWrite(props.connectionId, command + '\r\n');
+          }
+        }
+      } else {
+        // 不显示命令，直接执行
+        if (executeCommand && isConnected.value && window.electronAPI?.sshShellWrite) {
+          window.electronAPI.sshShellWrite(props.connectionId, command + '\r\n');
+        }
       }
     };
 
@@ -960,21 +1007,17 @@ export default {
 
     // 处理输入框命令
     const handleInputCommand = (command) => {
-      console.log(`📥 [XTerminal] 收到输入命令: "${command}"`);
+      console.log(`📥 [XTerminal] TerminalInputBox输入命令: "${command}"`);
 
-      // 显示命令在终端中（不添加最后的换行符，让SSH返回的提示符处理换行）
-      write(`\r\n\x1b[36m$ ${command}\x1b[0m`);
-
-      // 发送命令到SSH
-      if (isConnected.value && window.electronAPI?.sshShellWrite) {
-        window.electronAPI.sshShellWrite(props.connectionId, command + "\r\n");
-        console.log(`📤 [XTerminal] 命令已发送到SSH: "${command}"`);
-      } else {
-        console.warn(
-          `⚠️ [XTerminal] 无法发送命令，连接状态: ${isConnected.value}`
-        );
-        write(`\x1b[33m命令发送失败: 未连接到SSH服务器\x1b[0m\r\n`);
-      }
+      // 使用外部写入执行模式（模式2）
+      // 使用SSH echo模式，避免重复显示
+      // 不添加额外的换行符，让SSH自然处理
+      writeAndExecute(command, {
+        showCommand: true,
+        useEcho: true,  // 使用SSH echo模式，避免手动显示造成的重复
+        addLineBreak: false,  // 不添加额外换行，避免多换一行
+        executeCommand: true
+      });
     };
 
     // 处理通知
@@ -1093,6 +1136,7 @@ export default {
       // 方法
       write,
       writeUtf8,
+      writeAndExecute,  // 新增：外部写入执行方法
       clear,
       reset,
       focus,
@@ -1497,7 +1541,6 @@ export default {
     transform: translateX(-50%) translateY(0);
   }
 }
-
 
 // 终端输入框包装器
 .terminal-input-wrapper {

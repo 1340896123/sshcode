@@ -28,7 +28,7 @@ function createWindow() {
 
   // 在开发环境中加载 Vite 开发服务器，在生产环境中加载构建后的文件
   const isDev = process.argv.includes('--dev');
-  
+
   if (isDev) {
     // 开发模式：加载 Vite 开发服务器
     console.log('开发模式：加载 Vite 开发服务器');
@@ -67,7 +67,7 @@ ipcMain.handle('save-session', async (event, sessionData) => {
   try {
     const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
     const sessionsDir = path.dirname(sessionsPath);
-    
+
     if (!fs.existsSync(sessionsDir)) {
       fs.mkdirSync(sessionsDir, { recursive: true });
     }
@@ -86,7 +86,7 @@ ipcMain.handle('save-session', async (event, sessionData) => {
     }
 
     fs.writeFileSync(sessionsPath, JSON.stringify(sessions, null, 2));
-    
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -97,7 +97,7 @@ ipcMain.handle('get-sessions', async () => {
   try {
     const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
     console.log('读取连接文件:', sessionsPath);
-    
+
     if (fs.existsSync(sessionsPath)) {
       const data = fs.readFileSync(sessionsPath, 'utf8');
       const sessions = JSON.parse(data);
@@ -297,16 +297,19 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
           const output = data.toString();
           outputBuffer += output;
 
-          // 规范化输出数据，只处理严重的多余换行符
+          // 规范化输出数据，确保统一的换行格式
           let normalizedOutput = output;
-          
-          // 只处理连续的3个或更多换行符，简化为最多2个
+
+          // 处理连续的多个换行符，保持最多2个换行符
           normalizedOutput = normalizedOutput.replace(/\r\n\r\n\r\n+/g, '\r\n\r\n');
-          
+
           // 处理开头的多余换行符（保留最多1个）
           normalizedOutput = normalizedOutput.replace(/^\r\n\r\n+/, '\r\n');
 
-          // 发送数据到渲染进程
+          // 处理结尾的多余换行符（保留最多1个）
+          normalizedOutput = normalizedOutput.replace(/\r\n\r\n+$/, '\r\n');
+
+          // 不再额外添加换行符，让数据保持原始格式
           mainWindow.webContents.send('terminal-data', {
             connectionId,
             data: normalizedOutput
@@ -436,7 +439,7 @@ ipcMain.handle('ssh-disconnect', async (event, connectionId) => {
 ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
   const conn = sshConnections[connectionId];
   const config = sshConnectionConfigs[connectionId];
-  
+
   if (!conn || !config) {
     return { success: false, error: 'SSH连接不存在或配置丢失' };
   }
@@ -444,7 +447,7 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
   try {
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
-    
+
     const connectConfig = {
       host: config.host,
       port: config.port || 22,
@@ -459,7 +462,7 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
     }
 
     await sftpClient.connect(connectConfig);
-    
+
     // 如果路径不存在，尝试使用根目录或用户主目录
     let targetPath = remotePath || '/';
     try {
@@ -470,9 +473,9 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
       // 如果路径不存在，尝试备选路径
       if (pathErr.code === 2) { // SSH_FX_NO_SUCH_FILE
         console.log(`路径 ${targetPath} 不存在，尝试备选路径`);
-        
+
         let fallbackPath = '/';
-        
+
         // 如果是尝试访问用户主目录失败，根据用户名确定正确的路径
         if (targetPath.includes('/home/')) {
           const username = config.username;
@@ -482,16 +485,16 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
             fallbackPath = '/home/' + username;
           }
         }
-        
+
         try {
           const list = await sftpClient.list(fallbackPath);
           await sftpClient.end();
           return { success: true, files: list, fallbackPath };
         } catch (fallbackErr) {
           await sftpClient.end();
-          return { 
-            success: false, 
-            error: `路径 ${targetPath} 不存在，备选路径 ${fallbackPath} 也不可访问。请检查路径是否正确。` 
+          return {
+            success: false,
+            error: `路径 ${targetPath} 不存在，备选路径 ${fallbackPath} 也不可访问。请检查路径是否正确。`
           };
         }
       } else {
@@ -501,7 +504,7 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
     }
   } catch (err) {
     console.error('SFTP操作失败:', err);
-    
+
     // 提供更友好的错误信息
     let errorMessage = err.message;
     if (err.code === 2) {
@@ -511,7 +514,7 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
     } else if (err.code === 4) {
       errorMessage = `连接失败，请检查SSH连接状态`;
     }
-    
+
     return { success: false, error: errorMessage };
   }
 });
@@ -644,7 +647,7 @@ ipcMain.handle('testAIConnection', async (event, aiConfig) => {
   } catch (error) {
     console.error('AI连接测试失败:', error);
     let errorMessage = 'AI连接测试失败';
-    
+
     if (error.response) {
       errorMessage = `API错误: ${error.response.status} - ${error.response.data?.error?.message || error.response.statusText}`;
     } else if (error.request) {
@@ -652,7 +655,7 @@ ipcMain.handle('testAIConnection', async (event, aiConfig) => {
     } else {
       errorMessage = error.message;
     }
-    
+
     return { success: false, error: errorMessage };
   }
 });
@@ -663,24 +666,24 @@ ipcMain.handle('readSSHKey', async (event, keyPath) => {
     const fs = require('fs');
     const path = require('path');
     const os = require('os');
-    
+
     let fullPath = keyPath;
-    
+
     // 处理相对路径
     if (keyPath.startsWith('~/')) {
       fullPath = path.join(os.homedir(), keyPath.substring(2));
     } else if (!path.isAbsolute(keyPath)) {
       fullPath = path.resolve(keyPath);
     }
-    
+
     // 检查文件是否存在
     if (!fs.existsSync(fullPath)) {
       return { success: false, error: '私钥文件不存在: ' + fullPath };
     }
-    
+
     // 读取文件内容
     const keyContent = fs.readFileSync(fullPath, 'utf8');
-    
+
     return { success: true, keyContent };
   } catch (error) {
     console.error('读取SSH密钥失败:', error);
@@ -692,7 +695,7 @@ ipcMain.handle('readSSHKey', async (event, keyPath) => {
 ipcMain.handle('uploadFile', async (event, connectionId, localPath, remotePath) => {
   const conn = sshConnections[connectionId];
   const config = sshConnectionConfigs[connectionId];
-  
+
   if (!conn || !config) {
     return { success: false, error: 'SSH连接不存在或配置丢失' };
   }
@@ -700,7 +703,7 @@ ipcMain.handle('uploadFile', async (event, connectionId, localPath, remotePath) 
   try {
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
-    
+
     const connectConfig = {
       host: config.host,
       port: config.port || 22,
@@ -715,13 +718,13 @@ ipcMain.handle('uploadFile', async (event, connectionId, localPath, remotePath) 
     }
 
     await sftpClient.connect(connectConfig);
-    
+
     const fileName = require('path').basename(localPath);
     const remoteFilePath = remotePath === '/' ? `/${fileName}` : `${remotePath}/${fileName}`;
-    
+
     await sftpClient.put(localPath, remoteFilePath);
     await sftpClient.end();
-    
+
     return { success: true };
   } catch (err) {
     console.error('文件上传失败:', err);
@@ -733,7 +736,7 @@ ipcMain.handle('uploadFile', async (event, connectionId, localPath, remotePath) 
 ipcMain.handle('uploadDroppedFile', async (event, connectionId, file, remotePath) => {
   const conn = sshConnections[connectionId];
   const config = sshConnectionConfigs[connectionId];
-  
+
   if (!conn || !config) {
     return { success: false, error: 'SSH连接不存在或配置丢失' };
   }
@@ -741,7 +744,7 @@ ipcMain.handle('uploadDroppedFile', async (event, connectionId, file, remotePath
   try {
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
-    
+
     const connectConfig = {
       host: config.host,
       port: config.port || 22,
@@ -756,15 +759,15 @@ ipcMain.handle('uploadDroppedFile', async (event, connectionId, file, remotePath
     }
 
     await sftpClient.connect(connectConfig);
-    
+
     // 从File对象获取文件路径
     const filePath = file.path;
     const fileName = file.name;
     const remoteFilePath = remotePath === '/' ? `/${fileName}` : `${remotePath}/${fileName}`;
-    
+
     await sftpClient.put(filePath, remoteFilePath);
     await sftpClient.end();
-    
+
     return { success: true };
   } catch (err) {
     console.error('文件上传失败:', err);
@@ -782,18 +785,18 @@ ipcMain.handle('selectAndUploadFile', async (event, connectionId, remotePath) =>
 
     if (!result.canceled && result.filePaths.length > 0) {
       const localPath = result.filePaths[0];
-      
+
       // 调用上传文件处理函数
       const conn = sshConnections[connectionId];
       const config = sshConnectionConfigs[connectionId];
-      
+
       if (!conn || !config) {
         return { success: false, error: 'SSH连接不存在或配置丢失' };
       }
 
       const sftp = require('ssh2-sftp-client');
       const sftpClient = new sftp();
-      
+
       const connectConfig = {
         host: config.host,
         port: config.port || 22,
@@ -808,16 +811,16 @@ ipcMain.handle('selectAndUploadFile', async (event, connectionId, remotePath) =>
       }
 
       await sftpClient.connect(connectConfig);
-      
+
       const fileName = require('path').basename(localPath);
       const remoteFilePath = remotePath === '/' ? `/${fileName}` : `${remotePath}/${fileName}`;
-      
+
       await sftpClient.put(localPath, remoteFilePath);
       await sftpClient.end();
-      
+
       return { success: true };
     }
-    
+
     return { success: false, error: '用户取消选择' };
   } catch (error) {
     console.error('选择文件失败:', error);
@@ -829,7 +832,7 @@ ipcMain.handle('selectAndUploadFile', async (event, connectionId, remotePath) =>
 ipcMain.handle('downloadFile', async (event, connectionId, remotePath) => {
   const conn = sshConnections[connectionId];
   const config = sshConnectionConfigs[connectionId];
-  
+
   if (!conn || !config) {
     return { success: false, error: 'SSH连接不存在或配置丢失' };
   }
@@ -837,7 +840,7 @@ ipcMain.handle('downloadFile', async (event, connectionId, remotePath) => {
   try {
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
-    
+
     const connectConfig = {
       host: config.host,
       port: config.port || 22,
@@ -852,7 +855,7 @@ ipcMain.handle('downloadFile', async (event, connectionId, remotePath) => {
     }
 
     await sftpClient.connect(connectConfig);
-    
+
     // 选择保存位置
     const fileName = require('path').basename(remotePath);
     const saveResult = await dialog.showSaveDialog(mainWindow, {
@@ -863,7 +866,7 @@ ipcMain.handle('downloadFile', async (event, connectionId, remotePath) => {
     if (!saveResult.canceled) {
       await sftpClient.get(remotePath, saveResult.filePath);
       await sftpClient.end();
-      
+
       return { success: true, localPath: saveResult.filePath };
     } else {
       await sftpClient.end();
@@ -879,7 +882,7 @@ ipcMain.handle('downloadFile', async (event, connectionId, remotePath) => {
 ipcMain.handle('downloadAndOpenFile', async (event, connectionId, remotePath) => {
   const conn = sshConnections[connectionId];
   const config = sshConnectionConfigs[connectionId];
-  
+
   if (!conn || !config) {
     return { success: false, error: 'SSH连接不存在或配置丢失' };
   }
@@ -889,7 +892,7 @@ ipcMain.handle('downloadAndOpenFile', async (event, connectionId, remotePath) =>
     const sftpClient = new sftp();
     const os = require('os');
     const path = require('path');
-    
+
     const connectConfig = {
       host: config.host,
       port: config.port || 22,
@@ -904,23 +907,23 @@ ipcMain.handle('downloadAndOpenFile', async (event, connectionId, remotePath) =>
     }
 
     await sftpClient.connect(connectConfig);
-    
+
     // 创建临时目录
     const tempDir = path.join(os.tmpdir(), 'sshcode-files');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
-    
+
     const fileName = path.basename(remotePath);
     const localPath = path.join(tempDir, fileName);
-    
+
     await sftpClient.get(remotePath, localPath);
     await sftpClient.end();
-    
+
     // 使用系统默认程序打开文件
     const { shell } = require('electron');
     await shell.openPath(localPath);
-    
+
     return { success: true, localPath };
   } catch (err) {
     console.error('文件下载并打开失败:', err);
@@ -934,12 +937,12 @@ const fileWatchers = new Map();
 ipcMain.handle('startFileWatcher', async (event, remotePath, localPath) => {
   try {
     const fs = require('fs');
-    
+
     // 如果已经在监听这个文件，先停止
     if (fileWatchers.has(localPath)) {
       fileWatchers.get(localPath).close();
     }
-    
+
     // 创建文件监听器
     const watcher = fs.watchFile(localPath, (curr, prev) => {
       if (curr.mtime !== prev.mtime) {
@@ -950,9 +953,9 @@ ipcMain.handle('startFileWatcher', async (event, remotePath, localPath) => {
         });
       }
     });
-    
+
     fileWatchers.set(localPath, watcher);
-    
+
     return { success: true };
   } catch (error) {
     console.error('启动文件监听失败:', error);
@@ -967,7 +970,7 @@ ipcMain.handle('stopFileWatcher', async (event, localPath) => {
       fs.unwatchFile(localPath);
       fileWatchers.delete(localPath);
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error('停止文件监听失败:', error);

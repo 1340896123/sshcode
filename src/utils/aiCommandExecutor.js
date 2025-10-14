@@ -66,6 +66,14 @@ class AICommandExecutor {
           fullCommand: command + '\r\n'
         });
 
+        // 在命令真正开始执行前触发工具调用开始事件
+        window.dispatchEvent(new CustomEvent('ai-tool-call-start', {
+          detail: {
+            command: command,
+            toolCallId: commandId
+          }
+        }));
+
         // 确保命令不包含多余的换行符，避免双重换行
         const cleanCommand = command.replace(/\r?\n$/, '');
         const result = await window.electronAPI.sshShellWrite(connectionId, cleanCommand + '\r\n')

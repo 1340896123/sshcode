@@ -140,6 +140,7 @@ ipcMain.handle('method-name', async (event, params) => {
 ### Available IPC Methods
 - **Session Management:** `saveSession`, `getSessions`, `deleteSession`
 - **SSH Operations:** `sshConnect`, `sshExecute`, `sshDisconnect`
+- **SSH Shell Sessions:** `ssh-create-shell`, `ssh-shell-write`, `ssh-shell-resize`, `ssh-shell-close`
 - **File Operations:** `getFileList`, `uploadFile`, `downloadFile`, `downloadAndOpenFile`, `selectAndUploadFile`, `uploadDroppedFile`
 - **SSH Key Management:** `readSSHKey`
 - **File Watching:** `startFileWatcher`, `stopFileWatcher`
@@ -233,8 +234,17 @@ Stores SSH connection configurations with support for:
 
 ### Adding New IPC Handlers
 1. Add handler in `main.js` following existing patterns
-2. Add corresponding method to `window.electronAPI` in `App.vue` (lines 132-151)
+2. Add corresponding method to `window.electronAPI` in `App.vue` (lines 133-152)
 3. Create custom hook in `useElectronAPI.js` if needed
+
+### Shell Session Management
+The application includes advanced SSH shell session management:
+- **Shell Creation**: `ssh-create-shell` for interactive terminal sessions
+- **Shell Communication**: `ssh-shell-write` for sending commands to active shells
+- **Shell Resizing**: `ssh-shell-resize` for dynamic terminal dimensions
+- **Shell Cleanup**: `ssh-shell-close` for proper session termination
+- **Real-time Data**: Bidirectional communication for terminal I/O
+- **Session Pooling**: Multiple concurrent shell sessions per connection
 
 ### Key Composables
 - `useAIChat.js` - AI chat functionality and message handling
