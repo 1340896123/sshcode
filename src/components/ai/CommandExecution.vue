@@ -11,45 +11,144 @@
     <div class="assistant-content" v-html="formattedContent"></div>
   </div>
 
-  <!-- AI工具调用 - 简洁提示 + 折叠面板 -->
+  <!-- AI工具调用 - 根据状态显示不同界面 -->
   <div v-else-if="message.type === 'tool-start'" class="tool-call-simple">
-    <!-- 简单提示 -->
-    <div class="tool-prompt">
-      🤖 AI想要执行 <code>{{ command }}</code> 命令
-    </div>
-
-    <!-- 折叠面板 -->
-    <div class="tool-call-panel" :class="{ 'is-collapsed': isCollapsed }">
-      <div class="panel-header" @click="toggleCollapse">
-        <span class="panel-title">工具调用详情</span>
-        <div class="panel-actions">
-          <span class="panel-time">{{ formatTime(message.timestamp) }}</span>
-          <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
-          <ChevronRightIcon v-else class="toggle-icon is-collapsed" />
-        </div>
+    <!-- 正在执行状态 -->
+    <div v-if="status === 'executing'" class="tool-executing">
+      <div class="executing-prompt">
+        <LoaderIcon class="spinner" />
+        <span>🤖 AI正在执行 <code>{{ command }}</code> 命令</span>
       </div>
 
-      <div v-if="!isCollapsed" class="panel-content">
-        <div class="tool-info">
-          <div class="info-row">
-            <span class="info-label">状态:</span>
-            <span class="info-value" :class="status">{{ getStatusText(status) }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">命令:</span>
-            <code class="info-command">{{ command }}</code>
-          </div>
-          <div class="info-row">
-            <span class="info-label">类型:</span>
-            <span class="info-value">AI工具调用</span>
+      <!-- 执行中的折叠面板 -->
+      <div class="tool-call-panel executing-panel" :class="{ 'is-collapsed': isCollapsed }">
+        <div class="panel-header" @click="toggleCollapse">
+          <span class="panel-title">执行详情</span>
+          <div class="panel-actions">
+            <span class="panel-time">{{ formatTime(message.timestamp) }}</span>
+            <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
+            <ChevronRightIcon v-else class="toggle-icon is-collapsed" />
           </div>
         </div>
 
-        <div v-if="status === 'executing'" class="executing-indicator">
-          <LoaderIcon class="spinner" />
-          <div class="executing-text">
-            <span class="primary-text">正在执行命令...</span>
-            <span class="secondary-text">等待命令完成，请稍候</span>
+        <div v-if="!isCollapsed" class="panel-content">
+          <div class="executing-indicator">
+            <div class="executing-info">
+              <div class="info-row">
+                <span class="info-label">状态:</span>
+                <span class="info-value executing">执行中</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">命令:</span>
+                <code class="info-command">{{ command }}</code>
+              </div>
+              <div class="info-row">
+                <span class="info-label">执行时间:</span>
+                <span class="info-value">{{ formattedExecutionTime }}</span>
+              </div>
+              <div v-if="executionTime > 30000" class="info-row">
+                <span class="info-label warning">提示:</span>
+                <span class="info-value warning-text">执行时间较长，请耐心等待</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 实时输出显示 -->
+          <div v-if="showRealtimeOutput && realtimeOutput" class="realtime-output">
+            <div class="realtime-header">
+              <span class="realtime-label">📡 实时输出</span>
+              <span class="realtime-indicator"></span>
+            </div>
+            <div class="realtime-content">
+              <pre class="realtime-text">{{ realtimeOutput }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 执行完成状态 -->
+    <div v-else-if="status === 'completed'" class="tool-completed">
+      <div class="completed-prompt">
+        <CheckIcon class="check-icon" />
+        <span>✅ 命令执行完成: <code>{{ command }}</code></span>
+      </div>
+
+      <!-- 完成后的折叠面板 -->
+      <div class="tool-call-panel completed-panel" :class="{ 'is-collapsed': isCollapsed }">
+        <div class="panel-header" @click="toggleCollapse">
+          <span class="panel-title">执行结果</span>
+          <div class="panel-actions">
+            <span v-if="executionTime" class="panel-time">
+              ⏱ {{ (executionTime / 1000).toFixed(2) }}s
+            </span>
+            <button
+              v-if="canCopy"
+              class="panel-copy"
+              @click.stop="copyContent"
+              title="复制内容"
+            >
+              <CopyIcon />
+            </button>
+            <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
+            <ChevronRightIcon v-else class="toggle-icon is-collapsed" />
+          </div>
+        </div>
+
+        <div v-if="!isCollapsed" class="panel-content">
+          <div v-if="result" class="result-display">
+            <pre class="result-output">{{ result }}</pre>
+            <div class="result-footer">
+              <span class="output-stats">{{ result.length }} 字符</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 执行失败状态 -->
+    <div v-else-if="status === 'failed' || status === 'error'" class="tool-failed">
+      <div class="failed-prompt">
+        <XIcon class="error-icon" />
+        <span>❌ 命令执行失败: <code>{{ command }}</code></span>
+      </div>
+
+      <!-- 失败后的折叠面板 -->
+      <div class="tool-call-panel failed-panel" :class="{ 'is-collapsed': isCollapsed }">
+        <div class="panel-header" @click="toggleCollapse">
+          <span class="panel-title">错误信息</span>
+          <div class="panel-actions">
+            <span v-if="executionTime" class="panel-time">
+              ⏱ {{ (executionTime / 1000).toFixed(2) }}s
+            </span>
+            <button
+              v-if="canCopy"
+              class="panel-copy"
+              @click.stop="copyContent"
+              title="复制内容"
+            >
+              <CopyIcon />
+            </button>
+            <button
+              v-if="canRetry"
+              class="panel-retry"
+              @click.stop="retryCommand"
+              title="重试命令"
+            >
+              <LoaderIcon />
+            </button>
+            <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
+            <ChevronRightIcon v-else class="toggle-icon is-collapsed" />
+          </div>
+        </div>
+
+        <div v-if="!isCollapsed" class="panel-content">
+          <div v-if="error" class="error-display">
+            <pre class="error-output">{{ error }}</pre>
+            <div v-if="suggestion" class="error-suggestion">
+              <InfoIcon class="suggestion-icon" />
+              <span>建议: {{ suggestion }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -135,7 +234,7 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, inject, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import ChevronDownIcon from '../icons/ChevronDownIcon.vue'
 import ChevronRightIcon from '../icons/ChevronRightIcon.vue'
@@ -178,10 +277,43 @@ export default {
   setup(props, { emit }) {
     const isCollapsed = ref(props.collapsedByDefault)
 
+    // 获取AI聊天上下文（如果可用）
+    const aiChatContext = inject('aiChatContext', null)
+    const activeToolCall = aiChatContext?.activeToolCall || ref(null)
+    const pendingToolCalls = aiChatContext?.pendingToolCalls || ref(new Map())
+
     // 从消息中提取状态信息
     const status = computed(() => {
+      // 首先检查消息元数据中的状态
       if (props.message.metadata?.status) {
         return props.message.metadata.status
+      }
+
+      // 如果是工具调用开始消息，检查是否仍然活跃
+      if (props.message.type === 'tool-start' && props.message.metadata?.toolCallId) {
+        const toolCallId = props.message.metadata.toolCallId
+
+        // 检查活跃工具调用
+        if (activeToolCall.value?.id === toolCallId) {
+          return 'executing'
+        }
+
+        // 检查待处理工具调用
+        if (pendingToolCalls.value.has(toolCallId)) {
+          return 'executing'
+        }
+
+        // 如果不在活跃或待处理列表中，说明命令已完成
+        // 查找工具调用历史记录来确认最终状态
+        const toolCallHistory = aiChatContext?.toolCallHistory?.value || []
+        const completedCall = toolCallHistory.find(tc => tc.id === toolCallId)
+        
+        if (completedCall) {
+          return completedCall.status === 'completed' ? 'completed' : 'failed'
+        }
+
+        // 如果没有找到历史记录，默认为已完成
+        return 'completed'
       }
 
       // 根据消息类型推断状态
@@ -198,7 +330,39 @@ export default {
     const command = computed(() => props.message.metadata?.command)
     const result = computed(() => props.message.metadata?.result)
     const error = computed(() => props.message.metadata?.error)
-    const executionTime = computed(() => props.message.metadata?.executionTime)
+
+    // 计算执行时间（对于正在执行的命令，显示实时时间）
+    const executionTime = computed(() => {
+      if (props.message.metadata?.executionTime) {
+        return props.message.metadata.executionTime
+      }
+
+      // 对于正在执行的命令，计算已经过的时间
+      if (status.value === 'executing' && props.message.metadata?.toolCallId) {
+        const toolCallId = props.message.metadata.toolCallId
+        const toolCall = pendingToolCalls.value.get(toolCallId) || activeToolCall.value
+
+        if (toolCall?.startTime) {
+          return Date.now() - toolCall.startTime
+        }
+      }
+
+      return 0
+    })
+
+    // 实时执行时间格式化
+    const formattedExecutionTime = computed(() => {
+      const time = executionTime.value
+      if (time < 1000) {
+        return `${time}ms`
+      } else if (time < 60000) {
+        return `${(time / 1000).toFixed(1)}s`
+      } else {
+        const minutes = Math.floor(time / 60000)
+        const seconds = Math.floor((time % 60000) / 1000)
+        return `${minutes}m ${seconds}s`
+      }
+    })
 
     // 计算属性
     const resultStatusClass = computed(() => {
@@ -329,6 +493,119 @@ export default {
       }
     })
 
+    // 监听AI工具调用开始事件
+    const handleToolCallStart = (event) => {
+      const { command, toolCallId } = event.detail
+      
+      console.log(`🚀 [CommandExecution] 收到工具调用开始事件:`, {
+        command,
+        toolCallId,
+        currentMessageToolCallId: props.message.metadata?.toolCallId
+      })
+
+      // 检查是否是当前消息对应的工具调用
+      if (props.message.metadata?.toolCallId === toolCallId) {
+        console.log(`✅ [CommandExecution] 匹配到当前消息的工具调用开始，更新状态`)
+        
+        // 更新消息的元数据以反映执行状态
+        if (props.message.metadata) {
+          props.message.metadata.status = 'executing'
+          props.message.metadata.startTime = Date.now()
+        }
+
+        // 如果有AI聊天上下文，更新工具调用历史
+        if (aiChatContext?.toolCallHistory?.value) {
+          const historyEntry = aiChatContext.toolCallHistory.value.find(
+            tc => tc.id === toolCallId
+          )
+          if (historyEntry) {
+            historyEntry.status = 'executing'
+            historyEntry.startTime = Date.now()
+          }
+        }
+
+        // 添加到待处理工具调用
+        pendingToolCalls.value.set(toolCallId, {
+          id: toolCallId,
+          command,
+          startTime: Date.now()
+        })
+
+        // 设置为活跃工具调用
+        activeToolCall.value = {
+          id: toolCallId,
+          command,
+          startTime: Date.now()
+        }
+
+        // 触发响应式更新
+        console.log(`🔄 [CommandExecution] 触发开始状态更新`)
+      }
+    }
+
+    // 监听AI工具调用完成事件
+    const handleToolCallComplete = (event) => {
+      const { command, result, toolCallId } = event.detail
+      
+      console.log(`🎯 [CommandExecution] 收到工具调用完成事件:`, {
+        command,
+        toolCallId,
+        resultLength: result?.length || 0,
+        currentMessageToolCallId: props.message.metadata?.toolCallId
+      })
+
+      // 检查是否是当前消息对应的工具调用
+      if (props.message.metadata?.toolCallId === toolCallId) {
+        console.log(`✅ [CommandExecution] 匹配到当前消息的工具调用，更新状态`)
+        
+        // 更新消息的元数据以反映完成状态
+        if (props.message.metadata) {
+          props.message.metadata.status = 'completed'
+          props.message.metadata.result = result
+          props.message.metadata.executionTime = Date.now() - (props.message.metadata.startTime || Date.now())
+        }
+
+        // 如果有AI聊天上下文，更新工具调用历史
+        if (aiChatContext?.toolCallHistory?.value) {
+          const historyEntry = aiChatContext.toolCallHistory.value.find(
+            tc => tc.id === toolCallId
+          )
+          if (historyEntry) {
+            historyEntry.status = 'completed'
+            historyEntry.result = result
+            historyEntry.endTime = Date.now()
+          }
+        }
+
+        // 从活跃工具调用中移除
+        if (activeToolCall.value?.id === toolCallId) {
+          activeToolCall.value = null
+        }
+
+        // 从待处理工具调用中移除
+        if (pendingToolCalls.value.has(toolCallId)) {
+          pendingToolCalls.value.delete(toolCallId)
+        }
+
+        // 触发响应式更新
+        console.log(`🔄 [CommandExecution] 触发状态更新`)
+      }
+    }
+
+    // 组件挂载时添加事件监听器
+    onMounted(() => {
+      console.log(`🔍 [CommandExecution] 组件挂载，添加事件监听器`)
+      window.addEventListener('ai-tool-call-start', handleToolCallStart)
+      window.addEventListener('ai-tool-call-complete', handleToolCallComplete)
+    })
+
+    // 组件卸载时移除事件监听器
+    onUnmounted(() => {
+      console.log(`🔍 [CommandExecution] 组件卸载，移除事件监听器`)
+      window.removeEventListener('ai-tool-call-start', handleToolCallStart)
+      window.removeEventListener('ai-tool-call-complete', handleToolCallComplete)
+    })
+
     return {
       // 状态
       isCollapsed,
@@ -339,6 +616,7 @@ export default {
       result,
       error,
       executionTime,
+      formattedExecutionTime,
       resultStatusClass,
       isCollapsible,
       canCopy,
@@ -461,30 +739,132 @@ export default {
   }
 }
 
-// AI工具调用 - 简洁提示
+// AI工具调用 - 根据状态显示不同样式
 .tool-call-simple {
   margin: 12px 0;
   animation: slideIn 0.3s ease;
 }
 
-.tool-prompt {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--color-info, #93c5fd);
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  margin-bottom: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  animation: fadeIn 0.3s ease;
+// 正在执行状态
+.tool-executing {
+  .executing-prompt {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-info, #93c5fd);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    animation: fadeIn 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
-  code {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 12px;
-    color: var(--color-warning, #fbbf24);
-    border: 1px solid rgba(245, 158, 11, 0.5);
+    .spinner {
+      width: 14px;
+      height: 14px;
+      animation: spin 1s linear infinite;
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      color: var(--color-warning, #fbbf24);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+    }
+  }
+
+  .executing-panel {
+    border-color: rgba(59, 130, 246, 0.3);
+
+    .panel-header {
+      border-bottom-color: rgba(59, 130, 246, 0.2);
+    }
+  }
+}
+
+// 执行完成状态
+.tool-completed {
+  .completed-prompt {
+    background: rgba(74, 222, 128, 0.1);
+    color: var(--color-success, #86efac);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    animation: fadeIn 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .check-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--color-success, #4ade80);
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      color: var(--color-warning, #fbbf24);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+    }
+  }
+
+  .completed-panel {
+    border-color: rgba(74, 222, 128, 0.3);
+
+    .panel-header {
+      border-bottom-color: rgba(74, 222, 128, 0.2);
+    }
+  }
+}
+
+// 执行失败状态
+.tool-failed {
+  .failed-prompt {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-error, #fca5a5);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    animation: fadeIn 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .error-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--color-error, #f87171);
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      color: var(--color-warning, #fbbf24);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+    }
+  }
+
+  .failed-panel {
+    border-color: rgba(239, 68, 68, 0.3);
+
+    .panel-header {
+      border-bottom-color: rgba(239, 68, 68, 0.2);
+    }
   }
 }
 
@@ -672,39 +1052,99 @@ export default {
 }
 
 .executing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   padding: 16px;
   background: rgba(59, 130, 246, 0.05);
   border-radius: 6px;
-  color: var(--color-info, #93c5fd);
-  text-align: left;
   border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-.executing-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.executing-info {
+  .info-label.warning {
+    color: var(--color-warning, #f59e0b);
+    font-weight: 500;
+  }
 
-.primary-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-info, #93c5fd);
-}
-
-.secondary-text {
-  font-size: 11px;
-  color: var(--text-secondary, #b0b0b0);
-  font-style: italic;
+  .info-value.warning-text {
+    color: var(--color-warning, #fbbf24);
+    font-style: italic;
+  }
 }
 
 .spinner {
   width: 16px;
   height: 16px;
   animation: spin 1s linear infinite;
+}
+
+// 实时输出样式
+.realtime-output {
+  margin-top: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.05);
+  overflow: hidden;
+}
+
+.realtime-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.realtime-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-info, #93c5fd);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.realtime-indicator {
+  width: 8px;
+  height: 8px;
+  background: var(--color-info, #3b82f6);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.realtime-content {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.realtime-text {
+  margin: 0;
+  padding: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-primary, #e0e0e0);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background: transparent;
+  border: none;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--bg-primary, #1a1a1a);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-color, #4a4a4a);
+    border-radius: 2px;
+
+    &:hover {
+      background: var(--bg-hover, #5a5a5a);
+    }
+  }
 }
 
 .result-display,
@@ -896,6 +1336,15 @@ export default {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 

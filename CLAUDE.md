@@ -21,11 +21,14 @@ For development with hot reload:
 2. The debug command uses concurrently to run both processes automatically
 3. Chrome DevTools will be available for debugging the renderer process
 
+**Note**: There is no `npm run dev` script in package.json - use `npm run debug` for development
+
 ### Testing
 - Test configuration available via @playwright/test
 - Playwright configuration in `playwright.config.js`
 - Test files in `tests/` directory with `*.spec.js` pattern
 - Development server for testing runs on port 3003
+- Use `npx playwright test` to run tests
 
 ## Architecture Overview
 
@@ -147,6 +150,12 @@ ipcMain.handle('method-name', async (event, params) => {
 - **Configuration:** `getConfig`, `saveConfig`
 - **AI Integration:** `testAIConnection`
 
+### Event Communication (Main to Renderer)
+- `terminal-data` - Real-time terminal output from SSH shell sessions
+- `terminal-close` - Terminal session closed notification
+- `terminal-error` - Terminal session error notification
+- `fileChanged` - File change notification from file watchers
+
 ## Configuration Files
 
 ### Application Config (config/app.yml)
@@ -235,7 +244,8 @@ Stores SSH connection configurations with support for:
 ### Adding New IPC Handlers
 1. Add handler in `main.js` following existing patterns
 2. Add corresponding method to `window.electronAPI` in `App.vue` (lines 133-152)
-3. Create custom hook in `useElectronAPI.js` if needed
+3. Add corresponding method to `preload.js` under `contextBridge.exposeInMainWorld`
+4. Create custom hook in `useElectronAPI.js` if needed
 
 ### Shell Session Management
 The application includes advanced SSH shell session management:
@@ -355,5 +365,6 @@ The application supports multiple build configurations:
 
 The application uses `preload.js` to securely expose APIs to the renderer process:
 - IPC communication bridge between main and renderer processes
-- Electron APIs exposed through `window.electronAPI`
+- Electron APIs exposed through `window.electronAPI` via `contextBridge.exposeInMainWorld`
 - Security layer preventing direct Node.js access from renderer
+- Event listeners for terminal data and file change notifications

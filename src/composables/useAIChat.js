@@ -12,6 +12,7 @@ export function useAIChat(props, emit) {
   const pendingToolCalls = ref(new Map()) // 存储待处理的工具调用
   const toolCallHistory = ref([]) // 工具调用历史记录
   const activeToolCall = ref(null) // 当前活跃的工具调用
+  const realtimeOutputs = ref(new Map()) // 存储实时输出数据
 
   // 发送消息
   const sendMessage = async () => {
@@ -246,6 +247,8 @@ export function useAIChat(props, emit) {
       )
 
       pendingToolCalls.value.delete(toolCallId)
+      // 清理实时输出
+      realtimeOutputs.value.delete(toolCallId)
       console.log(`📊 [AI-CHAT] 剩余待处理工具调用:`, pendingToolCalls.value.size)
     } else {
       console.warn(`⚠️ [AI-CHAT] 收到未知的工具调用完成事件:`, { toolCallId, command })
@@ -290,7 +293,36 @@ export function useAIChat(props, emit) {
       )
 
       pendingToolCalls.value.delete(toolCallId)
+      // 清理实时输出
+      realtimeOutputs.value.delete(toolCallId)
     }
+  }
+
+  // 处理实时输出事件
+  const handleRealtimeOutput = (event) => {
+    const { toolCallId, output } = event.detail
+    console.log(`📡 [AI-CHAT] 收到实时输出:`, { toolCallId, outputLength: output.length })
+
+    if (pendingToolCalls.value.has(toolCallId)) {
+      // 获取或创建实时输出缓冲区
+      if (!realtimeOutputs.value.has(toolCallId)) {
+        realtimeOutputs.value.set(toolCallId, '')
+      }
+      
+      // 追加新的输出
+      const currentOutput = realtimeOutputs.value.get(toolCallId)
+      realtimeOutputs.value.set(toolCallId, currentOutput + output)
+    }
+  }
+
+  // 获取实时输出
+  const getRealtimeOutput = (toolCallId) => {
+    return realtimeOutputs.value.get(toolCallId) || ''
+  }
+
+  // 清理实时输出
+  const clearRealtimeOutput = (toolCallId) => {
+    realtimeOutputs.value.delete(toolCallId)
   }
 
   // 设置事件监听器
@@ -298,6 +330,7 @@ export function useAIChat(props, emit) {
     window.addEventListener('ai-tool-call-start', handleToolCallStart)
     window.addEventListener('ai-tool-call-complete', handleToolCallComplete)
     window.addEventListener('ai-tool-call-error', handleToolCallError)
+    window.addEventListener('ai-realtime-output', handleRealtimeOutput)
   }
 
   // 清理事件监听器
@@ -305,6 +338,7 @@ export function useAIChat(props, emit) {
     window.removeEventListener('ai-tool-call-start', handleToolCallStart)
     window.removeEventListener('ai-tool-call-complete', handleToolCallComplete)
     window.removeEventListener('ai-tool-call-error', handleToolCallError)
+    window.removeEventListener('ai-realtime-output', handleRealtimeOutput)
   }
 
   // 生命周期钩子
@@ -324,6 +358,7 @@ export function useAIChat(props, emit) {
     pendingToolCalls,
     toolCallHistory,
     activeToolCall,
+    realtimeOutputs,
 
     // 方法
     sendMessage,
@@ -333,6 +368,8 @@ export function useAIChat(props, emit) {
     addSystemMessage,
     getToolCallStats,
     retryToolCall,
-    clearToolCallHistory
+    clearToolCallHistory,
+    getRealtimeOutput,
+    clearRealtimeOutput
   }
 }

@@ -130,11 +130,20 @@ class AICommandExecutor {
           buffer.push(data)
           commandInfo.output.push(data)
 
+          // 触发实时输出事件
+          const outputText = data.toString()
+          window.dispatchEvent(new CustomEvent('ai-realtime-output', {
+            detail: {
+              toolCallId: commandId,
+              output: outputText
+            }
+          }))
+
           console.log(`📊 [AI-DEBUG] 命令输出缓冲区:`, {
             commandId,
             bufferSize: buffer.length,
             totalOutput: commandInfo.output.length,
-            latestOutput: data.toString().trim().substring(0, 200)
+            latestOutput: outputText.trim().substring(0, 200)
           });
 
           // 检查命令是否完成（通过提示符检测）
@@ -142,7 +151,7 @@ class AICommandExecutor {
           console.log(`🎯 [AI-DEBUG] 命令完成检测:`, {
             commandId,
             isComplete,
-            latestData: data.toString().trim(),
+            latestData: outputText.trim(),
             outputEnd: commandInfo.output.join('').slice(-200)
           });
 
@@ -291,6 +300,15 @@ class AICommandExecutor {
 
     // 清理资源
     this.cleanupCommand(commandId)
+
+    // 触发工具调用完成事件
+    window.dispatchEvent(new CustomEvent('ai-tool-call-complete', {
+      detail: {
+        command: commandInfo.command,
+        result: output,
+        toolCallId: commandId
+      }
+    }))
 
     // 返回结果
     commandInfo.resolve(output)

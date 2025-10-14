@@ -128,7 +128,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch, provide } from 'vue'
 import { useAIChat } from '@/composables/useAIChat'
 import { useMessageFormatter } from '@/composables/useMessageFormatter'
 import { useChatExport } from '@/composables/useChatExport'
@@ -153,6 +153,12 @@ export default {
   },
   emits: ['show-notification', 'execute-command', 'show-settings'],
   setup(props, { emit }) {
+    // 获取完整的AI聊天状态以提供给子组件
+    const aiChatState = useAIChat(props, emit)
+
+    // 提供AI聊天上下文给子组件
+    provide('aiChatContext', aiChatState)
+
     // 引用
     const messagesContainer = ref(null)
     const messageInput = ref(null)
@@ -215,7 +221,7 @@ export default {
       })
     }
 
-    // 使用组合式函数
+    // 使用组合式函数 - aiChatState已包含所有需要的状态
     const {
       messages,
       userInput,
@@ -226,7 +232,7 @@ export default {
       executeAction,
       clearChat,
       addUserInput
-    } = useAIChat(props, emit)
+    } = aiChatState
 
     const { formatMessage, formatTime } = useMessageFormatter()
     const { exportChat } = useChatExport(messages, emit)
@@ -322,17 +328,18 @@ export default {
 
     // 获取实时输出
     const getRealtimeOutput = (message) => {
-      // 对于正在执行的工具调用，可以从状态管理中获取实时输出
+      // 对于正在执行的工具调用，从状态管理中获取实时输出
       if (message.type === 'tool-start' && message.metadata?.toolCallId) {
-        // 这里可以从useAIChat中获取实时输出
-        return ''
+        return aiChatState.getRealtimeOutput(message.metadata.toolCallId)
       }
       return ''
     }
 
     // 判断是否应该显示实时输出
     const shouldShowRealtimeOutput = (message) => {
-      return message.type === 'tool-start' && activeToolCall.value?.id === message.metadata?.toolCallId
+      return message.type === 'tool-start' && 
+             activeToolCall.value?.id === message.metadata?.toolCallId &&
+             aiChatState.getRealtimeOutput(message.metadata.toolCallId).length > 0
     }
 
     // 生命周期
