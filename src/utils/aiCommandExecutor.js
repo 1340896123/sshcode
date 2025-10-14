@@ -63,7 +63,7 @@ class AICommandExecutor {
           connectionId,
           command,
           commandId,
-          fullCommand: command + '\r\n'
+          fullCommand: command + '\r'
         });
 
         // 在命令真正开始执行前触发工具调用开始事件
@@ -76,7 +76,8 @@ class AICommandExecutor {
 
         // 确保命令不包含多余的换行符，避免双重换行
         const cleanCommand = command.replace(/\r?\n$/, '');
-        const result = await window.electronAPI.sshShellWrite(connectionId, cleanCommand + '\r\n')
+        // 使用\r而不是\r\n，避免额外的换行
+        const result = await window.electronAPI.sshShellWrite(connectionId, cleanCommand + '\r')
         console.log(`📤 [AI-DEBUG] SSH Shell写入结果:`, result);
 
         if (!result.success) {
