@@ -4,11 +4,13 @@
   "description": "SSH远程连接应用，支持文件管理、终端和AI助手",
   "main": "main.js",
   "scripts": {
-    "start": "npm run build && electron .",
-    "debug": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --remote-debugging-port=9222\"",
+    "start": "npm run build-main && npm run build && electron .",
+    "debug": "concurrently \"vite\" \"npm run build-main && wait-on http://localhost:3000 && electron . --dev --remote-debugging-port=9222\"",
     "build": "vite build",
-    "build-electron": "npm run build && electron-builder",
-    "dist": "npm run build-electron"
+    "build-main": "tsc -p tsconfig.main.json",
+    "build-electron": "npm run build-main && npm run build && electron-builder",
+    "dist": "npm run build-electron",
+    "type-check": "vue-tsc --noEmit"
   },
   "keywords": [
     "electron",
@@ -21,10 +23,14 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.56.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.7.2",
     "concurrently": "^9.2.1",
     "electron": "^27.0.0",
     "electron-builder": "^24.6.4",
+    "typescript": "^5.9.3",
     "vite": "^7.1.9",
+    "vue-tsc": "^3.1.1",
     "wait-on": "^9.0.1"
   },
   "dependencies": {
