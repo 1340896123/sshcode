@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Electron-based SSH remote connection application that integrates file management, terminal operations, AI assistant functionality, and automatic timeout management. The application is built with Vue 3, Vite, and a comprehensive SCSS-based component library.
+This is an Electron-based SSH remote connection application that integrates file management, terminal operations, and AI assistant functionality. The application is built with Vue 3, Vite, and a comprehensive SCSS-based component library.
 
 ## Development Commands
 
@@ -50,7 +50,7 @@ The Vue 3 frontend follows a modular component architecture:
 - `src/composables/` - Shared composables (useAIChat, useConnectionManager, etc.)
 - `src/hooks/` - Custom Vue 3 composition API hooks
 - `src/constants/` - Application constants (AI constants)
-- `src/utils/` - Utility functions (aiService)
+- `src/utils/` - Utility functions (aiService, terminal timeout manager)
 - `src/styles/` - SCSS styling utilities and design tokens
 
 **Core Application Structure:**
