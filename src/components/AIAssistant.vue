@@ -51,8 +51,9 @@
             class="message"
             :class="[message.role, message.type]"
           >
-            <!-- 统一的命令执行消息组件 -->
+            <!-- 统一的命令执行消息组件 - 仅在工具类型消息时显示 -->
             <CommandExecution
+              v-if="isToolMessage(message)"
               :message="message"
               :collapsed-by-default="message.defaultCollapsed"
               :realtime-output="getRealtimeOutput(message)"
@@ -342,6 +343,16 @@ export default {
              aiChatState.getRealtimeOutput(message.metadata.toolCallId).length > 0
     }
 
+    // 判断消息是否为工具类型
+    const isToolMessage = (message) => {
+      return message.type && (
+        message.type === 'tool-start' ||
+        message.type === 'tool-end' ||
+        message.type === 'tool-output' ||
+        message.type.startsWith('tool-')
+      )
+    }
+
     // 生命周期
     onMounted(() => {
       nextTick(() => {
@@ -398,6 +409,7 @@ export default {
       handleRetryCommand,
       getRealtimeOutput,
       shouldShowRealtimeOutput,
+      isToolMessage,
       initializeCollapsedMessages,
       renderMarkdown
     }

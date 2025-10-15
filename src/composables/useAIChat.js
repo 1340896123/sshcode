@@ -39,7 +39,7 @@ export function useAIChat(props, emit) {
     try {
       // 过滤掉系统消息，只发送用户和AI消息给API
       const filteredMessages = messages.value.filter(msg => msg.role !== 'system')
-      
+
       // 调用AI API
       const response = await callAIAPI(message, filteredMessages, props.connection)
       addMessage('assistant', response.content, response.actions)
@@ -308,7 +308,7 @@ export function useAIChat(props, emit) {
       if (!realtimeOutputs.value.has(toolCallId)) {
         realtimeOutputs.value.set(toolCallId, '')
       }
-      
+
       // 追加新的输出
       const currentOutput = realtimeOutputs.value.get(toolCallId)
       realtimeOutputs.value.set(toolCallId, currentOutput + output)

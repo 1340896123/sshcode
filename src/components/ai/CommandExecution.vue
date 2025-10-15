@@ -26,6 +26,14 @@
           <span class="panel-title">执行详情</span>
           <div class="panel-actions">
             <span class="panel-time">{{ formatTime(message.timestamp) }}</span>
+            <!-- 折叠状态下的执行动画 -->
+            <div v-if="isCollapsed && status === 'executing'" class="collapsed-execution-indicator">
+              <div class="execution-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
             <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
             <ChevronRightIcon v-else class="toggle-icon is-collapsed" />
           </div>
@@ -262,7 +270,7 @@ export default {
     },
     collapsedByDefault: {
       type: Boolean,
-      default: false
+      default: true
     },
     realtimeOutput: {
       type: String,
@@ -1234,6 +1242,51 @@ export default {
   width: 16px;
   height: 16px;
   animation: spin 1s linear infinite;
+}
+
+// 折叠状态下的执行动画
+.collapsed-execution-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+}
+
+.execution-dots {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  
+  .dot {
+    width: 4px;
+    height: 4px;
+    background: var(--color-info, #3b82f6);
+    border-radius: 50%;
+    animation: executionDotPulse 1.4s infinite ease-in-out both;
+    
+    &:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+    
+    &:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+    
+    &:nth-child(3) {
+      animation-delay: 0s;
+    }
+  }
+}
+
+@keyframes executionDotPulse {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
 
 // 实时输出样式
