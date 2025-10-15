@@ -6,27 +6,31 @@
 export const QUICK_ACTIONS = [
   {
     id: 'sysinfo',
-    command: '查看系统信息',
-    label: '🔍 系统信息',
-    title: '查看系统信息'
+    command: '请帮我查看当前系统的基本信息，包括操作系统版本、内存使用情况和磁盘空间',
+    label: '系统信息',
+    title: '查看系统信息',
+    icon: '🔍'
   },
   {
     id: 'diskusage',
-    command: '检查磁盘使用',
-    label: '💾 磁盘使用',
-    title: '检查磁盘使用'
+    command: '分析当前目录的磁盘使用情况，找出占用空间最大的文件和目录',
+    label: '磁盘分析',
+    title: '分析磁盘使用',
+    icon: '💾'
   },
   {
     id: 'processes',
-    command: '查看运行进程',
-    label: '⚡ 运行进程',
-    title: '查看运行进程'
+    command: '显示当前正在运行的进程，按CPU或内存使用率排序',
+    label: '进程监控',
+    title: '查看运行进程',
+    icon: '⚡'
   },
   {
-    id: 'logs',
-    command: '分析日志文件',
-    label: '📊 日志分析',
-    title: '分析日志文件'
+    id: 'network',
+    command: '检查网络连接状态，包括网络接口信息和开放的端口',
+    label: '网络状态',
+    title: '检查网络连接',
+    icon: '🌐'
   }
 ]
 

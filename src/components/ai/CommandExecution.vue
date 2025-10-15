@@ -75,12 +75,8 @@
       </div>
     </div>
 
-    <!-- 执行完成状态 -->
-    <div v-else-if="status === 'completed'" class="tool-completed">
-      <div class="completed-prompt">
-        <CheckIcon class="check-icon" />
-        <span>✅ 命令执行完成: <code>{{ command }}</code></span>
-      </div>
+    <!-- 工具完成状态 -->
+  <div v-else-if="message.type === 'tool-complete'" class="tool-completed">
 
       <!-- 完成后的折叠面板 -->
       <div class="tool-call-panel completed-panel" :class="{ 'is-collapsed': isCollapsed }">
@@ -167,8 +163,7 @@
   <div v-else-if="message.type === 'tool-result'" class="tool-call-result">
     <!-- 简单状态提示 -->
     <div class="result-prompt" :class="resultStatusClass">
-      <span v-if="message.metadata?.status === 'completed'">✅ 命令执行完成: <code>{{ command }}</code></span>
-      <span v-else-if="message.metadata?.status === 'error'">❌ 命令执行失败: <code>{{ command }}</code></span>
+      <span v-if="message.metadata?.status === 'error'">❌ 命令执行失败: <code>{{ command }}</code></span>
     </div>
 
     <!-- 折叠面板 -->
@@ -247,7 +242,6 @@ import MarkdownIt from 'markdown-it'
 import ChevronDownIcon from '../icons/ChevronDownIcon.vue'
 import ChevronRightIcon from '../icons/ChevronRightIcon.vue'
 import CopyIcon from '../icons/CopyIcon.vue'
-import CheckIcon from '../icons/CheckIcon.vue'
 import XIcon from '../icons/XIcon.vue'
 import LoaderIcon from '../icons/LoaderIcon.vue'
 import InfoIcon from '../icons/InfoIcon.vue'
@@ -258,7 +252,6 @@ export default {
     ChevronDownIcon,
     ChevronRightIcon,
     CopyIcon,
-    CheckIcon,
     XIcon,
     LoaderIcon,
     InfoIcon
@@ -292,52 +285,70 @@ export default {
 
     // 从消息中提取状态信息
     const status = computed(() => {
-      // 首先检查消息元数据中的状态
-      if (props.message.metadata?.status) {
-        return props.message.metadata.status
-      }
-
-      // 如果是工具调用开始消息，检查是否仍然活跃
-      if (props.message.type === 'tool-start' && props.message.metadata?.toolCallId) {
-        const toolCallId = props.message.metadata.toolCallId
-
-        // 检查活跃工具调用
-        if (activeToolCall.value?.id === toolCallId) {
-          return 'executing'
-        }
-
-        // 检查待处理工具调用
-        if (pendingToolCalls.value.has(toolCallId)) {
-          return 'executing'
-        }
-
-        // 如果不在活跃或待处理列表中，说明命令已完成
-        // 查找工具调用历史记录来确认最终状态
-        const toolCallHistory = aiChatContext?.toolCallHistory?.value || []
-        const completedCall = toolCallHistory.find(tc => tc.id === toolCallId)
-        
-        if (completedCall) {
-          return completedCall.status === 'completed' ? 'completed' : 'failed'
-        }
-
-        // 如果没有找到历史记录，默认为已完成
-        return 'completed'
-      }
-
-      // 根据消息类型推断状态
+      // 根据消息类型直接确定状态
       switch (props.message.type) {
         case 'tool-start':
+          // 检查是否仍然活跃
+          if (props.message.metadata?.toolCallId) {
+            const toolCallId = props.message.metadata.toolCallId
+
+            // 检查活跃工具调用
+            if (activeToolCall.value?.id === toolCallId) {
+              return 'executing'
+            }
+
+            // 检查待处理工具调用
+            if (pendingToolCalls.value.has(toolCallId)) {
+              return 'executing'
+            }
+          }
           return 'executing'
+
+        case 'tool-complete':
         case 'tool-result':
-          return props.message.metadata?.status === 'completed' ? 'completed' : 'failed'
+          return 'completed'
+
+        case 'tool-error':
+          return 'failed'
+
         default:
           return 'message'
       }
     })
 
-    const command = computed(() => props.message.metadata?.command)
-    const result = computed(() => props.message.metadata?.result)
-    const error = computed(() => props.message.metadata?.error)
+    const command = computed(() => {
+      const cmd = props.message.metadata?.command
+      console.log(`🔧 [COMMAND-EXECUTION] Command: ${cmd}, message.type: ${props.message.type}, toolCallId: ${props.message.metadata?.toolCallId}`)
+      return cmd
+    })
+
+    const result = computed(() => {
+      // 优先从 metadata.result 获取
+      if (props.message.metadata?.result) {
+        console.log(`✅ [COMMAND-EXECUTION] Found result in metadata: ${props.message.metadata.result.substring(0, 50)}...`)
+        return props.message.metadata.result
+      }
+
+      // 如果没有，尝试从其他地方获取
+      // 比如从 AI 聊天上下文中查找对应的工具调用结果
+      if (props.message.metadata?.toolCallId && aiChatContext?.toolCallHistory?.value) {
+        const toolCallId = props.message.metadata.toolCallId
+        const completedCall = aiChatContext.toolCallHistory.value.find(tc => tc.id === toolCallId)
+        if (completedCall?.result) {
+          console.log(`✅ [COMMAND-EXECUTION] Found result in history: ${completedCall.result.substring(0, 50)}...`)
+          return completedCall.result
+        }
+      }
+
+      console.log(`❌ [COMMAND-EXECUTION] No result found for toolCallId: ${props.message.metadata?.toolCallId}`)
+      return null
+    })
+
+    const error = computed(() => {
+      const err = props.message.metadata?.error
+      console.log(`🔧 [COMMAND-EXECUTION] Error: ${err}`)
+      return err
+    })
 
     // 计算执行时间（对于正在执行的命令，显示实时时间）
     const executionTime = computed(() => {
@@ -391,8 +402,8 @@ export default {
 
     const canCopy = computed(() => {
       return (
-        (status.value === 'completed' && result.value) ||
-        (status.value === 'failed' && error.value)
+        (status.value === 'completed' && result.value && result.value.trim()) ||
+        (status.value === 'failed' && error.value && error.value.trim())
       )
     })
 
@@ -401,10 +412,10 @@ export default {
     })
 
     const contentToCopy = computed(() => {
-      if (status.value === 'completed' && result.value) {
-        return result.value
-      } else if (status.value === 'failed' && error.value) {
-        return error.value
+      if (status.value === 'completed' && result.value && result.value.trim()) {
+        return result.value.trim()
+      } else if (status.value === 'failed' && error.value && error.value.trim()) {
+        return error.value.trim()
       }
       return ''
     })
@@ -692,36 +703,6 @@ export default {
 
 // 执行完成状态
 .tool-completed {
-  .completed-prompt {
-    background: rgba(74, 222, 128, 0.1);
-    color: var(--color-success, #86efac);
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 8px;
-    border: 1px solid rgba(74, 222, 128, 0.3);
-    animation: fadeIn 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .check-icon {
-      width: 16px;
-      height: 16px;
-      color: var(--color-success, #4ade80);
-    }
-
-    code {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-size: 12px;
-      color: var(--color-warning, #fbbf24);
-      border: 1px solid rgba(245, 158, 11, 0.5);
-    }
-  }
-
   .completed-panel {
     border-color: rgba(74, 222, 128, 0.3);
 
@@ -785,12 +766,6 @@ export default {
   margin-bottom: 8px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   animation: fadeIn 0.3s ease;
-
-  &.success {
-    background: rgba(74, 222, 128, 0.1);
-    color: var(--color-success, #86efac);
-    border-color: rgba(74, 222, 128, 0.3);
-  }
 
   &.error {
     background: rgba(239, 68, 68, 0.1);

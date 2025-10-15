@@ -1,6 +1,6 @@
 <template>
-  <div class="tab-bar" v-if="connections.length > 0">
-    <div class="tab-list">
+  <div class="tab-bar" :class="{ 'empty-tabs': connections.length === 0 }">
+    <div class="tab-list" :class="{ 'has-tabs': connections.length > 0 }">
       <div
         v-for="connection in connections"
         :key="connection.id"
@@ -21,9 +21,14 @@
           ×
         </button>
       </div>
+
+      <!-- 当没有连接时显示提示信息 -->
+      <div v-if="connections.length === 0" class="empty-tabs-hint">
+        <span class="hint-text">暂无连接</span>
+      </div>
     </div>
     <button class="new-tab-btn" @click="$emit('open-session-modal')" title="新建连接">
-      +
+      <span class="btn-text">{{ connections.length === 0 ? '创建第一个连接' : '+' }}</span>
     </button>
   </div>
 </template>
@@ -64,6 +69,10 @@ export default {
   border-bottom: 1px solid color(border);
   padding: 0 spacing(sm);
   min-height: 48px;
+
+  &.empty-tabs {
+    justify-content: center;
+  }
 }
 
 .tab-list {
@@ -74,6 +83,15 @@ export default {
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  &.has-tabs {
+    // 有标签页时的样式
+  }
+
+  &:not(.has-tabs) {
+    justify-content: center;
+    align-items: center;
   }
 }
 
@@ -180,8 +198,9 @@ export default {
 }
 
 .new-tab-btn {
-  width: 32px;
+  min-width: 32px;
   height: 32px;
+  padding: 0 12px;
   border: 1px solid color(border);
   background: color(bg-tertiary);
   color: color(text-secondary);
@@ -190,13 +209,31 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 500;
   transition: all transition(fast) ease;
 
   &:hover {
     background: color(primary);
     color: color(white);
     border-color: color(primary);
+  }
+
+  .btn-text {
+    white-space: nowrap;
+  }
+}
+
+.empty-tabs-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+
+  .hint-text {
+    color: color(text-muted);
+    font-size: font-size(sm);
+    font-style: italic;
   }
 }
 

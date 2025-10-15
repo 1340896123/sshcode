@@ -295,7 +295,19 @@ export function useAIChat(props, emit) {
     toolCallHistory.value.push(toolCall)
     activeToolCall.value = toolCall
 
+    // 检查是否已经存在相同的工具开始消息，避免重复
+    const existingToolStartMessage = messages.value.find(msg =>
+      msg.type === 'tool-start' &&
+      msg.metadata?.toolCallId === data.commandId
+    )
+
+    if (existingToolStartMessage) {
+      console.log(`⚠️ [AI-CHAT] 发现重复的工具开始消息，跳过添加: toolCallId=${data.commandId}`)
+      return
+    }
+
     // 添加工具调用开始消息
+    console.log(`📋 [AI-CHAT] 添加工具开始消息: toolCallId=${data.commandId}, command=${data.command}`)
     addSystemMessage(
       `🔧 **正在执行命令:** \`${data.command}\``,
       'tool-start',
@@ -329,9 +341,30 @@ export function useAIChat(props, emit) {
     // 清理实时输出
     clearRealtimeOutput(data.commandId)
 
-    // 添加工具调用完成消息
+    // 检查是否已经存在相同的工具开始消息
+    const existingToolStartMessage = messages.value.find(msg =>
+      msg.type === 'tool-start' &&
+      msg.metadata?.toolCallId === data.commandId
+    )
+
+    if (existingToolStartMessage) {
+      // 更新现有的工具开始消息为完成状态
+      console.log(`📋 [AI-CHAT] 更新工具消息状态为完成: toolCallId=${data.commandId}, command=${data.command}`)
+      existingToolStartMessage.type = 'tool-complete'
+      existingToolStartMessage.content = ''  // 清空内容，让CommandExecution组件处理显示
+      existingToolStartMessage.metadata = {
+        toolCallId: data.commandId,
+        command: data.command,
+        result: data.result,
+        executionTime
+      }
+      return
+    }
+
+    // 如果没有找到工具开始消息，则创建一个新的工具完成消息
+    console.log(`📋 [AI-CHAT] 创建新的工具完成消息: toolCallId=${data.commandId}, command=${data.command}`)
     addSystemMessage(
-      `✅ **命令执行完成:** \`${data.command}\`\n\n**执行时间:** ${Math.round(executionTime / 1000)}s`,
+      '',  // 空内容，让CommandExecution组件处理显示
       'tool-complete',
       {
         toolCallId: data.commandId,
@@ -361,9 +394,29 @@ export function useAIChat(props, emit) {
     // 清理实时输出
     clearRealtimeOutput(data.commandId)
 
-    // 添加工具调用错误消息
+    // 检查是否已经存在相同的工具开始消息
+    const existingToolStartMessage = messages.value.find(msg =>
+      msg.type === 'tool-start' &&
+      msg.metadata?.toolCallId === data.commandId
+    )
+
+    if (existingToolStartMessage) {
+      // 更新现有的工具开始消息为错误状态
+      console.log(`📋 [AI-CHAT] 更新工具消息状态为错误: toolCallId=${data.commandId}, command=${data.command}`)
+      existingToolStartMessage.type = 'tool-error'
+      existingToolStartMessage.content = ''  // 清空内容，让CommandExecution组件处理显示
+      existingToolStartMessage.metadata = {
+        toolCallId: data.commandId,
+        command: data.command,
+        error: data.error
+      }
+      return
+    }
+
+    // 如果没有找到工具开始消息，则创建一个新的工具错误消息
+    console.log(`📋 [AI-CHAT] 创建新的工具错误消息: toolCallId=${data.commandId}, command=${data.command}`)
     addSystemMessage(
-      `❌ **命令执行失败:** \`${data.command}\`\n\n**错误信息:** ${data.error}`,
+      '',  // 空内容，让CommandExecution组件处理显示
       'tool-error',
       {
         toolCallId: data.commandId,

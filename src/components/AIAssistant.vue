@@ -1,57 +1,155 @@
 <template>
   <div class="ai-assistant">
-    <!-- AI助手界面 -->
+    <!-- 背景装饰 -->
+    <div class="ai-background">
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+      <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <!-- 主界面 -->
     <div class="ai-interface">
-      <!-- 聊天头部 -->
-      <div class="chat-header">
-        <div class="ai-info">
-          <div class="ai-avatar">🤖</div>
-          <div class="ai-details">
-            <h3>AI助手</h3>
-            <span class="ai-status" :class="{ connected: isConnected }">
-              {{ isConnected ? '在线' : '离线' }}
-            </span>
+      <!-- 顶部栏 -->
+      <div class="modern-header">
+        <div class="header-left">
+          <div class="ai-avatar-modern">
+            <div class="avatar-gradient"></div>
+            <div class="avatar-icon">🤖</div>
+            <div class="status-indicator" :class="{ active: isConnected }"></div>
+          </div>
+          <div class="ai-info-modern">
+            <h1 class="ai-title">AI 助手</h1>
+            <div class="connection-info">
+              <span class="connection-status" :class="{ connected: isConnected }">
+                {{ isConnected ? '已连接' : '离线' }}
+              </span>
+              <span class="connection-details">{{ connection.username }}@{{ connection.host }}</span>
+            </div>
           </div>
         </div>
-        <div class="header-actions">
-          <button class="action-btn" @click="clearChat" title="清空对话">
-            🗑️
+
+        <div class="header-actions-modern">
+          <button class="action-btn-modern" @click="clearChatLocal" title="清空对话">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6"/>
+            </svg>
           </button>
-          <button class="action-btn" @click="exportChat" title="导出对话">
-            📥
+          <button class="action-btn-modern" @click="exportChat" title="导出对话">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
           </button>
         </div>
       </div>
 
-      <!-- 聊天消息区域 -->
-      <div class="chat-messages" ref="messagesContainer">
-        <!-- 欢迎消息 -->
-        <div v-if="messages.length === 0" class="welcome-section">
-          <div class="welcome-content">
-            <h4>👋 您好！我是您的SSH远程管理助手</h4>
-            <p>我已连接到 <strong>{{ connection.host }}</strong> ({{ connection.username }}@{{ connection.host }})</p>
-            <p>我可以帮助您：</p>
-            <ul class="capabilities-list">
-              <li>🖥️ 实时系统监控和性能分析</li>
-              <li>📁 远程文件管理和操作</li>
-              <li>🔍 进程管理和服务状态检查</li>
-              <li>📊 系统日志分析和故障排查</li>
-              <li>🌐 网络配置和连接诊断</li>
-              <li>⚡ 安全的命令执行和自动化</li>
-            </ul>
-            <p class="welcome-tip">💡 所有命令都通过真实的SSH连接执行，我会根据实际系统状态提供专业建议！</p>
+      <!-- 聊天区域 -->
+      <div class="chat-area" ref="chatArea">
+        <!-- 欢迎界面 -->
+        <div v-if="messages.length === 0" class="welcome-screen">
+          <div class="welcome-illustration">
+            <div class="floating-icons">
+              <div class="float-icon">💻</div>
+              <div class="float-icon">🔧</div>
+              <div class="float-icon">📊</div>
+              <div class="float-icon">🌐</div>
+            </div>
+          </div>
+
+          <div class="welcome-content-modern">
+            <h2 class="welcome-title">👋 您好！我是您的智能助手</h2>
+            <p class="welcome-subtitle">
+              已连接到 <strong>{{ connection.host }}</strong>
+              <span class="connection-badge">SSH连接</span>
+            </p>
+
+            <div class="capabilities-grid">
+              <div class="capability-card">
+                <div class="capability-icon">🖥️</div>
+                <h3>系统监控</h3>
+                <p>实时系统状态和性能分析</p>
+              </div>
+              <div class="capability-card">
+                <div class="capability-icon">📁</div>
+                <h3>文件管理</h3>
+                <p>远程文件操作和管理</p>
+              </div>
+              <div class="capability-card">
+                <div class="capability-icon">🔍</div>
+                <h3>故障诊断</h3>
+                <p>系统日志分析和问题排查</p>
+              </div>
+              <div class="capability-card">
+                <div class="capability-icon">⚡</div>
+                <h3>智能执行</h3>
+                <p>安全自动化命令执行</p>
+              </div>
+            </div>
+
+            <div class="starter-prompts">
+              <h3>开始对话</h3>
+              <div class="prompt-suggestions">
+                <button
+                  v-for="prompt in starterPrompts"
+                  :key="prompt.id"
+                  class="prompt-chip"
+                  @click="insertQuickCommand(prompt.text)"
+                >
+                  {{ prompt.label }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- 消息列表 -->
-        <div v-else class="messages-list">
+        <div v-else class="messages-container">
+  
           <div
-            v-for="message in messages"
+            v-for="message in messages.filter(msg => !isSystemMessageToHide(msg))"
             :key="message.id"
-            class="message"
+            class="message-wrapper"
             :class="[message.role, message.type]"
           >
-            <!-- 统一的命令执行消息组件 - 仅在工具类型消息时显示 -->
+            <!-- 用户消息 -->
+            <div v-if="message.role === 'user'" class="user-message">
+              <div class="message-avatar user-avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
+                </svg>
+              </div>
+              <div class="message-content user-content">
+                <div class="message-text">{{ message.content }}</div>
+                <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+              </div>
+            </div>
+
+            <!-- AI助手消息 -->
+            <div v-else-if="message.role === 'assistant'" class="assistant-message">
+              <div class="message-avatar assistant-avatar">
+                <div class="avatar-gradient-small"></div>
+                <span>🤖</span>
+              </div>
+              <div class="message-content assistant-content">
+                <div class="message-text" v-html="renderMarkdown(message.content)"></div>
+                <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+
+                <!-- AI消息的操作按钮 -->
+                <div v-if="message.actions" class="message-actions-modern">
+                  <button
+                    v-for="action in message.actions"
+                    :key="action.id"
+                    class="action-chip"
+                    :class="action.type"
+                    @click="executeAction(action)"
+                  >
+                    <span class="action-icon">{{ action.type === 'command' ? '⚡' : '💬' }}</span>
+                    {{ action.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 工具调用消息（直接渲染，不显示系统消息容器） -->
             <CommandExecution
               v-if="isToolMessage(message)"
               :message="message"
@@ -61,65 +159,62 @@
               @copy-to-clipboard="handleCopyNotification"
               @retry-command="handleRetryCommand"
             />
-
-            <!-- AI消息的操作按钮 -->
-            <div v-if="message.role === 'assistant' && message.actions" class="message-actions">
-              <button
-                v-for="action in message.actions"
-                :key="action.id"
-                class="action-button"
-                :class="action.type"
-                @click="executeAction(action)"
-              >
-                {{ action.label }}
-              </button>
-            </div>
           </div>
         </div>
 
-        <!-- 正在输入指示器 -->
-        <div v-if="isProcessing" class="typing-indicator">
-          <div class="typing-dots">
-            <span></span>
-            <span></span>
-            <span></span>
+        <!-- AI思考指示器 -->
+        <div v-if="isProcessing" class="thinking-indicator">
+          <div class="thinking-avatar">
+            <div class="thinking-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
-          <span>AI正在思考...</span>
+          <div class="thinking-content">
+            <div class="thinking-text">AI正在思考</div>
+            <div class="thinking-subtitle">分析您的需求并准备响应...</div>
+          </div>
         </div>
       </div>
 
       <!-- 输入区域 -->
-      <div class="chat-input">
-        <div class="input-container">
-          <textarea
-            ref="messageInput"
-            v-model="userInput"
-            @keydown="handleKeyDown"
-            @input="adjustTextareaHeight"
-            placeholder="输入您的问题或命令..."
-            class="message-textarea"
-            rows="1"
-            :disabled="isProcessing"
-          ></textarea>
-          <button
-            class="send-button"
-            @click="sendMessage"
-            :disabled="!canSendMessage"
-          >
-            <span v-if="isProcessing">⏳</span>
-            <span v-else>📤</span>
-          </button>
+      <div class="input-area">
+        <div class="input-container-modern">
+          <div class="input-wrapper">
+            <textarea
+              ref="messageInput"
+              v-model="userInput"
+              @keydown="handleKeyDown"
+              @input="handleInput"
+              placeholder="输入您的问题，我会帮您执行相应的命令..."
+              class="modern-textarea"
+              rows="1"
+              :disabled="isProcessing"
+            ></textarea>
+            <button
+              class="send-btn-modern"
+              @click="sendMessage"
+              :disabled="!canSendMessage"
+              :class="{ active: canSendMessage }"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+              </svg>
+            </button>
+          </div>
         </div>
-        
-        <!-- 快捷操作 -->
-        <div class="quick-actions">
+
+        <!-- 快捷操作栏 -->
+        <div class="quick-actions-modern">
           <button
             v-for="quickAction in quickActions"
             :key="quickAction.id"
-            class="quick-btn"
+            class="quick-action-btn"
             @click="insertQuickCommand(quickAction.command)"
             :title="quickAction.title"
           >
+            <span class="action-emoji">{{ quickAction.icon }}</span>
             {{ quickAction.label }}
           </button>
         </div>
@@ -162,11 +257,14 @@ export default {
     provide('aiChatContext', aiChatState)
 
     // 引用
-    const messagesContainer = ref(null)
+    const chatArea = ref(null)
     const messageInput = ref(null)
 
     // 折叠状态管理
     const collapsedMessages = ref(new Set())
+
+    // 工具消息缓存，防止重复检测和渲染
+    const renderedToolMessages = ref(new Set())
 
     // Markdown 渲染器
     const md = new MarkdownIt({
@@ -247,6 +345,30 @@ export default {
     // 快捷操作
     const quickActions = computed(() => QUICK_ACTIONS)
 
+    // 新增：入门提示语
+    const starterPrompts = computed(() => [
+      {
+        id: 'sys-info',
+        label: '查看系统信息',
+        text: '请帮我查看当前系统的基本信息，包括操作系统版本、内存使用情况和磁盘空间'
+      },
+      {
+        id: 'process-check',
+        label: '检查运行进程',
+        text: '显示当前正在运行的进程，按CPU或内存使用率排序'
+      },
+      {
+        id: 'disk-usage',
+        label: '分析磁盘使用',
+        text: '分析当前目录的磁盘使用情况，找出占用空间最大的文件和目录'
+      },
+      {
+        id: 'network-status',
+        label: '检查网络状态',
+        text: '检查网络连接状态，包括网络接口信息和开放的端口'
+      }
+    ])
+
     // 发送消息
     const sendMessage = async () => {
       await sendAIMessage()
@@ -268,6 +390,11 @@ export default {
       }
     }
 
+    // 处理输入
+    const handleInput = () => {
+      adjustTextareaHeight()
+    }
+
     // 自动调整文本框高度
     const adjustTextareaHeight = () => {
       const textarea = messageInput.value
@@ -279,8 +406,9 @@ export default {
 
     // 滚动到底部
     const scrollToBottom = () => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      const chatElement = chatArea.value
+      if (chatElement) {
+        chatElement.scrollTop = chatElement.scrollHeight
       }
     }
 
@@ -344,14 +472,77 @@ export default {
              aiChatState.getRealtimeOutput(message.metadata.toolCallId).length > 0
     }
 
-    // 判断消息是否为工具类型
+    // 判断是否为需要隐藏的系统消息
+    const isSystemMessageToHide = (message) => {
+      // 如果是工具消息，则不隐藏（让工具组件处理）
+      if (isToolMessage(message)) {
+        return false
+      }
+
+      // 显示用户和AI助手消息
+      if (message.role === 'user' || message.role === 'assistant') {
+        return false
+      }
+
+      // 隐藏系统消息，但保留工具状态相关的消息
+      if (message.role === 'system') {
+        // 检查是否是工具状态相关的系统消息，这些应该通过工具组件显示
+        const isToolStatusMessage = message.type && (
+          message.type === 'tool-start' ||
+          message.type === 'tool-end' ||
+          message.type === 'tool-output' ||
+          message.type === 'tool-complete' ||
+          message.type === 'tool-error' ||
+          message.type === 'tool-result' ||
+          message.type.startsWith('tool-')
+        )
+
+        // 如果不是工具状态消息，则隐藏
+        if (!isToolStatusMessage) {
+          return true
+        }
+
+        // 工具状态消息由工具组件处理，这里也隐藏
+        return false
+      }
+
+      return false
+    }
+
+    // 判断消息是否为工具类型（完全独立于role）
     const isToolMessage = (message) => {
-      return message.type && (
+      // 首先检查是否为工具调用相关的消息类型
+      const isTool = message.type && (
         message.type === 'tool-start' ||
         message.type === 'tool-end' ||
         message.type === 'tool-output' ||
+        message.type === 'tool-complete' ||
+        message.type === 'tool-error' ||
+        message.type === 'tool-result' ||
         message.type.startsWith('tool-')
       )
+
+      if (isTool) {
+        return true
+      }
+
+      // 明确排除非工具消息
+      if (message.role === 'user' || message.role === 'assistant') {
+        return false
+      }
+
+      // 对于其他role为system的消息，检查是否包含工具调用相关内容
+      if (message.role === 'system' && message.content) {
+        const hasToolContent =
+          message.content.includes('正在执行命令') ||
+          message.content.includes('命令执行完成') ||
+          message.content.includes('命令执行失败') ||
+          message.metadata?.toolCallId
+
+        return hasToolContent
+      }
+
+      return false
     }
 
     // 生命周期
@@ -365,8 +556,21 @@ export default {
 
     })
 
+    // 本地清空聊天函数
+    const clearChatLocal = () => {
+      // 调用原始的clearChat函数
+      clearChat()
+      // 清理工具消息缓存
+      renderedToolMessages.value.clear()
+    }
+
+    // 手动清理工具消息缓存（用于调试）
+    const clearToolMessageCache = () => {
+      renderedToolMessages.value.clear()
+    }
+
     // 监听连接变化
-    watch(() => props.connectionId, clearChat)
+    watch(() => props.connectionId, clearChatLocal)
 
     return {
       // 状态
@@ -376,20 +580,25 @@ export default {
       isConnected,
       canSendMessage,
       quickActions,
+      starterPrompts,
       collapsedMessages,
       activeToolCall,
+      renderedToolMessages,
 
       // 引用
-      messagesContainer,
+      chatArea,
       messageInput,
 
       // 方法
       sendMessage,
       executeAction,
       clearChat,
+      clearChatLocal,
+      clearToolMessageCache,
       exportChat,
       insertQuickCommand,
       handleKeyDown,
+      handleInput,
       adjustTextareaHeight,
       formatMessage,
       formatTime,
@@ -400,6 +609,7 @@ export default {
       handleRetryCommand,
       getRealtimeOutput,
       shouldShowRealtimeOutput,
+      isSystemMessageToHide,
       isToolMessage,
       initializeCollapsedMessages,
       renderMarkdown

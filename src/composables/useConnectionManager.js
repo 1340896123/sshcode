@@ -324,9 +324,17 @@ export function useConnectionManager(emit) {
 
     // 如果关闭的是当前活动标签，切换到其他标签
     if (activeTabId.value === connectionId) {
-      activeTabId.value = activeConnections.value.length > 0
-        ? activeConnections.value[activeConnections.value.length - 1].id
-        : null
+      // 重新计算剩余的连接数量（在splice之后）
+      const remainingConnections = activeConnections.value.filter(c => c.id !== connectionId)
+      if (remainingConnections.length > 0) {
+        // 切换到最后一个连接
+        activeTabId.value = remainingConnections[remainingConnections.length - 1].id
+        console.log(`🔄 [CONNECTION-MANAGER] 切换到标签: ${activeTabId.value}`)
+      } else {
+        // 没有剩余连接时，清空活动标签
+        activeTabId.value = null
+        console.log(`🏠 [CONNECTION-MANAGER] 所有标签已关闭，回到首页`)
+      }
     }
 
     emit('show-notification', `已关闭 ${connection.name}`, 'info')
