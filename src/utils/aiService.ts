@@ -322,14 +322,38 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
         try {
           const args = JSON.parse(toolCall.function.arguments)
 
+          // 发送工具调用开始事件，让UI显示正在执行
+          emitEvent(EventTypes.AI_COMMAND_START, {
+            commandId: toolCall.id,
+            command: args.command,
+            connectionId: connection.id,
+            timestamp: Date.now()
+          })
+
+          // 使用Pinia store记录工具调用开始
+          const aiStore = useAIStore()
+          aiStore.startToolCall({
+            id: toolCall.id,
+            command: args.command,
+            connectionId: connection.id
+          })
+
           const result = await executeTerminalCommand(args.command, connection?.id)
 
           // 使用Pinia store记录工具调用完成
-          const aiStore = useAIStore()
           aiStore.completeToolCall({
             id: toolCall.id,
             command: args.command,
             result: result
+          })
+
+          // 发送工具调用完成事件，让UI显示结果
+          emitEvent(EventTypes.AI_COMMAND_COMPLETE, {
+            commandId: toolCall.id,
+            command: args.command,
+            connectionId: connection.id,
+            result: result,
+            timestamp: Date.now()
           })
 
           toolResults.push({
@@ -345,6 +369,15 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
             id: toolCall.id,
             command: args.command,
             error: error.message
+          })
+
+          // 发送工具调用错误事件，让UI显示错误
+          emitEvent(EventTypes.AI_COMMAND_ERROR, {
+            commandId: toolCall.id,
+            command: args.command,
+            connectionId: connection.id,
+            error: error.message,
+            timestamp: Date.now()
           })
 
           toolResults.push({

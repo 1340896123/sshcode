@@ -315,6 +315,8 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   }
 
   const handleCommandStart = (data: any): void => {
+    console.log(`🚀 [AI-CHAT] 收到命令开始事件:`, data)
+
     const toolCall: ToolCallHistoryItem = {
       id: data.commandId,
       command: data.command,
@@ -336,8 +338,11 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     )
 
     if (existingToolStartMessage) {
+      console.log(`⚠️ [AI-CHAT] 工具开始消息已存在，跳过添加: ${data.commandId}`)
       return
     }
+
+    console.log(`✅ [AI-CHAT] 添加工具开始消息: ${data.commandId}`)
 
     // 添加工具调用开始消息
     addSystemMessage(
@@ -352,6 +357,8 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   }
 
   const handleCommandComplete = (data: any): void => {
+    console.log(`✅ [AI-CHAT] 收到命令完成事件:`, { commandId: data.commandId, command: data.command })
+
     const executionTime = data.executionTime || 0
 
     // 更新工具调用历史
@@ -378,6 +385,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     )
 
     if (existingToolStartMessage) {
+      console.log(`🔄 [AI-CHAT] 更新工具开始消息为完成状态: ${data.commandId}`)
       // 更新现有的工具开始消息为完成状态
       existingToolStartMessage.type = 'tool-complete'
       existingToolStartMessage.content = ''  // 清空内容，让CommandExecution组件处理显示
@@ -389,6 +397,8 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
       }
       return
     }
+
+    console.log(`✅ [AI-CHAT] 创建新的工具完成消息: ${data.commandId}`)
 
     // 如果没有找到工具开始消息，则创建一个新的工具完成消息
     addSystemMessage(
@@ -404,7 +414,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   }
 
   const handleCommandError = (data: any): void => {
-    console.error(`❌ [AI-CHAT] 命令错误:`, data)
+    console.error(`❌ [AI-CHAT] 收到命令错误事件:`, { commandId: data.commandId, command: data.command, error: data.error })
 
     // 更新工具调用历史
     const toolCall = toolCallHistory.value.find(tc => tc.id === data.commandId)
@@ -429,6 +439,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     )
 
     if (existingToolStartMessage) {
+      console.log(`🔄 [AI-CHAT] 更新工具开始消息为错误状态: ${data.commandId}`)
       // 更新现有的工具开始消息为错误状态
       existingToolStartMessage.type = 'tool-error'
       existingToolStartMessage.content = ''  // 清空内容，让CommandExecution组件处理显示
@@ -439,6 +450,8 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
       }
       return
     }
+
+    console.log(`✅ [AI-CHAT] 创建新的工具错误消息: ${data.commandId}`)
 
     // 如果没有找到工具开始消息，则创建一个新的工具错误消息
     addSystemMessage(
