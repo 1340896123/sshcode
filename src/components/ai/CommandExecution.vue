@@ -243,7 +243,7 @@
 
 <script>
 import { computed, ref, watch, inject, onMounted, onUnmounted } from 'vue'
-import { marked } from 'marked'
+import MarkdownIt from 'markdown-it'
 import ChevronDownIcon from '../icons/ChevronDownIcon.vue'
 import ChevronRightIcon from '../icons/ChevronRightIcon.vue'
 import CopyIcon from '../icons/CopyIcon.vue'
@@ -418,10 +418,18 @@ export default {
       return '系统消息'
     })
 
+    // 创建 MarkdownIt 实例
+    const md = new MarkdownIt({
+      html: true,
+      linkify: true,
+      typographer: true,
+      breaks: true
+    })
+
     const formattedContent = computed(() => {
       if (!props.message.content) return ''
       try {
-        return marked(props.message.content)
+        return md.render(props.message.content)
       } catch (error) {
         console.error('Markdown渲染失败:', error)
         return props.message.content.replace(/\n/g, '<br>')
