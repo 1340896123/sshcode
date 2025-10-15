@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 事件调试测试</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            color: #8b5cf6;
+            margin-top: 0;
+            border-bottom: 1px solid #3a3a3a;
+            padding-bottom: 8px;
+        }
+        
+        .log {
+            background: #1a1a1a;
+            border: 1px solid #4a4a4a;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 16px;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+        
+        .log-entry.error {
+            color: #f87171;
+        }
+        
+        .log-entry.success {
+            color: #4ade80;
+        }
+        
+        .log-entry.info {
+            color: #93c5fd;
+        }
+        
+        .log-entry.warning {
+            color: #fbbf24;
+        }
+        
+        button {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        button:hover {
+            background: #7c3aed;
+        }
+        
+        button:disabled {
+            background: #4a4a4a;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+        }
+        
+        .status-item {
+            display: inline-block;
+            margin-right: 16px;
+            font-size: 12px;
+        }
+        
+        .status-item.success {
+            color: #4ade80;
+        }
+        
+        .status-item.error {
+            color: #f87171;
+        }
+        
+        .status-item.warning {
+            color: #fbbf24;
+        }
+        
+        input[type="text"] {
+            background: #1a1a1a;
+            border: 1px solid #4a4a4a;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            width: 300px;
+            margin-right: 8px;
+        }
+        
+        .mock-component {
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .mock-component h3 {
+            margin-top: 0;
+            color: #93c5fd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 AI 事件调试测试</h1>
+        
+        <div class="status" id="status">
+            <div class="status-item">📡 事件发送: <span id="eventSentCount">0</span></div>
+            <div class="status-item">👂 事件接收: <span id="eventReceivedCount">0</span></div>
+            <div class="status-item">🔧 监听器数量: <span id="listenerCount">0</span></div>
+            <div class="status-item">⏱ 测试时间: <span id="testTime">0</span>ms</div>
+        </div>
+
+        <div class="section">
+            <h2>🎮 测试控制</h2>
+            <div>
+                <input type="text" id="testCommand" placeholder="输入测试命令" value="echo 'Hello World'">
+                <input type="text" id="testConnectionId" placeholder="连接ID" value="test-connection-1">
+                <button onclick="runFullTest()">🚀 运行完整测试</button>
+                <button onclick="testEventSending()">📡 测试事件发送</button>
+                <button onclick="testEventListening()">👂 测试事件监听</button>
+                <button onclick="simulateAICommand()">🤖 模拟AI命令</button>
+                <button onclick="clearLogs()">🗑️ 清空日志</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 实时日志</h2>
+            <div class="log" id="logContainer"></div>
+        </div>
+
+        <div class="section">
+            <h2>🧪 模拟组件</h2>
+            <div class="mock-component" id="mockComponent">
+                <h3>CommandExecution 组件模拟</h3>
+                <div>状态: <span id="componentStatus">未初始化</span></div>
+                <div>工具调用ID: <span id="componentToolCallId">-</span></div>
+                <div>命令: <span id="componentCommand">-</span></div>
+                <div>结果: <span id="componentResult">-</span></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 调试信息</h2>
+            <div id="debugInfo">
+                <div>Window 对象: <span id="windowStatus">检查中...</span></div>
+                <div>CustomEvent 支持: <span id="customEventStatus">检查中...</span></div>
+                <div>addEventListener 支持: <span id="addEventListenerStatus">检查中...</span></div>
+                <div>全局监听器: <span id="globalListenersStatus">检查中...</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let eventSentCount = 0;
+        let eventReceivedCount = 0;
+        let testStartTime = Date.now();
+        let mockComponentState = {
+            mounted: false,
+            toolCallId: null,
+            command: null,
+            result: null,
+            status: 'idle'
+        };
+
+        // 日志系统
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // 更新状态
+        function updateStatus() {
+            document.getElementById('eventSentCount').textContent = eventSentCount;
+            document.getElementById('eventReceivedCount').textContent = eventReceivedCount;
+            document.getElementById('listenerCount').textContent = getListenerCount();
+            document.getElementById('testTime').textContent = Date.now() - testStartTime;
+        }
+
+        // 获取监听器数量
+        function getListenerCount() {
+            if (!window._aiEventListeners) return 0;
+            const startCount = window._aiEventListeners['ai-tool-call-start']?.length || 0;
+            const completeCount = window._aiEventListeners['ai-tool-call-complete']?.length || 0;
+            return startCount + completeCount;
+        }
+
+        // 模拟 AI 命令执行器
+        class MockAICommandExecutor {
+            constructor() {
+                this.pendingCommands = new Map();
+                this.commandBuffers = new Map();
+            }
+
+            dispatchEvent(eventName, detail) {
+                const event = new CustomEvent(eventName, {
+                    detail: {
+                        ...detail,
+                        timestamp: detail.timestamp || Date.now()
+                    }
+                });
+                
+                log(`📡 [AI-EVENT] 准备发送事件: ${eventName}`, 'info');
+                log(`事件详情: ${JSON.stringify(detail, null, 2)}`, 'info');
+
+                // 检查 window 对象
+                if (typeof window === 'undefined') {
+                    log(`❌ [AI-EVENT] window 对象不可用`, 'error');
+                    return;
+                }
+
+                if (typeof window.dispatchEvent !== 'function') {
+                    log(`❌ [AI-EVENT] window.dispatchEvent 方法不可用`, 'error');
+                    return;
+                }
+
+                try {
+                    const listenerCount = getListenerCount();
+                    log(`🔍 [AI-EVENT] 事件监听器数量: ${eventName} -> ${listenerCount}`, 'info');
+
+                    const dispatchResult = window.dispatchEvent(event);
+                    eventSentCount++;
+                    
+                    log(`✅ [AI-EVENT] 事件发送成功: ${eventName}`, 'success');
+                    log(`dispatchResult: ${dispatchResult}`, 'info');
+
+                    setTimeout(() => {
+                        log(`⏰ [AI-EVENT] 事件发送后检查: ${eventName} - 500ms后状态`, 'info');
+                        updateStatus();
+                    }, 500);
+
+                } catch (error) {
+                    log(`❌ [AI-EVENT] 事件发送失败: ${eventName} - ${error.message}`, 'error');
+                }
+                
+                updateStatus();
+            }
+
+            async executeCommand(command, connectionId) {
+                const commandId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                
+                log(`🔍 [AI-DEBUG] 开始执行AI命令: ${command}`, 'info');
+                log(`命令ID: ${commandId}, 连接ID: ${connectionId}`, 'info');
+
+                this.pendingCommands.set(commandId, {
+                    command,
+                    connectionId,
+                    startTime: Date.now(),
+                    output: []
+                });
+
+                this.commandBuffers.set(commandId, []);
+
+                // 触发开始事件
+                this.dispatchEvent('ai-tool-call-start', {
+                    command: command,
+                    toolCallId: commandId,
+                    connectionId: connectionId,
+                    timestamp: Date.now()
+                });
+
+                // 模拟命令执行
+                setTimeout(() => {
+                    const output = `Command executed: ${command}\nOutput line 1\nOutput line 2\n$ `;
+                    this.completeCommand(commandId, output);
+                }, 2000);
+
+                return commandId;
+            }
+
+            completeCommand(commandId, output) {
+                const commandInfo = this.pendingCommands.get(commandId);
+                if (!commandInfo) {
+                    log(`⚠️ [AI-DEBUG] 尝试完成不存在的命令: ${commandId}`, 'warning');
+                    return;
+                }
+
+                const executionTime = Date.now() - commandInfo.startTime;
+                
+                log(`✅ [AI-DEBUG] 命令执行完成: ${commandId}`, 'success');
+                log(`执行时间: ${executionTime}ms, 输出长度: ${output.length}`, 'info');
+
+                this.pendingCommands.delete(commandId);
+                this.commandBuffers.delete(commandId);
+
+                // 触发完成事件
+                this.dispatchEvent('ai-tool-call-complete', {
+                    command: commandInfo.command,
+                    result: output,
+                    toolCallId: commandId,
+                    connectionId: commandInfo.connectionId,
+                    executionTime: executionTime,
+                    outputLength: output.length
+                });
+            }
+        }
+
+        // 模拟组件
+        class MockCommandExecutionComponent {
+            constructor() {
+                this.message = {
+                    type: 'tool-start',
+                    metadata: {
+                        toolCallId: null,
+                        command: null,
+                        status: 'idle'
+                    }
+                };
+                this.isMounted = false;
+            }
+
+            mount(toolCallId, command) {
+                log(`🔍 [CommandExecution] 组件挂载开始`, 'info');
+                
+                this.message.metadata.toolCallId = toolCallId;
+                this.message.metadata.command = command;
+                this.isMounted = true;
+
+                // 添加事件监听器
+                window.addEventListener('ai-tool-call-start', this.handleToolCallStart.bind(this));
+                window.addEventListener('ai-tool-call-complete', this.handleToolCallComplete.bind(this));
+
+                // 添加到全局跟踪
+                if (!window._aiEventListeners) {
+                    window._aiEventListeners = {};
+                }
+                if (!window._aiEventListeners['ai-tool-call-start']) {
+                    window._aiEventListeners['ai-tool-call-start'] = [];
+                }
+                if (!window._aiEventListeners['ai-tool-call-complete']) {
+                    window._aiEventListeners['ai-tool-call-complete'] = [];
+                }
+                
+                window._aiEventListeners['ai-tool-call-start'].push({
+                    component: 'MockCommandExecution',
+                    toolCallId: toolCallId,
+                    timestamp: Date.now()
+                });
+                
+                window._aiEventListeners['ai-tool-call-complete'].push({
+                    component: 'MockCommandExecution',
+                    toolCallId: toolCallId,
+                    timestamp: Date.now()
+                });
+
+                this.updateComponentDisplay();
+                log(`✅ [CommandExecution] 组件挂载成功`, 'success');
+                updateStatus();
+            }
+
+            unmount() {
+                log(`🔍 [CommandExecution] 组件卸载开始`, 'info');
+                
+                this.isMounted = false;
+                
+                window.removeEventListener('ai-tool-call-start', this.handleToolCallStart.bind(this));
+                window.removeEventListener('ai-tool-call-complete', this.handleToolCallComplete.bind(this));
+
+                // 从全局跟踪中移除
+                if (window._aiEventListeners) {
+                    const toolCallId = this.message.metadata.toolCallId;
+                    
+                    if (window._aiEventListeners['ai-tool-call-start']) {
+                        window._aiEventListeners['ai-tool-call-start'] = window._aiEventListeners['ai-tool-call-start'].filter(
+                            listener => !(listener.component === 'MockCommandExecution' && listener.toolCallId === toolCallId)
+                        );
+                    }
+                    
+                    if (window._aiEventListeners['ai-tool-call-complete']) {
+                        window._aiEventListeners['ai-tool-call-complete'] = window._aiEventListeners['ai-tool-call-complete'].filter(
+                            listener => !(listener.component === 'MockCommandExecution' && listener.toolCallId === toolCallId)
+                        );
+                    }
+                }
+
+                this.updateComponentDisplay();
+                log(`✅ [CommandExecution] 组件卸载成功`, 'success');
+                updateStatus();
+            }
+
+            handleToolCallStart(event) {
+                eventReceivedCount++;
+                log(`🔍 [CommandExecution] handleToolCallStart 被调用`, 'info');
+                
+                const { command, toolCallId } = event.detail || {};
+                
+                log(`🚀 [CommandExecution] 收到工具调用开始事件:`, 'info');
+                log(`命令: ${command}, 工具调用ID: ${toolCallId}`, 'info');
+                log(`当前消息工具调用ID: ${this.message.metadata.toolCallId}`, 'info');
+
+                if (!event.detail) {
+                    log(`❌ [CommandExecution] 事件详情为空`, 'error');
+                    return;
+                }
+
+                if (!toolCallId) {
+                    log(`❌ [CommandExecution] toolCallId 为空`, 'error');
+                    return;
+                }
+
+                if (this.message.metadata.toolCallId === toolCallId) {
+                    log(`✅ [CommandExecution] 匹配到当前消息的工具调用开始`, 'success');
+                    
+                    this.message.metadata.status = 'executing';
+                    this.message.metadata.startTime = Date.now();
+                    
+                    this.updateComponentDisplay();
+                    log(`🔄 [CommandExecution] 触发开始状态更新`, 'info');
+                } else {
+                    log(`⚠️ [CommandExecution] 工具调用ID不匹配，忽略事件`, 'warning');
+                    log(`收到: ${toolCallId}, 期望: ${this.message.metadata.toolCallId}`, 'warning');
+                }
+                
+                updateStatus();
+            }
+
+            handleToolCallComplete(event) {
+                eventReceivedCount++;
+                log(`🔍 [CommandExecution] handleToolCallComplete 被调用`, 'info');
+                
+                const { command, result, toolCallId } = event.detail || {};
+                
+                log(`🎯 [CommandExecution] 收到工具调用完成事件:`, 'info');
+                log(`命令: ${command}, 工具调用ID: ${toolCallId}`, 'info');
+                log(`结果长度: ${result?.length || 0}`, 'info');
+                log(`当前消息工具调用ID: ${this.message.metadata.toolCallId}`, 'info');
+
+                if (!event.detail) {
+                    log(`❌ [CommandExecution] 事件详情为空`, 'error');
+                    return;
+                }
+
+                if (!toolCallId) {
+                    log(`❌ [CommandExecution] toolCallId 为空`, 'error');
+                    return;
+                }
+
+                if (this.message.metadata.toolCallId === toolCallId) {
+                    log(`✅ [CommandExecution] 匹配到当前消息的工具调用完成`, 'success');
+                    
+                    const startTime = this.message.metadata.startTime || Date.now();
+                    this.message.metadata.status = 'completed';
+                    this.message.metadata.result = result;
+                    this.message.metadata.executionTime = Date.now() - startTime;
+                    
+                    this.updateComponentDisplay();
+                    log(`🔄 [CommandExecution] 触发完成状态更新`, 'info');
+                } else {
+                    log(`⚠️ [CommandExecution] 工具调用ID不匹配，忽略事件`, 'warning');
+                    log(`收到: ${toolCallId}, 期望: ${this.message.metadata.toolCallId}`, 'warning');
+                }
+                
+                updateStatus();
+            }
+
+            updateComponentDisplay() {
+                document.getElementById('componentStatus').textContent = this.message.metadata.status;
+                document.getElementById('componentToolCallId').textContent = this.message.metadata.toolCallId || '-';
+                document.getElementById('componentCommand').textContent = this.message.metadata.command || '-';
+                document.getElementById('componentResult').textContent = this.message.metadata.result ? 
+                    this.message.metadata.result.substring(0, 100) + '...' : '-';
+            }
+        }
+
+        // 全局实例
+        let mockExecutor;
+        let mockComponent;
+
+        // 初始化
+        function init() {
+            log('🚀 初始化测试环境', 'info');
+            
+            // 检查浏览器支持
+            document.getElementById('windowStatus').textContent = typeof window !== 'undefined' ? '✅' : '❌';
+            document.getElementById('customEventStatus').textContent = typeof CustomEvent !== 'undefined' ? '✅' : '❌';
+            document.getElementById('addEventListenerStatus').textContent = typeof window.addEventListener === 'function' ? '✅' : '❌';
+            document.getElementById('globalListenersStatus').textContent = '0';
+            
+            mockExecutor = new MockAICommandExecutor();
+            mockComponent = new MockCommandExecutionComponent();
+            
+            log('✅ 测试环境初始化完成', 'success');
+            updateStatus();
+        }
+
+        // 测试函数
+        function testEventSending() {
+            log('📡 开始测试事件发送', 'info');
+            
+            mockExecutor.dispatchEvent('ai-tool-call-start', {
+                command: 'echo test',
+                toolCallId: 'test-123',
+                connectionId: 'test-connection'
+            });
+            
+            setTimeout(() => {
+                mockExecutor.dispatchEvent('ai-tool-call-complete', {
+                    command: 'echo test',
+                    result: 'test output',
+                    toolCallId: 'test-123',
+                    connectionId: 'test-connection',
+                    executionTime: 1000
+                });
+            }, 1000);
+        }
+
+        function testEventListening() {
+            log('👂 开始测试事件监听', 'info');
+            
+            const testToolCallId = 'test-listener-' + Date.now();
+            const testCommand = document.getElementById('testCommand').value;
+            
+            // 挂载组件
+            mockComponent.mount(testToolCallId, testCommand);
+            
+            // 发送测试事件
+            setTimeout(() => {
+                mockExecutor.dispatchEvent('ai-tool-call-start', {
+                    command: testCommand,
+                    toolCallId: testToolCallId,
+                    connectionId: 'test-connection'
+                });
+            }, 500);
+            
+            setTimeout(() => {
+                mockExecutor.dispatchEvent('ai-tool-call-complete', {
+                    command: testCommand,
+                    result: 'Command completed successfully',
+                    toolCallId: testToolCallId,
+                    connectionId: 'test-connection',
+                    executionTime: 1500
+                });
+            }, 2000);
+        }
+
+        function simulateAICommand() {
+            const command = document.getElementById('testCommand').value;
+            const connectionId = document.getElementById('testConnectionId').value;
+            
+            log(`🤖 模拟AI命令执行: ${command}`, 'info');
+            
+            const commandId = mockExecutor.executeCommand(command, connectionId);
+            
+            // 挂载组件来监听这个命令
+            mockComponent.mount(commandId, command);
+        }
+
+        function runFullTest() {
+            log('🚀 运行完整测试流程', 'info');
+            
+            const command = document.getElementById('testCommand').value;
+            const connectionId = document.getElementById('testConnectionId').value;
+            
+            // 1. 卸载现有组件
+            if (mockComponent.isMounted) {
+                mockComponent.unmount();
+            }
+            
+            // 2. 执行命令
+            const commandId = mockExecutor.executeCommand(command, connectionId);
+            
+            // 3. 挂载组件
+            mockComponent.mount(commandId, command);
+            
+            // 4. 等待完成
+            setTimeout(() => {
+                log('🎉 完整测试流程完成', 'success');
+            }, 3000);
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            log('🗑️ 日志已清空', 'info');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+
+        // 定期更新状态
+        setInterval(updateStatus, 1000);
+    </script>
+</body>
+</html>

@@ -495,13 +495,33 @@ export default {
 
     // 监听AI工具调用开始事件
     const handleToolCallStart = (event) => {
-      const { command, toolCallId } = event.detail
+      console.log(`🔍 [CommandExecution] handleToolCallStart 被调用`, {
+        eventType: event.type,
+        eventDetail: event.detail,
+        timestamp: Date.now()
+      });
+
+      const { command, toolCallId } = event.detail || {}
       
       console.log(`🚀 [CommandExecution] 收到工具调用开始事件:`, {
         command,
         toolCallId,
-        currentMessageToolCallId: props.message.metadata?.toolCallId
+        currentMessageToolCallId: props.message.metadata?.toolCallId,
+        messageType: props.message.type,
+        messageRole: props.message.role,
+        messageMetadata: props.message.metadata
       })
+
+      // 验证事件数据完整性
+      if (!event.detail) {
+        console.error(`❌ [CommandExecution] 事件详情为空，无法处理`)
+        return
+      }
+
+      if (!toolCallId) {
+        console.error(`❌ [CommandExecution] toolCallId 为空，无法处理`)
+        return
+      }
 
       // 检查是否是当前消息对应的工具调用
       if (props.message.metadata?.toolCallId === toolCallId) {
@@ -511,6 +531,7 @@ export default {
         if (props.message.metadata) {
           props.message.metadata.status = 'executing'
           props.message.metadata.startTime = Date.now()
+          console.log(`📝 [CommandExecution] 更新消息元数据:`, props.message.metadata)
         }
 
         // 如果有AI聊天上下文，更新工具调用历史
@@ -521,6 +542,7 @@ export default {
           if (historyEntry) {
             historyEntry.status = 'executing'
             historyEntry.startTime = Date.now()
+            console.log(`📝 [CommandExecution] 更新工具调用历史:`, historyEntry)
           }
         }
 
@@ -540,19 +562,45 @@ export default {
 
         // 触发响应式更新
         console.log(`🔄 [CommandExecution] 触发开始状态更新`)
+      } else {
+        console.log(`⚠️ [CommandExecution] 工具调用ID不匹配，忽略事件`, {
+          receivedToolCallId: toolCallId,
+          expectedToolCallId: props.message.metadata?.toolCallId
+        })
       }
     }
 
     // 监听AI工具调用完成事件
     const handleToolCallComplete = (event) => {
-      const { command, result, toolCallId } = event.detail
+      console.log(`🔍 [CommandExecution] handleToolCallComplete 被调用`, {
+        eventType: event.type,
+        eventDetail: event.detail,
+        timestamp: Date.now()
+      });
+
+      const { command, result, toolCallId } = event.detail || {}
       
       console.log(`🎯 [CommandExecution] 收到工具调用完成事件:`, {
         command,
         toolCallId,
         resultLength: result?.length || 0,
-        currentMessageToolCallId: props.message.metadata?.toolCallId
+        resultPreview: result ? result.substring(0, 100).replace(/\n/g, '\\n') : 'null',
+        currentMessageToolCallId: props.message.metadata?.toolCallId,
+        messageType: props.message.type,
+        messageRole: props.message.role,
+        messageMetadata: props.message.metadata
       })
+
+      // 验证事件数据完整性
+      if (!event.detail) {
+        console.error(`❌ [CommandExecution] 事件详情为空，无法处理`)
+        return
+      }
+
+      if (!toolCallId) {
+        console.error(`❌ [CommandExecution] toolCallId 为空，无法处理`)
+        return
+      }
 
       // 检查是否是当前消息对应的工具调用
       if (props.message.metadata?.toolCallId === toolCallId) {
@@ -560,9 +608,11 @@ export default {
         
         // 更新消息的元数据以反映完成状态
         if (props.message.metadata) {
+          const startTime = props.message.metadata.startTime || Date.now()
           props.message.metadata.status = 'completed'
           props.message.metadata.result = result
-          props.message.metadata.executionTime = Date.now() - (props.message.metadata.startTime || Date.now())
+          props.message.metadata.executionTime = Date.now() - startTime
+          console.log(`📝 [CommandExecution] 更新消息元数据为完成状态:`, props.message.metadata)
         }
 
         // 如果有AI聊天上下文，更新工具调用历史
@@ -574,36 +624,146 @@ export default {
             historyEntry.status = 'completed'
             historyEntry.result = result
             historyEntry.endTime = Date.now()
+            console.log(`📝 [CommandExecution] 更新工具调用历史为完成状态:`, historyEntry)
           }
         }
 
         // 从活跃工具调用中移除
         if (activeToolCall.value?.id === toolCallId) {
+          console.log(`🗑️ [CommandExecution] 从活跃工具调用中移除:`, toolCallId)
           activeToolCall.value = null
         }
 
         // 从待处理工具调用中移除
         if (pendingToolCalls.value.has(toolCallId)) {
+          console.log(`🗑️ [CommandExecution] 从待处理工具调用中移除:`, toolCallId)
           pendingToolCalls.value.delete(toolCallId)
         }
 
         // 触发响应式更新
-        console.log(`🔄 [CommandExecution] 触发状态更新`)
+        console.log(`🔄 [CommandExecution] 触发完成状态更新`)
+      } else {
+        console.log(`⚠️ [CommandExecution] 工具调用ID不匹配，忽略事件`, {
+          receivedToolCallId: toolCallId,
+          expectedToolCallId: props.message.metadata?.toolCallId
+        })
       }
     }
 
     // 组件挂载时添加事件监听器
     onMounted(() => {
-      console.log(`🔍 [CommandExecution] 组件挂载，添加事件监听器`)
-      window.addEventListener('ai-tool-call-start', handleToolCallStart)
-      window.addEventListener('ai-tool-call-complete', handleToolCallComplete)
+      console.log(`🔍 [CommandExecution] 组件挂载开始`, {
+        timestamp: Date.now(),
+        messageType: props.message.type,
+        messageRole: props.message.role,
+        toolCallId: props.message.metadata?.toolCallId,
+        windowExists: typeof window !== 'undefined',
+        windowAddEventListenerExists: typeof window?.addEventListener === 'function'
+      })
+
+      // 验证 window 对象和 addEventListener 方法
+      if (typeof window === 'undefined') {
+        console.error(`❌ [CommandExecution] window 对象不存在，无法添加事件监听器`)
+        return
+      }
+
+      if (typeof window.addEventListener !== 'function') {
+        console.error(`❌ [CommandExecution] window.addEventListener 方法不存在，无法添加事件监听器`)
+        return
+      }
+
+      try {
+        // 添加事件监听器前检查是否已经存在
+        const hasStartListener = window.onaiToolCallStart !== null
+        const hasCompleteListener = window.onaiToolCallComplete !== null
+        
+        console.log(`🔍 [CommandExecution] 检查现有监听器:`, {
+          hasStartListener,
+          hasCompleteListener
+        })
+
+        // 添加事件监听器
+        window.addEventListener('ai-tool-call-start', handleToolCallStart)
+        window.addEventListener('ai-tool-call-complete', handleToolCallComplete)
+
+        // 验证监听器是否成功添加（通过触发一个测试事件）
+        console.log(`✅ [CommandExecution] 事件监听器添加成功`, {
+          eventName1: 'ai-tool-call-start',
+          eventName2: 'ai-tool-call-complete',
+          timestamp: Date.now()
+        })
+
+        // 添加全局监听器跟踪（用于调试）
+        if (!window._aiEventListeners) {
+          window._aiEventListeners = {}
+        }
+        if (!window._aiEventListeners['ai-tool-call-start']) {
+          window._aiEventListeners['ai-tool-call-start'] = []
+        }
+        if (!window._aiEventListeners['ai-tool-call-complete']) {
+          window._aiEventListeners['ai-tool-call-complete'] = []
+        }
+        
+        window._aiEventListeners['ai-tool-call-start'].push({
+          component: 'CommandExecution',
+          toolCallId: props.message.metadata?.toolCallId,
+          timestamp: Date.now()
+        })
+        
+        window._aiEventListeners['ai-tool-call-complete'].push({
+          component: 'CommandExecution',
+          toolCallId: props.message.metadata?.toolCallId,
+          timestamp: Date.now()
+        })
+
+        console.log(`📊 [CommandExecution] 全局监听器跟踪更新:`, window._aiEventListeners)
+
+      } catch (error) {
+        console.error(`❌ [CommandExecution] 添加事件监听器失败:`, {
+          error: error.message,
+          errorStack: error.stack
+        })
+      }
     })
 
     // 组件卸载时移除事件监听器
     onUnmounted(() => {
-      console.log(`🔍 [CommandExecution] 组件卸载，移除事件监听器`)
-      window.removeEventListener('ai-tool-call-start', handleToolCallStart)
-      window.removeEventListener('ai-tool-call-complete', handleToolCallComplete)
+      console.log(`🔍 [CommandExecution] 组件卸载开始`, {
+        timestamp: Date.now(),
+        toolCallId: props.message.metadata?.toolCallId
+      })
+
+      try {
+        window.removeEventListener('ai-tool-call-start', handleToolCallStart)
+        window.removeEventListener('ai-tool-call-complete', handleToolCallComplete)
+
+        // 从全局跟踪中移除
+        if (window._aiEventListeners) {
+          const toolCallId = props.message.metadata?.toolCallId
+          
+          if (window._aiEventListeners['ai-tool-call-start']) {
+            window._aiEventListeners['ai-tool-call-start'] = window._aiEventListeners['ai-tool-call-start'].filter(
+              listener => !(listener.component === 'CommandExecution' && listener.toolCallId === toolCallId)
+            )
+          }
+          
+          if (window._aiEventListeners['ai-tool-call-complete']) {
+            window._aiEventListeners['ai-tool-call-complete'] = window._aiEventListeners['ai-tool-call-complete'].filter(
+              listener => !(listener.component === 'CommandExecution' && listener.toolCallId === toolCallId)
+            )
+          }
+
+          console.log(`📊 [CommandExecution] 更新全局监听器跟踪:`, window._aiEventListeners)
+        }
+
+        console.log(`✅ [CommandExecution] 事件监听器移除成功`)
+
+      } catch (error) {
+        console.error(`❌ [CommandExecution] 移除事件监听器失败:`, {
+          error: error.message,
+          errorStack: error.stack
+        })
+      }
     })
 
     return {

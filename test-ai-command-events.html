@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI命令执行器事件测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .test-section-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .test-section-content {
+            padding: 15px;
+        }
+        
+        .event-log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .event-item {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .event-start {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .event-output {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 3px solid #2196F3;
+        }
+        
+        .event-complete {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 3px solid #FFC107;
+        }
+        
+        .event-error {
+            background: rgba(244, 67, 54, 0.2);
+            border-left: 3px solid #F44336;
+        }
+        
+        .event-timeout {
+            background: rgba(255, 152, 0, 0.2);
+            border-left: 3px solid #FF9800;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .timestamp {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .event-details {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI命令执行器事件测试</h1>
+            <p>测试和监控AI命令执行器的事件发送机制</p>
+        </div>
+        
+        <div class="content">
+            <!-- 统计信息 -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="startCount">0</div>
+                    <div class="stat-label">开始事件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="outputCount">0</div>
+                    <div class="stat-label">输出事件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="completeCount">0</div>
+                    <div class="stat-label">完成事件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="errorCount">0</div>
+                    <div class="stat-label">错误事件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="timeoutCount">0</div>
+                    <div class="stat-label">超时事件</div>
+                </div>
+            </div>
+            
+            <!-- 测试控制 -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    🎮 测试控制
+                </div>
+                <div class="test-section-content">
+                    <div class="input-group">
+                        <input type="text" id="commandInput" placeholder="输入测试命令 (例如: ls -la)" value="ls -la">
+                        <input type="text" id="connectionIdInput" placeholder="连接ID" value="test-connection-1">
+                    </div>
+                    
+                    <div class="controls">
+                        <button class="btn-primary" onclick="simulateCommandStart()">模拟命令开始</button>
+                        <button class="btn-primary" onclick="simulateRealtimeOutput()">模拟实时输出</button>
+                        <button class="btn-primary" onclick="simulateCommandComplete()">模拟命令完成</button>
+                        <button class="btn-danger" onclick="simulateCommandError()">模拟命令错误</button>
+                        <button class="btn-secondary" onclick="simulateCommandTimeout()">模拟命令超时</button>
+                        <button class="btn-secondary" onclick="clearLog()">清空日志</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 事件日志 -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    📡 事件日志
+                </div>
+                <div class="test-section-content">
+                    <div class="event-log" id="eventLog"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // 模拟AI命令执行器的事件发送
+        class MockAICommandExecutor {
+            constructor() {
+                this.commandId = `test-${Date.now()}`;
+            }
+
+            dispatchEvent(eventName, detail) {
+                const event = new CustomEvent(eventName, {
+                    detail: {
+                        ...detail,
+                        timestamp: detail.timestamp || Date.now()
+                    }
+                });
+                
+                console.log(`📡 [AI-EVENT] 发送事件: ${eventName}`, detail);
+                window.dispatchEvent(event);
+            }
+
+            simulateStart(command, connectionId) {
+                this.dispatchEvent('ai-tool-call-start', {
+                    command: command,
+                    toolCallId: this.commandId,
+                    connectionId: connectionId,
+                    timestamp: Date.now()
+                });
+            }
+
+            simulateOutput(output, command, connectionId) {
+                this.dispatchEvent('ai-realtime-output', {
+                    toolCallId: this.commandId,
+                    output: output,
+                    connectionId: connectionId,
+                    command: command
+                });
+            }
+
+            simulateComplete(command, result, connectionId) {
+                this.dispatchEvent('ai-tool-call-complete', {
+                    command: command,
+                    result: result,
+                    toolCallId: this.commandId,
+                    connectionId: connectionId,
+                    executionTime: Math.random() * 5000,
+                    outputLength: result.length
+                });
+            }
+
+            simulateError(command, error, connectionId) {
+                this.dispatchEvent('ai-tool-call-error', {
+                    command: command,
+                    toolCallId: this.commandId,
+                    connectionId: connectionId,
+                    error: error,
+                    errorType: 'simulation_error',
+                    timestamp: Date.now()
+                });
+            }
+
+            simulateTimeout(command, connectionId) {
+                this.dispatchEvent('ai-tool-call-timeout', {
+                    command: command,
+                    toolCallId: this.commandId,
+                    connectionId: connectionId,
+                    executionTime: 60000,
+                    timeoutDuration: 60000
+                });
+            }
+        }
+
+        // 创建模拟实例
+        const mockExecutor = new MockAICommandExecutor();
+
+        // 统计计数器
+        const stats = {
+            start: 0,
+            output: 0,
+            complete: 0,
+            error: 0,
+            timeout: 0
+        };
+
+        // 更新统计显示
+        function updateStats() {
+            document.getElementById('startCount').textContent = stats.start;
+            document.getElementById('outputCount').textContent = stats.output;
+            document.getElementById('completeCount').textContent = stats.complete;
+            document.getElementById('errorCount').textContent = stats.error;
+            document.getElementById('timeoutCount').textContent = stats.timeout;
+        }
+
+        // 添加事件日志
+        function addEventLog(eventName, detail, eventType) {
+            const logContainer = document.getElementById('eventLog');
+            const eventItem = document.createElement('div');
+            eventItem.className = `event-item event-${eventType}`;
+            
+            const timestamp = new Date(detail.timestamp).toLocaleTimeString();
+            const detailsHtml = Object.keys(detail)
+                .filter(key => key !== 'timestamp')
+                .map(key => `${key}: ${JSON.stringify(detail[key])}`)
+                .join(', ');
+            
+            eventItem.innerHTML = `
+                <div class="timestamp">[${timestamp}] ${eventName}</div>
+                <div class="event-details">${detailsHtml}</div>
+            `;
+            
+            logContainer.appendChild(eventItem);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 事件监听器
+        window.addEventListener('ai-tool-call-start', (event) => {
+            stats.start++;
+            updateStats();
+            addEventLog('🚀 命令开始', event.detail, 'start');
+        });
+
+        window.addEventListener('ai-realtime-output', (event) => {
+            stats.output++;
+            updateStats();
+            addEventLog('📤 实时输出', event.detail, 'output');
+        });
+
+        window.addEventListener('ai-tool-call-complete', (event) => {
+            stats.complete++;
+            updateStats();
+            addEventLog('✅ 命令完成', event.detail, 'complete');
+        });
+
+        window.addEventListener('ai-tool-call-error', (event) => {
+            stats.error++;
+            updateStats();
+            addEventLog('❌ 命令错误', event.detail, 'error');
+        });
+
+        window.addEventListener('ai-tool-call-timeout', (event) => {
+            stats.timeout++;
+            updateStats();
+            addEventLog('⏰ 命令超时', event.detail, 'timeout');
+        });
+
+        // 全局函数
+        window.simulateCommandStart = () => {
+            const command = document.getElementById('commandInput').value;
+            const connectionId = document.getElementById('connectionIdInput').value;
+            mockExecutor.simulateStart(command, connectionId);
+        };
+
+        window.simulateRealtimeOutput = () => {
+            const command = document.getElementById('commandInput').value;
+            const connectionId = document.getElementById('connectionIdInput').value;
+            const outputs = [
+                '正在执行命令...',
+                '扫描目录...',
+                '找到 3 个文件',
+                '总大小: 1.2KB',
+                '命令执行完成'
+            ];
+            const randomOutput = outputs[Math.floor(Math.random() * outputs.length)];
+            mockExecutor.simulateOutput(randomOutput, command, connectionId);
+        };
+
+        window.simulateCommandComplete = () => {
+            const command = document.getElementById('commandInput').value;
+            const connectionId = document.getElementById('connectionIdInput').value;
+            const result = `total 8\ndrwxr-xr-x 2 user user 4096 Oct 15 16:30 .\ndrwxr-xr-x 3 user user 4096 Oct 15 16:30 ..\n-rw-r--r-- 1 user user  220 Oct 15 16:30 file1.txt\n-rw-r--r-- 1 user user  156 Oct 15 16:30 file2.txt`;
+            mockExecutor.simulateComplete(command, result, connectionId);
+        };
+
+        window.simulateCommandError = () => {
+            const command = document.getElementById('commandInput').value;
+            const connectionId = document.getElementById('connectionIdInput').value;
+            mockExecutor.simulateError(command, '命令执行失败: 找不到文件或目录', connectionId);
+        };
+
+        window.simulateCommandTimeout = () => {
+            const command = document.getElementById('commandInput').value;
+            const connectionId = document.getElementById('connectionIdInput').value;
+            mockExecutor.simulateTimeout(command, connectionId);
+        };
+
+        window.clearLog = () => {
+            document.getElementById('eventLog').innerHTML = '';
+            Object.keys(stats).forEach(key => stats[key] = 0);
+            updateStats();
+        };
+
+        // 初始化
+        console.log('🚀 AI命令执行器事件测试页面已加载');
+    </script>
+</body>
+</html>

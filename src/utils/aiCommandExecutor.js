@@ -11,6 +11,82 @@ class AICommandExecutor {
   }
 
   /**
+   * 统一的事件发送方法
+   */
+  dispatchEvent(eventName, detail) {
+    const event = new CustomEvent(eventName, {
+      detail: {
+        ...detail,
+        timestamp: detail.timestamp || Date.now()
+      }
+    });
+    
+    console.log(`📡 [AI-EVENT] 准备发送事件: ${eventName}`, {
+      eventName,
+      detail,
+      eventType: event.type,
+      eventBubbles: event.bubbles,
+      eventCancelable: event.cancelable,
+      timestamp: Date.now()
+    });
+
+    // 检查 window 对象是否可用
+    if (typeof window === 'undefined') {
+      console.error(`❌ [AI-EVENT] window 对象不可用，无法发送事件: ${eventName}`);
+      return;
+    }
+
+    // 检查 window 是否有 dispatchEvent 方法
+    if (typeof window.dispatchEvent !== 'function') {
+      console.error(`❌ [AI-EVENT] window.dispatchEvent 方法不可用，无法发送事件: ${eventName}`);
+      return;
+    }
+
+    try {
+      // 发送事件前检查是否有监听器
+      const listenerCount = this.getEventListenerCount(eventName);
+      console.log(`🔍 [AI-EVENT] 事件监听器数量: ${eventName} -> ${listenerCount}`);
+
+      // 发送事件
+      const dispatchResult = window.dispatchEvent(event);
+      
+      console.log(`✅ [AI-EVENT] 事件发送成功: ${eventName}`, {
+        dispatchResult,
+        eventDetail: event.detail,
+        timestamp: Date.now()
+      });
+
+      // 延迟检查是否有任何响应
+      setTimeout(() => {
+        console.log(`⏰ [AI-EVENT] 事件发送后检查: ${eventName} - 500ms后状态`);
+      }, 500);
+
+    } catch (error) {
+      console.error(`❌ [AI-EVENT] 事件发送失败: ${eventName}`, {
+        error: error.message,
+        errorStack: error.stack,
+        detail
+      });
+    }
+  }
+
+  /**
+   * 获取指定事件的监听器数量（调试用）
+   */
+  getEventListenerCount(eventName) {
+    // 这是一个近似的方法，因为浏览器不直接暴露监听器数量
+    // 我们可以通过检查是否有任何方式来监听事件
+    let count = 0;
+    
+    // 检查全局监听器
+    if (window._aiEventListeners && window._aiEventListeners[eventName]) {
+      count += window._aiEventListeners[eventName].length;
+    }
+    
+    return count;
+  }
+
+  /**
    * 执行命令并等待结果
    */
   async executeCommand(command, connectionId) {
@@ -40,12 +116,23 @@ class AICommandExecutor {
 
       // 设置超时
       const timeoutId = setTimeout(() => {
+        const executionTime = Date.now() - this.pendingCommands.get(commandId)?.startTime
         console.error(`⏰ [AI-DEBUG] AI命令执行超时:`, {
           commandId,
           command,
           connectionId,
-          executionTime: Date.now() - this.pendingCommands.get(commandId)?.startTime
+          executionTime
         });
+        
+        // 触发超时事件
+        this.dispatchEvent('ai-tool-call-timeout', {
+          command,
+          toolCallId: commandId,
+          connectionId,
+          executionTime,
+          timeoutDuration: this.commandTimeout
+        });
+        
         this.cleanupCommand(commandId)
         reject(new Error(`AI命令执行超时 (${this.commandTimeout}ms): ${command}`))
       }, this.commandTimeout)
@@ -67,12 +154,12 @@ class AICommandExecutor {
         });
 
         // 在命令真正开始执行前触发工具调用开始事件
-        window.dispatchEvent(new CustomEvent('ai-tool-call-start', {
-          detail: {
-            command: command,
-            toolCallId: commandId
-          }
-        }));
+        this.dispatchEvent('ai-tool-call-start', {
+          command: command,
+          toolCallId: commandId,
+          connectionId: connectionId,
+          timestamp: Date.now()
+        });
 
         // 确保命令不包含多余的换行符，避免双重换行
         const cleanCommand = command.replace(/\r?\n$/, '');
@@ -98,6 +185,17 @@ class AICommandExecutor {
           error: error.message,
           errorStack: error.stack
         });
+        
+        // 触发错误事件
+        this.dispatchEvent('ai-tool-call-error', {
+          command,
+          toolCallId: commandId,
+          connectionId,
+          error: error.message,
+          errorType: 'send_failed',
+          timestamp: Date.now()
+        });
+        
         this.cleanupCommand(commandId)
         reject(new Error(`AI命令发送失败: ${error.message}`))
       }
@@ -132,12 +230,12 @@ class AICommandExecutor {
 
           // 触发实时输出事件
           const outputText = data.toString()
-          window.dispatchEvent(new CustomEvent('ai-realtime-output', {
-            detail: {
-              toolCallId: commandId,
-              output: outputText
-            }
-          }))
+          this.dispatchEvent('ai-realtime-output', {
+            toolCallId: commandId,
+            output: outputText,
+            connectionId: connectionId,
+            command: commandInfo.command
+          })
 
           console.log(`📊 [AI-DEBUG] 命令输出缓冲区:`, {
             commandId,
@@ -179,12 +277,12 @@ class AICommandExecutor {
     // 检测常见的命令完成标志 - 支持Linux和Windows，处理ANSI转义序列
     const patterns = [
       {
-        name: '标准Shell提示符',
-        regex: /[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:[~\/][a-zA-Z0-9._\/-]*[$#]\s*$/
-      },
-      {
         name: 'root提示符',
         regex: /root@[a-zA-Z0-9._-]+:[~\/][a-zA-Z0-9._\/-]*[#]\s*$/
+      },
+      {
+        name: '标准Shell提示符',
+        regex: /[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:[~\/][a-zA-Z0-9._\/-]*[$#]\s*$/
       },
       {
         name: '普通用户提示符',
@@ -240,8 +338,8 @@ class AICommandExecutor {
     // 特殊处理：如果没有明确的提示符，但有输出包含>符号和路径，也认为可能完成
     // 但要确保这是真正的提示符，而不是命令输出的一部分
     const hasWindowsPathAndArrow = /[A-Z]:[\\\/].*[>]\s*$/.test(cleanOutput) &&
-                                     output.length > 50 &&
-                                     !/[A-Z]:[\\\/].*>.*[>]/.test(cleanLatestData); // 确保最新数据不是命令输出
+      output.length > 50 &&
+      !/[A-Z]:[\\\/].*>.*[>]/.test(cleanLatestData); // 确保最新数据不是命令输出
 
     // 新增：处理一些常见的命令结束模式
     const hasCommandEndPattern = /\r?\n[^\r\n]*[$#>]\s*$/.test(cleanOutput) && output.length > 20;
@@ -252,13 +350,16 @@ class AICommandExecutor {
     // 处理yes/no确认提示
     const hasYesNoPrompt = /\[Y\/n\]|\[y\/N\]|\(y\/n\)|\(yes\/no\)/i.test(cleanOutput);
 
-    // 更严格的完成判断：必须有明确的命令结果和提示符
-    const isComplete = (hasPrompt && hasCommandResult && (cleanLatestData.includes('\n') || output.length > 100)) ||
-                     (hasErrorAndPrompt && output.length > 50) ||
-                     (hasWindowsPathAndArrow && output.length > 50) ||
-                     (hasCommandEndPattern && output.length > 50) ||
-                     (hasSudoPrompt || hasYesNoPrompt) || // 特殊提示符也认为完成
-                     (output.length > 500 && hasPrompt); // 对于输出较长的命令，只要有提示符就认为完成
+    // 修复：更宽松的完成判断逻辑
+    // 只要有提示符就认为是完成，因为提示符的出现意味着命令已经执行完毕
+    const isComplete = hasPrompt && (
+      (cleanLatestData.includes('\n') || output.length > 20) || // 最新的数据包含换行或输出足够长
+      hasErrorAndPrompt || // 有错误和提示符
+      hasWindowsPathAndArrow || // Windows路径和箭头
+      hasCommandEndPattern || // 命令结束模式
+      hasSudoPrompt || // sudo提示
+      hasYesNoPrompt // yes/no提示
+    );
 
     console.log(`🎯 [AI-DEBUG] 最终命令完成判断:`, {
       isComplete,
@@ -269,7 +370,12 @@ class AICommandExecutor {
       hasCommandEndPattern,
       hasSudoPrompt,
       hasYesNoPrompt,
-      outputEnd: outputEnd.trim().substring(0, 200)
+      outputEnd: outputEnd.trim().substring(0, 200),
+      debug: {
+        cleanLatestData: cleanLatestData,
+        cleanOutputEnd: cleanOutput.trim(),
+        outputLength: output.length
+      }
     });
 
     return isComplete
@@ -302,13 +408,14 @@ class AICommandExecutor {
     this.cleanupCommand(commandId)
 
     // 触发工具调用完成事件
-    window.dispatchEvent(new CustomEvent('ai-tool-call-complete', {
-      detail: {
-        command: commandInfo.command,
-        result: output,
-        toolCallId: commandId
-      }
-    }))
+    this.dispatchEvent('ai-tool-call-complete', {
+      command: commandInfo.command,
+      result: output,
+      toolCallId: commandId,
+      connectionId: commandInfo.connectionId,
+      executionTime: executionTime,
+      outputLength: output.length
+    })
 
     // 返回结果
     commandInfo.resolve(output)

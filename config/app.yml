@@ -18,15 +18,15 @@ terminal:
   copyShortcut: ctrl-c
   pasteShortcut: ctrl-v
   idleTimeout: 600
-  autoReconnect: false
   timeoutWarning: 30
+  autoReconnect: false
 security:
   encryptPasswords: false
   sessionTimeout: 30
   confirmDangerousCommands: true
 aiChat:
   provider: custom
-  apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+  apiKey: 33da1545a3814919bbdb37b22b948eef.ti6ZZG8uQTEKzS7l
   baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
   model: ''
   customModel: glm-4.6
@@ -38,7 +38,7 @@ aiChat:
   historyRetentionDays: 30
 aiCompletion:
   provider: custom
-  apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+  apiKey: 33da1545a3814919bbdb37b22b948eef.ti6ZZG8uQTEKzS7l
   baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
   model: ''
   customModel: glm-4.5
@@ -49,7 +49,7 @@ aiCompletion:
 lastSavedProviders:
   aiChat: custom
   aiCompletion: custom
-  timestamp: '2025-10-12T16:54:45.304Z'
+  timestamp: '2025-10-15T07:29:42.217Z'
 providerPool:
   aiChat:
     openai:
@@ -67,7 +67,7 @@ providerPool:
       lastUpdated: '2025-10-12T16:16:01.200Z'
     custom:
       provider: custom
-      apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+      apiKey: 33da1545a3814919bbdb37b22b948eef.ti6ZZG8uQTEKzS7l
       baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
       model: ''
       customModel: glm-4.6
@@ -77,7 +77,7 @@ providerPool:
       systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
       saveHistory: true
       historyRetentionDays: 30
-      lastUpdated: '2025-10-12T16:54:45.303Z'
+      lastUpdated: '2025-10-15T07:29:42.216Z'
   aiCompletion:
     openai:
       provider: openai
@@ -92,7 +92,7 @@ providerPool:
       lastUpdated: '2025-10-12T16:23:21.257Z'
     custom:
       provider: custom
-      apiKey: d469275b156c4c6ba9b436d923aafcc9.LM3fUIcmUbnosM0V
+      apiKey: 33da1545a3814919bbdb37b22b948eef.ti6ZZG8uQTEKzS7l
       baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
       model: ''
       customModel: glm-4.5
@@ -100,4 +100,4 @@ providerPool:
       triggerDelay: 500
       maxSuggestions: 5
       acceptOnTab: true
-      lastUpdated: '2025-10-12T16:54:45.304Z'
+      lastUpdated: '2025-10-15T07:29:42.217Z'
