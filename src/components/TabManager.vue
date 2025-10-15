@@ -80,6 +80,7 @@ import { useConnectionManager } from '../composables/useConnectionManager'
 import { useTerminalManager } from '../composables/useTerminalManager'
 import { usePanelManager } from '../composables/usePanelManager'
 import { useContextMenu } from '../composables/useContextMenu'
+import { useTerminalStore } from '../stores/terminal.js'
 
 export default {
   name: 'TabManager',
@@ -165,24 +166,38 @@ export default {
       }
     }
 
+    // 获取终端store实例
+    const terminalStore = useTerminalStore()
+
     // 处理AI命令执行请求
     const handleExecuteTerminalCommand = async (event) => {
       const { commandId, command, connectionId } = event.detail
-      
+
       const connection = activeConnections.value.find(c => c.id === connectionId)
       if (!connection) {
-        window.dispatchEvent(new CustomEvent('terminal-command-result', {
-          detail: { commandId, success: false, error: '连接不存在' }
-        }))
+        // 使用store记录命令失败
+        terminalStore.errorCommand({
+          commandId,
+          error: '连接不存在'
+        })
         return
       }
 
       if (connection.status !== 'connected') {
-        window.dispatchEvent(new CustomEvent('terminal-command-result', {
-          detail: { commandId, success: false, error: '连接未建立' }
-        }))
+        // 使用store记录命令失败
+        terminalStore.errorCommand({
+          commandId,
+          error: '连接未建立'
+        })
         return
       }
+
+      // 使用store记录命令开始
+      terminalStore.startCommand({
+        commandId,
+        command,
+        connectionId
+      })
 
       try {
         if (window.electronAPI) {
@@ -205,9 +220,11 @@ export default {
               timestamp: new Date()
             })
 
-            window.dispatchEvent(new CustomEvent('terminal-command-result', {
-              detail: { commandId, success: true, output: result.output }
-            }))
+            // 使用store记录命令完成
+            terminalStore.completeCommand({
+              commandId,
+              result: result.output
+            })
           } else {
             addTerminalOutput(connection, {
               type: 'error',
@@ -215,9 +232,11 @@ export default {
               timestamp: new Date()
             })
 
-            window.dispatchEvent(new CustomEvent('terminal-command-result', {
-              detail: { commandId, success: false, error: result.error }
-            }))
+            // 使用store记录命令失败
+            terminalStore.errorCommand({
+              commandId,
+              error: result.error
+            })
           }
         } else {
           // ElectronAPI不可用时返回错误
@@ -227,9 +246,11 @@ export default {
             timestamp: new Date()
           })
 
-          window.dispatchEvent(new CustomEvent('terminal-command-result', {
-            detail: { commandId, success: false, error: 'ElectronAPI不可用，无法执行命令' }
-          }))
+          // 使用store记录命令失败
+          terminalStore.errorCommand({
+            commandId,
+            error: 'ElectronAPI不可用，无法执行命令'
+          })
         }
 
         await nextTick()
@@ -242,9 +263,11 @@ export default {
           timestamp: new Date()
         })
 
-        window.dispatchEvent(new CustomEvent('terminal-command-result', {
-          detail: { commandId, success: false, error: error.message }
-        }))
+        // 使用store记录命令失败
+        terminalStore.errorCommand({
+          commandId,
+          error: error.message
+        })
       }
     }
 

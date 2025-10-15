@@ -3,6 +3,8 @@
  */
 
 import { executeAICommand } from './aiCommandExecutor.js'
+import { useAIStore } from '../stores/ai.js'
+import { emitEvent, EventTypes } from './eventSystem.js'
 
 /**
  * 获取AI配置
@@ -57,12 +59,15 @@ function isConfigValid(config) {
  * 触发配置设置引导
  */
 function triggerConfigSetup() {
-  // 触发全局事件，通知组件显示设置引导
-  window.dispatchEvent(new CustomEvent('ai-config-required', {
-    detail: {
-      message: '请先配置AI服务设置才能使用AI助手功能'
-    }
-  }))
+  // 使用Pinia store设置配置状态
+  const aiStore = useAIStore()
+  aiStore.setConfigRequired('请先配置AI服务设置才能使用AI助手功能')
+
+  // 发送配置需求事件
+  emitEvent(EventTypes.AI_CONFIG_REQUIRED, {
+    message: '请先配置AI服务设置才能使用AI助手功能',
+    timestamp: Date.now()
+  })
 }
 
 /**
@@ -195,32 +200,7 @@ export async function callAIAPI(message, historyMessages, connection) {
 
     // 处理空内容响应
     console.warn(`⚠️ [AI-DEBUG] AI返回空内容，finish_reason: ${choice.finish_reason}`)
-
-    let fallbackContent = '抱歉，我没有收到有效的回复。'
-
-    // 根据finish_reason生成更具体的回退消息
-    switch (choice.finish_reason) {
-      case 'stop':
-        fallbackContent = '对话已完成，但我没有生成具体内容。请重新提问。'
-        break
-      case 'length':
-        fallbackContent = '回复因长度限制被截断，请尝试更简单的问题或让我分步回答。'
-        break
-      case 'content_filter':
-        fallbackContent = '回复内容被安全过滤器阻止。请尝试用其他方式表述您的问题。'
-        break
-      case 'tool_calls':
-        // 如果finish_reason是tool_calls但没有tool_calls内容，说明有异常
-        fallbackContent = '检测到工具调用请求但处理失败。请重试或检查命令格式。'
-        break
-      default:
-        fallbackContent = `AI响应异常 (finish_reason: ${choice.finish_reason})。请重试或联系技术支持。`
-    }
-
-    return {
-      content: fallbackContent,
-      actions: null
-    }
+    return createFallbackResponse(choice.finish_reason)
 
   } catch (error) {
     console.error('AI API调用失败:', error)
@@ -302,14 +282,13 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
           const result = await executeTerminalCommand(args.command, connection?.id)
           console.log(`✅ [AI-DEBUG] 命令执行完成，结果长度:`, result.length)
 
-          // 发射工具调用完成事件
-          window.dispatchEvent(new CustomEvent('ai-tool-call-complete', {
-            detail: {
-              command: args.command,
-              result: result,
-              toolCallId: toolCall.id
-            }
-          }))
+          // 使用Pinia store记录工具调用完成
+          const aiStore = useAIStore()
+          aiStore.completeToolCall({
+            id: toolCall.id,
+            command: args.command,
+            result: result
+          })
 
           toolResults.push({
             tool_call_id: toolCall.id,
@@ -318,14 +297,13 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
         } catch (error) {
           console.error(`❌ [AI-DEBUG] 命令执行失败:`, error)
 
-          // 发射工具调用失败事件
-          window.dispatchEvent(new CustomEvent('ai-tool-call-error', {
-            detail: {
-              command: args.command,
-              error: error.message,
-              toolCallId: toolCall.id
-            }
-          }))
+          // 使用Pinia store记录工具调用失败
+          const aiStore = useAIStore()
+          aiStore.errorToolCall({
+            id: toolCall.id,
+            command: args.command,
+            error: error.message
+          })
 
           toolResults.push({
             tool_call_id: toolCall.id,
@@ -422,44 +400,11 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
       // 处理各种可能的响应情况
       if (!finalContent || finalContent.trim() === '') {
         console.warn(`⚠️ [AI-DEBUG] AI返回了空的内容字段，检查其他可能的信息`)
-
-        // 尝试从finish_reason推断状态
-        switch (choice.finish_reason) {
-          case 'stop':
-            finalContent = '命令已执行完成，但AI没有提供额外说明。'
-            break
-          case 'length':
-            finalContent = '命令已执行完成，但响应因长度限制被截断。如果需要更详细的分析，请让我分步处理。'
-            break
-          case 'content_filter':
-            finalContent = '命令已执行完成，但部分分析内容被安全过滤器阻止。请尝试用其他方式询问。'
-            break
-          case 'tool_calls':
-            finalContent = '命令执行完成，但AI可能需要执行更多操作。请让我知道是否需要继续。'
-            break
-          default:
-            finalContent = `命令已执行完成，但AI响应异常 (finish_reason: ${choice.finish_reason})。`
-        }
-
+        finalContent = generateCommandCompletionMessage(choice.finish_reason)
         console.log(`🔧 [AI-DEBUG] 根据finish_reason生成默认回复:`, choice.finish_reason)
       } else {
         // 对于有内容的情况，根据finish_reason添加提示
-        switch (choice.finish_reason) {
-          case 'length':
-            finalContent += '\n\n*(响应因长度限制被截断，可能不完整。如果需要更详细的分析，请让我分步处理)*'
-            break
-          case 'content_filter':
-            finalContent += '\n\n*(部分内容被安全过滤器阻止。请尝试用其他方式表述问题)*'
-            break
-          case 'tool_calls':
-            finalContent += '\n\n*(AI可能需要执行更多操作来完成此任务)*'
-            break
-          case 'stop':
-            // 正常停止，无需额外提示
-            break
-          default:
-            finalContent += `\n\n*(响应状态: ${choice.finish_reason})*`
-        }
+        finalContent = appendFinishReasonNotice(finalContent, choice.finish_reason)
       }
 
       console.log(`✅ [AI-DEBUG] 获得最终回复，内容长度:`, finalContent.length)
@@ -618,4 +563,60 @@ export async function testAIConnection(config) {
   } catch (error) {
     return { success: false, error: error.message }
   }
+}
+
+/**
+ * 创建fallback响应
+ */
+function createFallbackResponse(finishReason) {
+  const fallbackMessages = {
+    'stop': '对话已完成，但我没有生成具体内容。请重新提问。',
+    'length': '回复因长度限制被截断，请尝试更简单的问题或让我分步回答。',
+    'content_filter': '回复内容被安全过滤器阻止。请尝试用其他方式表述您的问题。',
+    'tool_calls': '检测到工具调用请求但处理失败。请重试或检查命令格式。',
+    'function_call': '函数调用请求处理失败。请重试或检查参数格式。'
+  }
+
+  const fallbackContent = fallbackMessages[finishReason] ||
+    `AI响应异常 (finish_reason: ${finishReason})。请重试或联系技术支持。`
+
+  return {
+    content: fallbackContent,
+    actions: null
+  }
+}
+
+/**
+ * 生成命令完成消息
+ */
+function generateCommandCompletionMessage(finishReason) {
+  const completionMessages = {
+    'stop': '命令已执行完成，但AI没有提供额外说明。',
+    'length': '命令已执行完成，但响应因长度限制被截断。如果需要更详细的分析，请让我分步处理。',
+    'content_filter': '命令已执行完成，但部分分析内容被安全过滤器阻止。请尝试用其他方式询问。',
+    'tool_calls': '命令执行完成，但AI可能需要执行更多操作。请让我知道是否需要继续。',
+    'function_call': '函数调用已完成，但AI没有提供分析结果。'
+  }
+
+  return completionMessages[finishReason] ||
+    `命令已执行完成，但AI响应异常 (finish_reason: ${finishReason})。`
+}
+
+/**
+ * 为响应内容添加finish_reason提示
+ */
+function appendFinishReasonNotice(content, finishReason) {
+  const notices = {
+    'length': '\n\n*(响应因长度限制被截断，可能不完整。如果需要更详细的分析，请让我分步处理)*',
+    'content_filter': '\n\n*(部分内容被安全过滤器阻止。请尝试用其他方式表述问题)*',
+    'tool_calls': '\n\n*(AI可能需要执行更多操作来完成此任务)*',
+    'function_call': '\n\n*(AI可能需要执行更多函数调用来完成此任务)*'
+  }
+
+  // 对于正常停止或其他状态，不需要添加提示
+  if (finishReason === 'stop' || !notices[finishReason]) {
+    return content
+  }
+
+  return content + notices[finishReason]
 }

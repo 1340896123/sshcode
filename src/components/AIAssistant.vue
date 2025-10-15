@@ -136,6 +136,7 @@ import { useChatExport } from '@/composables/useChatExport'
 import { QUICK_ACTIONS } from '@/constants/aiConstants'
 import MarkdownIt from 'markdown-it'
 import CommandExecution from './ai/CommandExecution.vue'
+import { useAIStore } from '../stores/ai.js'
 
 export default {
   name: 'AIAssistant',
@@ -362,16 +363,6 @@ export default {
       // 初始化工具调用的默认折叠状态
       initializeCollapsedMessages()
 
-      // 确保事件监听器只添加一次
-      window.removeEventListener('add-to-ai-assistant', handleExternalText)
-      window.removeEventListener('ai-config-required', handleAIConfigRequired)
-      window.addEventListener('add-to-ai-assistant', handleExternalText)
-      window.addEventListener('ai-config-required', handleAIConfigRequired)
-    })
-
-    onUnmounted(() => {
-      window.removeEventListener('add-to-ai-assistant', handleExternalText)
-      window.removeEventListener('ai-config-required', handleAIConfigRequired)
     })
 
     // 监听连接变化

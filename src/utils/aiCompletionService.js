@@ -21,7 +21,7 @@ class AICompletionService {
         this.isInitialized = true
         console.log('✅ AI completion service initialized')
       } else {
-        console.warn('⚠️ Electron API not available, using fallback mode')
+        console.warn('⚠️ Electron API not available')
         this.isInitialized = false
       }
     } catch (error) {
@@ -240,7 +240,7 @@ ${historyInfo}
     if (lowerInput.includes('start') || lowerInput.includes('run')) {
       fallbackSuggestions.push(
         { command: 'systemctl start', description: '启动系统服务', confidence: 0.9, type: 'ai', category: 'service' },
-        { command: 'service start', description: '启动服务 (兼容模式)', confidence: 0.7, type: 'ai', category: 'service' },
+        { command: 'service start', description: '启动服务', confidence: 0.7, type: 'ai', category: 'service' },
         { command: 'npm start', description: '启动Node.js应用', confidence: 0.8, type: 'ai', category: 'package' }
       )
     }

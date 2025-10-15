@@ -1,4 +1,6 @@
 import { reactive } from 'vue'
+import { useAIStore } from '../stores/ai.js'
+import { emitEvent, EventTypes } from '../utils/eventSystem.js'
 
 export function useContextMenu(activeConnections, emit) {
   // 右键菜单状态
@@ -94,27 +96,19 @@ export function useContextMenu(activeConnections, emit) {
     if (contextMenu.selectedText && contextMenu.connectionId) {
       const connection = activeConnections.value.find(c => c.id === contextMenu.connectionId)
       if (connection) {
-        // 找到AI助手组件并添加内容
-        const aiAssistantElement = document.querySelector('.ai-assistant-component')
-        if (aiAssistantElement && aiAssistantElement.__vueParentComponent) {
-          // 如果AI助手组件有添加内容的方法，调用它
-          const aiAssistant = aiAssistantElement.__vueParentComponent.ctx
-          if (aiAssistant && aiAssistant.addUserInput) {
-            aiAssistant.addUserInput(contextMenu.selectedText)
-            emit('show-notification', '已添加到AI助手', 'success')
-          } else {
-            emit('show-notification', 'AI助手组件未就绪', 'warning')
-          }
-        } else {
-          // 备用方法：通过全局事件或其他方式通知AI助手
-          window.dispatchEvent(new CustomEvent('add-to-ai-assistant', {
-            detail: {
-              text: contextMenu.selectedText,
-              connectionId: contextMenu.connectionId
-            }
-          }))
-          emit('show-notification', '已添加到AI助手', 'success')
-        }
+        // 使用Pinia store设置终端输入
+        const aiStore = useAIStore()
+        aiStore.setTerminalInput(contextMenu.selectedText, contextMenu.connectionId)
+
+        // 发送终端输入事件
+        emitEvent(EventTypes.TERMINAL_INPUT, {
+          text: contextMenu.selectedText,
+          connectionId: contextMenu.connectionId,
+          source: 'context-menu',
+          timestamp: Date.now()
+        })
+
+        emit('show-notification', '已添加到AI助手', 'success')
       }
     }
     hideContextMenu()

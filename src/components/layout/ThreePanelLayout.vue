@@ -95,6 +95,7 @@ import AIAssistant from '../AIAssistant.vue'
 import TerminalAutocomplete from '../TerminalAutocomplete.vue'
 import TerminalInput from '../TerminalInput.vue'
 import XTerminal from '../XTerminal.vue'
+import { useAIStore } from '../../stores/ai.js'
 
 export default {
   name: 'ThreePanelLayout',
@@ -146,13 +147,15 @@ export default {
   mounted() {
     // 监听键盘快捷键来显示/隐藏浮动输入框
     document.addEventListener('keydown', this.handleGlobalKeydown)
-    
-    // 监听来自父组件的显示输入框请求
-    window.addEventListener('show-terminal-input', this.handleShowTerminalInput)
+
+    // 初始化AI store
+    this.aiStore = useAIStore()
+
+    // 监听AI store的终端输入状态
+    this.watchAITerminalInput()
   },
   beforeUnmount() {
     document.removeEventListener('keydown', this.handleGlobalKeydown)
-    window.removeEventListener('show-terminal-input', this.handleShowTerminalInput)
   },
   methods: {
     formatTimestamp(timestamp) {
@@ -217,6 +220,24 @@ export default {
     // 处理显示输入框的事件
     handleShowTerminalInput(event) {
       this.showTerminalInput = true
+    },
+
+    // 监听AI store的终端输入状态变化
+    watchAITerminalInput() {
+      if (this.aiStore) {
+        // 监听store中的终端输入状态
+        this.$watch(() => this.aiStore.terminalInput.isVisible, (isVisible) => {
+          if (isVisible) {
+            this.showTerminalInput = true
+            // 如果有文本内容，也设置到本地状态
+            if (this.aiStore.terminalInput.text) {
+              // 可以在这里处理文本内容
+            }
+          } else {
+            this.showTerminalInput = false
+          }
+        })
+      }
     }
   }
 }
