@@ -220,25 +220,15 @@ export async function callAIAPI(message: string, historyMessages: any[], connect
       throw new Error('API返回了无效的响应')
     }
 
-    console.log(`🎯 [AI-DEBUG] 初始AI响应详情:`, {
-      hasMessage: !!choice.message,
-      hasToolCalls: !!(choice.message?.tool_calls),
-      toolCallsCount: choice.message?.tool_calls?.length || 0,
-      hasContent: !!choice.message?.content,
-      contentLength: choice.message?.content?.length || 0,
-      finishReason: choice.finish_reason
-    })
-
+    
     // 处理工具调用
     if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-      console.log(`🔧 [AI-DEBUG] 检测到工具调用，进入工具处理流程`)
-      return await handleToolCalls(choice.message.tool_calls, requestData, config, connection)
+            return await handleToolCalls(choice.message.tool_calls, requestData, config, connection)
     }
 
     // 处理普通文本响应
     if (choice.message.content) {
-      console.log(`💬 [AI-DEBUG] 处理普通文本响应，finish_reason: ${choice.finish_reason}`)
-
+      
       let aiContent = choice.message.content
 
       // 根据finish_reason进行特殊处理
@@ -250,14 +240,12 @@ export async function callAIAPI(message: string, historyMessages: any[], connect
 
       // 解析AI回复，提取命令建议
       const parsedResponse = parseAIResponse(aiContent)
-      console.log(`✅ [AI-DEBUG] 解析完成，生成操作按钮:`, parsedResponse.actions?.length || 0)
-
+      
       return parsedResponse
     }
 
     // 处理空内容响应
-    console.warn(`⚠️ [AI-DEBUG] AI返回空内容，finish_reason: ${choice.finish_reason}`)
-    return createFallbackResponse(choice.finish_reason)
+        return createFallbackResponse(choice.finish_reason)
 
   } catch (error) {
     console.error('AI API调用失败:', error)
@@ -326,7 +314,6 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
 
   while (iterationCount < maxIterations) {
     iterationCount++
-    console.log(`🔄 [AI-DEBUG] 工具调用迭代 ${iterationCount}`)
 
     const toolResults = []
 
@@ -334,10 +321,8 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
       if (toolCall.function.name === 'execute_command') {
         try {
           const args = JSON.parse(toolCall.function.arguments)
-          console.log(`🔧 [AI-DEBUG] 准备执行命令:`, args.command)
 
           const result = await executeTerminalCommand(args.command, connection?.id)
-          console.log(`✅ [AI-DEBUG] 命令执行完成，结果长度:`, result.length)
 
           // 使用Pinia store记录工具调用完成
           const aiStore = useAIStore()
@@ -352,7 +337,7 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
             result: result
           })
         } catch (error) {
-          console.error(`❌ [AI-DEBUG] 命令执行失败:`, error)
+          console.error('命令执行失败:', error)
 
           // 使用Pinia store记录工具调用失败
           const aiStore = useAIStore()
@@ -405,40 +390,25 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
       }
 
       const followUpData = await followUpResponse.json()
-      console.log(`🔍 [AI-DEBUG] API响应数据:`, {
-        status: followUpResponse.status,
-        hasChoices: followUpData.choices && followUpData.choices.length > 0,
-        choicesCount: followUpData.choices?.length || 0,
-        usage: followUpData.usage
-      })
-
+      
       const choice = followUpData.choices[0]
 
       if (!choice) {
-        console.error(`❌ [AI-DEBUG] API响应中没有choices字段`)
+        console.error('API响应中没有choices字段')
         throw new Error('API返回了无效的响应：缺少choices字段')
       }
 
-      console.log(`🎯 [AI-DEBUG] AI响应详情:`, {
-        hasMessage: !!choice.message,
-        hasToolCalls: !!(choice.message?.tool_calls),
-        toolCallsCount: choice.message?.tool_calls?.length || 0,
-        hasContent: !!choice.message?.content,
-        contentLength: choice.message?.content?.length || 0,
-        finishReason: choice.finish_reason
-      })
-
+      
       // 如果AI又调用了工具，继续循环
       if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-        console.log(`🔄 [AI-DEBUG] AI发起新的工具调用，继续处理`)
-        toolCalls = choice.message.tool_calls
+                toolCalls = choice.message.tool_calls
         currentMessages = messagesWithToolResults
         continue
       }
 
       // 检查AI响应的完整性
       if (!choice.message) {
-        console.error(`❌ [AI-DEBUG] AI响应中没有message字段`)
+        console.error('AI响应中没有message字段')
         return {
           content: 'AI返回了无效的响应格式：缺少消息内容',
           actions: null
@@ -448,24 +418,16 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
       // 如果AI返回了最终回复，结束循环
       let finalContent = choice.message.content
 
-      console.log(`🎯 [AI-DEBUG] 工具调用后AI响应:`, {
-        hasContent: !!finalContent,
-        contentLength: finalContent?.length || 0,
-        finishReason: choice.finish_reason
-      })
-
+      
       // 处理各种可能的响应情况
       if (!finalContent || finalContent.trim() === '') {
-        console.warn(`⚠️ [AI-DEBUG] AI返回了空的内容字段，检查其他可能的信息`)
         finalContent = generateCommandCompletionMessage(choice.finish_reason)
-        console.log(`🔧 [AI-DEBUG] 根据finish_reason生成默认回复:`, choice.finish_reason)
       } else {
         // 对于有内容的情况，根据finish_reason添加提示
         finalContent = appendFinishReasonNotice(finalContent, choice.finish_reason)
       }
 
-      console.log(`✅ [AI-DEBUG] 获得最终回复，内容长度:`, finalContent.length)
-
+      
       return {
         content: finalContent,
         actions: null // AI已经执行了命令，不需要额外的操作按钮
@@ -481,7 +443,7 @@ async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: 
   }
 
   // 达到最大迭代次数，强制返回
-  console.error(`⚠️ [AI-DEBUG] 达到最大工具调用迭代次数 (${maxIterations})，强制停止`)
+  console.error(`达到最大工具调用迭代次数 (${maxIterations})，强制停止`)
   return {
     content: '抱歉，处理过程中遇到了过多的工具调用，已停止处理。请简化您的请求。',
     actions: null

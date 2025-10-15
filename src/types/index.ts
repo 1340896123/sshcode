@@ -7,11 +7,13 @@ export interface SSHConnection {
   username: string;
   password?: string;
   privateKey?: string;
+  authType: 'password' | 'key';
   connected: boolean;
   shellStream?: any;
   sftpClient?: any;
   client?: any;
   status: 'connecting' | 'connected' | 'failed' | 'disconnected' | 'cancelled';
+  currentWorkingDirectory?: string;
 }
 
 export interface SSHConnectionConfig {

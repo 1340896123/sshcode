@@ -249,9 +249,9 @@ export default {
     }
   },
   emits: ['show-notification', 'execute-command', 'show-settings'],
-  setup(props, { emit }) {
+  setup(props, { emit: emitEvent }) {
     // 获取完整的AI聊天状态以提供给子组件
-    const aiChatState = useAIChat(props, emit)
+    const aiChatState = useAIChat(props, emitEvent)
 
     // 提供AI聊天上下文给子组件
     provide('aiChatContext', aiChatState)
@@ -335,7 +335,7 @@ export default {
     } = aiChatState
 
     const { formatMessage, formatTime } = useMessageFormatter()
-    const { exportChat } = useChatExport(messages, emit)
+    const { exportChat } = useChatExport(messages, emitEvent)
 
     // 计算属性
     const canSendMessage = computed(() => {
@@ -421,8 +421,8 @@ export default {
 
     // 处理AI配置需求事件
     const handleAIConfigRequired = (event) => {
-      emit('show-settings')
-      emit('show-notification', event.detail?.message || '请先配置AI服务设置', 'error')
+      emitEvent('show-settings')
+      emitEvent('show-notification', event.detail?.message || '请先配置AI服务设置', 'error')
     }
 
     // 折叠/展开消息
@@ -438,21 +438,21 @@ export default {
     const copyToClipboard = async (text) => {
       try {
         await navigator.clipboard.writeText(text)
-        emit('show-notification', '已复制到剪贴板', 'success')
+        emitEvent('show-notification', '已复制到剪贴板', 'success')
       } catch (error) {
         console.error('复制失败:', error)
-        emit('show-notification', '复制失败', 'error')
+        emitEvent('show-notification', '复制失败', 'error')
       }
     }
 
     // 处理复制通知（来自CommandExecution组件）
     const handleCopyNotification = (message, type = 'success') => {
-      emit('show-notification', message, type)
+      emitEvent('show-notification', message, type)
     }
 
     // 处理重试命令
     const handleRetryCommand = (command) => {
-      emit('execute-command', command)
+      emitEvent('execute-command', command)
       addMessage('assistant', `🔄 重试执行命令: \`${command}\``)
     }
 

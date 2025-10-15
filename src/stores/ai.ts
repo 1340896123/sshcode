@@ -86,8 +86,6 @@ export const useAIStore = defineStore('ai', () => {
     toolCalls.value.set(id, toolCall)
     activeToolCall.value = toolCall
     toolCallHistory.value.push(toolCall)
-
-    console.log(`🔧 [AI-STORE] 工具调用开始:`, { id, command, connectionId })
   }
 
   const completeToolCall = (toolCallData) => {
@@ -103,9 +101,7 @@ export const useAIStore = defineStore('ai', () => {
       if (activeToolCall.value?.id === id) {
         activeToolCall.value = null
       }
-
-      console.log(`✅ [AI-STORE] 工具调用完成:`, { id, executionTime: toolCall.executionTime })
-    }
+  }
   }
 
   const errorToolCall = (toolCallData) => {
@@ -121,9 +117,7 @@ export const useAIStore = defineStore('ai', () => {
       if (activeToolCall.value?.id === id) {
         activeToolCall.value = null
       }
-
-      console.log(`❌ [AI-STORE] 工具调用失败:`, { id, error })
-    }
+  }
   }
 
   const timeoutToolCall = (toolCallData) => {
@@ -139,9 +133,7 @@ export const useAIStore = defineStore('ai', () => {
       if (activeToolCall.value?.id === id) {
         activeToolCall.value = null
       }
-
-      console.log(`⏰ [AI-STORE] 工具调用超时:`, { id, executionTime })
-    }
+  }
   }
 
   const removeToolCall = (id) => {
@@ -166,7 +158,6 @@ export const useAIStore = defineStore('ai', () => {
       isConfigured: false,
       message
     }
-    console.log(`⚠️ [AI-STORE] 需要配置AI服务:`, message)
   }
 
   const setConfigured = () => {
@@ -174,7 +165,6 @@ export const useAIStore = defineStore('ai', () => {
       isConfigured: true,
       message: ''
     }
-    console.log(`✅ [AI-STORE] AI服务已配置`)
   }
 
   // 终端输入相关方法
@@ -184,17 +174,14 @@ export const useAIStore = defineStore('ai', () => {
       connectionId,
       isVisible: true
     }
-    console.log(`📝 [AI-STORE] 设置终端输入:`, { text, connectionId })
   }
 
   const showTerminalInput = () => {
     terminalInput.value.isVisible = true
-    console.log(`👁️ [AI-STORE] 显示终端输入`)
   }
 
   const hideTerminalInput = () => {
     terminalInput.value.isVisible = false
-    console.log(`🙈 [AI-STORE] 隐藏终端输入`)
   }
 
   const clearTerminalInput = () => {
@@ -203,7 +190,6 @@ export const useAIStore = defineStore('ai', () => {
       connectionId: null,
       isVisible: false
     }
-    console.log(`🧹 [AI-STORE] 清空终端输入`)
   }
 
   // 工具调用统计
@@ -228,8 +214,7 @@ export const useAIStore = defineStore('ai', () => {
   const retryToolCall = (id) => {
     const toolCall = toolCalls.value.get(id) || toolCallHistory.value.find(tc => tc.id === id)
     if (toolCall && toolCall.command) {
-      console.log(`🔄 [AI-STORE] 重试工具调用:`, { id, command: toolCall.command })
-      // 这里返回重试信息，让组件处理实际的重试逻辑
+            // 这里返回重试信息，让组件处理实际的重试逻辑
       return {
         command: toolCall.command,
         connectionId: toolCall.connectionId
