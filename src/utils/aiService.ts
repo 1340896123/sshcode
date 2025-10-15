@@ -6,10 +6,67 @@ import { executeAICommand } from './aiCommandExecutor.js'
 import { useAIStore } from '../stores/ai.js'
 import { emitEvent, EventTypes } from './eventSystem.js'
 
+// 类型定义
+export interface AIConfig {
+  baseUrl: string;
+  apiKey: string;
+  model?: string;
+  customModel?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface AIMessage {
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string | null;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+}
+
+export interface ToolCall {
+  id: string;
+  type: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface Connection {
+  id: string;
+  host: string;
+  port?: number;
+  username: string;
+  authType: 'password' | 'key';
+  status: string;
+  currentWorkingDirectory?: string;
+}
+
+export interface ParsedResponse {
+  content: string;
+  actions: Array<{
+    id: string;
+    type: string;
+    label: string;
+    command: string;
+  }> | null;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+export interface TestResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+}
+
 /**
  * 获取AI配置
  */
-export async function getAIConfig() {
+export async function getAIConfig(): Promise<AIConfig> {
   try {
     // 尝试从electron API获取配置
     if (window.electronAPI?.getConfig) {
@@ -45,7 +102,7 @@ export async function getAIConfig() {
 /**
  * 检查配置是否有效
  */
-function isConfigValid(config) {
+function isConfigValid(config: any): boolean {
   return config &&
     config.baseUrl &&
     config.apiKey &&
@@ -58,7 +115,7 @@ function isConfigValid(config) {
 /**
  * 触发配置设置引导
  */
-function triggerConfigSetup() {
+function triggerConfigSetup(): void {
   // 使用Pinia store设置配置状态
   const aiStore = useAIStore()
   aiStore.setConfigRequired('请先配置AI服务设置才能使用AI助手功能')
@@ -73,7 +130,7 @@ function triggerConfigSetup() {
 /**
  * 调用AI API
  */
-export async function callAIAPI(message, historyMessages, connection) {
+export async function callAIAPI(message: string, historyMessages: any[], connection: Connection): Promise<ParsedResponse> {
   const config = await getAIConfig()
 
   // 获取操作系统信息
@@ -211,7 +268,7 @@ export async function callAIAPI(message, historyMessages, connection) {
 /**
  * 构建系统提示词
  */
-function buildSystemPrompt(connection) {
+function buildSystemPrompt(connection: Connection): string {
   return `你是一个专业的SSH远程管理助手，正在通过SSH连接帮助用户管理服务器 ${connection.host}。
 
 **当前连接环境：**
@@ -262,7 +319,7 @@ function buildSystemPrompt(connection) {
 /**
  * 处理工具调用
  */
-async function handleToolCalls(toolCalls, requestData, config, connection) {
+async function handleToolCalls(toolCalls: ToolCall[], requestData: any, config: AIConfig, connection: Connection): Promise<ParsedResponse> {
   let currentMessages = [...requestData.messages]
   let iterationCount = 0
   const maxIterations = 10 // 防止无限循环
@@ -434,7 +491,7 @@ async function handleToolCalls(toolCalls, requestData, config, connection) {
 /**
  * 执行终端命令
  */
-export async function executeTerminalCommand(command, connectionId) {
+export async function executeTerminalCommand(command: string, connectionId: string): Promise<string> {
   try {
     // 使用AI命令执行器，能够等待命令完成并获取真实输出
     return await executeAICommand(command, connectionId);
@@ -447,7 +504,7 @@ export async function executeTerminalCommand(command, connectionId) {
 /**
  * 解析AI响应，提取命令建议
  */
-export function parseAIResponse(content) {
+export function parseAIResponse(content: string): ParsedResponse {
   // 查找代码块中的命令
   const codeBlockRegex = /```(?:bash|shell)?\s*([\s\S]*?)```/g
   const codeBlocks = []
@@ -494,7 +551,7 @@ export function parseAIResponse(content) {
 /**
  * 验证AI配置
  */
-export function validateAIConfig(config) {
+export function validateAIConfig(config: any): ValidationResult {
   if (!config) {
     return { valid: false, error: '配置不能为空' }
   }
@@ -525,7 +582,7 @@ export function validateAIConfig(config) {
 /**
  * 测试AI连接
  */
-export async function testAIConnection(config) {
+export async function testAIConnection(config: AIConfig): Promise<TestResult> {
   try {
     const validation = validateAIConfig(config)
     if (!validation.valid) {
@@ -568,7 +625,7 @@ export async function testAIConnection(config) {
 /**
  * 创建fallback响应
  */
-function createFallbackResponse(finishReason) {
+function createFallbackResponse(finishReason: string): ParsedResponse {
   const fallbackMessages = {
     'stop': '对话已完成，但我没有生成具体内容。请重新提问。',
     'length': '回复因长度限制被截断，请尝试更简单的问题或让我分步回答。',
@@ -589,7 +646,7 @@ function createFallbackResponse(finishReason) {
 /**
  * 生成命令完成消息
  */
-function generateCommandCompletionMessage(finishReason) {
+function generateCommandCompletionMessage(finishReason: string): string {
   const completionMessages = {
     'stop': '命令已执行完成，但AI没有提供额外说明。',
     'length': '命令已执行完成，但响应因长度限制被截断。如果需要更详细的分析，请让我分步处理。',
@@ -605,7 +662,7 @@ function generateCommandCompletionMessage(finishReason) {
 /**
  * 为响应内容添加finish_reason提示
  */
-function appendFinishReasonNotice(content, finishReason) {
+function appendFinishReasonNotice(content: string, finishReason: string): string {
   const notices = {
     'length': '\n\n*(响应因长度限制被截断，可能不完整。如果需要更详细的分析，请让我分步处理)*',
     'content_filter': '\n\n*(部分内容被安全过滤器阻止。请尝试用其他方式表述问题)*',

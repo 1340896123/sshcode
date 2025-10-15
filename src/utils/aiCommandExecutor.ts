@@ -7,10 +7,16 @@ import { executeCommand } from './simpleCommandExecutor.js'
 import { emitEvent, EventTypes } from './eventSystem.js'
 import { useAIStore } from '../stores/ai.js'
 
+// 类型定义
+export interface CommandOptions {
+  timeout?: number;
+  silent?: boolean;
+}
+
 /**
  * 执行命令并等待结果（对外接口）
  */
-export async function executeAICommand(command, connectionId, options = {}) {
+export async function executeAICommand(command: string, connectionId: string, options: CommandOptions = {}): Promise<string> {
   console.log(`🚀 [AI-COMMAND-EXECUTOR] 执行AI命令:`, {
     command,
     connectionId,
@@ -51,7 +57,7 @@ export async function executeAICommand(command, connectionId, options = {}) {
 /**
  * 处理终端数据输出（兼容接口）
  */
-export function handleAITerminalData(connectionId, data) {
+export function handleAITerminalData(connectionId: string, data: string): void {
   console.log(`📡 [AI-COMMAND-EXECUTOR] 处理终端数据:`, {
     connectionId,
     dataLength: data?.length
@@ -68,7 +74,7 @@ export function handleAITerminalData(connectionId, data) {
 /**
  * 强制完成所有命令（连接断开时使用）
  */
-export function completeAllAICommands(connectionId) {
+export function completeAllAICommands(connectionId: string): void {
   console.log(`🔄 [AI-COMMAND-EXECUTOR] 完成所有命令: ${connectionId}`)
 
   // 使用简化版命令执行器的完成方法
@@ -79,7 +85,7 @@ export function completeAllAICommands(connectionId) {
 /**
  * 获取待执行命令数量
  */
-export function getPendingAICommandsCount(connectionId) {
+export function getPendingAICommandsCount(connectionId: string): number {
   const { getPendingCommandsCount } = require('./simpleCommandExecutor.js')
   return getPendingCommandsCount(connectionId)
 }
@@ -87,7 +93,7 @@ export function getPendingAICommandsCount(connectionId) {
 /**
  * 获取命令历史
  */
-export function getAICommandHistory(limit = 20) {
+export function getAICommandHistory(limit: number = 20): any[] {
   const { getCommandHistory } = require('./simpleCommandExecutor.js')
   return getCommandHistory(limit)
 }
@@ -95,7 +101,7 @@ export function getAICommandHistory(limit = 20) {
 /**
  * 清除所有待执行命令
  */
-export function clearAllAICommands() {
+export function clearAllAICommands(): void {
   console.log(`🧹 [AI-COMMAND-EXECUTOR] 清除所有待执行命令`)
 
   const { default: simpleCommandExecutor } = require('./simpleCommandExecutor.js')

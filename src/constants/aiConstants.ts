@@ -2,8 +2,34 @@
  * AI助手相关常量配置
  */
 
+// 类型定义
+export interface QuickAction {
+  id: string;
+  command: string;
+  label: string;
+  title: string;
+  icon: string;
+}
+
+export interface ThemeConfig {
+  background: string;
+  surface: string;
+  primary: string;
+  secondary: string;
+  text: string;
+  textSecondary: string;
+  border: string;
+}
+
+export interface SecurityConfig {
+  ALLOWED_COMMANDS: string[];
+  BLOCKED_COMMANDS: string[];
+  MAX_COMMAND_LENGTH: number;
+  DANGEROUS_PATTERNS: RegExp[];
+}
+
 // 快捷操作配置
-export const QUICK_ACTIONS = [
+export const QUICK_ACTIONS: QuickAction[] = [
   {
     id: 'sysinfo',
     command: '请帮我查看当前系统的基本信息，包括操作系统版本、内存使用情况和磁盘空间',
@@ -87,7 +113,7 @@ export const TIME_CONFIG = {
 }
 
 // 主题配置
-export const THEME_CONFIG = {
+export const THEME_CONFIG: Record<string, ThemeConfig> = {
   DARK: {
     background: '#1a1a1a',
     surface: '#2a2a2a',
@@ -129,7 +155,7 @@ export const REGEX_PATTERNS = {
 }
 
 // 安全配置
-export const SECURITY_CONFIG = {
+export const SECURITY_CONFIG: SecurityConfig = {
   ALLOWED_COMMANDS: [
     'ls', 'pwd', 'cd', 'cat', 'grep', 'find', 'ps', 'top', 'df', 'du', 'free',
     'uname', 'who', 'last', 'ping', 'netstat', 'ss', 'ip', 'tail', 'head',

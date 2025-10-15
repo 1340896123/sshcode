@@ -6,16 +6,54 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
+// 类型定义
+export interface ToolCall {
+  id: string;
+  command: string;
+  connectionId: string;
+  status: 'executing' | 'completed' | 'error' | 'timeout';
+  startTime: number;
+  endTime?: number;
+  result?: string;
+  error?: string;
+  executionTime: number;
+  realtimeOutput?: string;
+}
+
+export interface ConfigStatus {
+  isConfigured: boolean;
+  message: string;
+}
+
+export interface TerminalInput {
+  text: string;
+  connectionId: string | null;
+  isVisible: boolean;
+}
+
+export interface ToolCallStats {
+  total: number;
+  successful: number;
+  failed: number;
+  successRate: number;
+  avgExecutionTime: number;
+}
+
+export interface RetryInfo {
+  command: string;
+  connectionId: string;
+}
+
 export const useAIStore = defineStore('ai', () => {
   // 状态
-  const toolCalls = ref(new Map()) // 工具调用状态
-  const activeToolCall = ref(null) // 当前活跃工具调用
-  const toolCallHistory = ref([]) // 工具调用历史
-  const configStatus = ref({
+  const toolCalls = ref(new Map<string, ToolCall>()) // 工具调用状态
+  const activeToolCall = ref<ToolCall | null>(null) // 当前活跃工具调用
+  const toolCallHistory = ref<ToolCall[]>([]) // 工具调用历史
+  const configStatus = ref<ConfigStatus>({
     isConfigured: false,
     message: ''
   }) // 配置状态
-  const terminalInput = ref({
+  const terminalInput = ref<TerminalInput>({
     text: '',
     connectionId: null,
     isVisible: false
@@ -24,14 +62,14 @@ export const useAIStore = defineStore('ai', () => {
   // 计算属性
   const hasActiveToolCall = computed(() => activeToolCall.value !== null)
   const getToolCallById = computed(() => {
-    return (id) => toolCalls.value.get(id)
+    return (id: string) => toolCalls.value.get(id)
   })
   const getToolCallsByConnectionId = computed(() => {
-    return (connectionId) => Array.from(toolCalls.value.values()).filter(tc => tc.connectionId === connectionId)
+    return (connectionId: string) => Array.from(toolCalls.value.values()).filter(tc => tc.connectionId === connectionId)
   })
 
   // 工具调用相关方法
-  const startToolCall = (toolCallData) => {
+  const startToolCall = (toolCallData: any) => {
     const { id, command, connectionId, timestamp = Date.now() } = toolCallData
 
     const toolCall = {

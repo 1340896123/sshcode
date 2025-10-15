@@ -3,18 +3,59 @@
  * Provides intelligent command suggestions using AI APIs
  */
 
-class AICompletionService {
-  constructor() {
-    this.config = null
-    this.isInitialized = false
-    this.cache = new Map()
-    this.cacheTimeout = 5 * 60 * 1000 // 5 minutes cache
+import type { AIConfig } from './aiService.js'
+
+export interface CompletionContext {
+  currentDirectory?: string
+  recentCommands?: string[]
+  connectionId?: string
+}
+
+export interface CommandSuggestion {
+  command: string
+  description: string
+  confidence: number
+  type: 'ai' | 'fallback'
+  category: 'git' | 'package' | 'service' | 'container' | 'file' | 'process' | 'network' | 'general' | 'help'
+}
+
+export interface CacheEntry {
+  suggestions: CommandSuggestion[]
+  timestamp: number
+}
+
+export interface CacheStats {
+  totalEntries: number
+  validEntries: number
+  cacheSize: number
+}
+
+export interface TestResult {
+  success: boolean
+  suggestions?: CommandSuggestion[]
+  error?: string
+  message: string
+}
+
+export interface AppConfiguration {
+  aiCompletion?: {
+    apiKey?: string
+    baseUrl?: string
+    model?: string
+    customModel?: string
   }
+}
+
+class AICompletionService {
+  private config: AppConfiguration | null = null
+  private isInitialized: boolean = false
+  private cache: Map<string, CacheEntry> = new Map()
+  private cacheTimeout: number = 5 * 60 * 1000 // 5 minutes cache
 
   /**
    * Initialize the AI completion service
    */
-  async initialize() {
+  async initialize(): Promise<void> {
     try {
       if (window.electronAPI?.getConfig) {
         this.config = await window.electronAPI.getConfig()
@@ -33,7 +74,7 @@ class AICompletionService {
   /**
    * Get AI command suggestions based on input
    */
-  async getCommandSuggestions(input, context = {}) {
+  async getCommandSuggestions(input: string, context: CompletionContext = {}): Promise<CommandSuggestion[]> {
     if (!this.isInitialized || !input || input.trim().length < 2) {
       return []
     }
@@ -42,7 +83,7 @@ class AICompletionService {
 
     // Check cache first
     if (this.cache.has(cacheKey)) {
-      const cached = this.cache.get(cacheKey)
+      const cached = this.cache.get(cacheKey)!
       if (Date.now() - cached.timestamp < this.cacheTimeout) {
         return cached.suggestions
       }
@@ -67,7 +108,7 @@ class AICompletionService {
   /**
    * Fetch suggestions from AI API
    */
-  async fetchAISuggestions(input, context) {
+  private async fetchAISuggestions(input: string, context: CompletionContext): Promise<CommandSuggestion[]> {
     const aiConfig = this.config?.aiCompletion || {}
 
     if (!aiConfig.apiKey || !aiConfig.baseUrl) {
@@ -134,7 +175,7 @@ class AICompletionService {
   /**
    * Build prompt for AI API
    */
-  buildPrompt(input, context) {
+  private buildPrompt(input: string, context: CompletionContext): string {
     const contextInfo = context.currentDirectory ? `当前目录: ${context.currentDirectory}` : ''
     const historyInfo = context.recentCommands && context.recentCommands.length > 0
       ? `最近执行的命令: ${context.recentCommands.slice(-3).join(', ')}`
@@ -152,23 +193,23 @@ ${historyInfo}
   /**
    * Parse AI response and format suggestions
    */
-  parseAIResponse(content) {
+  private parseAIResponse(content: string): CommandSuggestion[] {
     try {
       // Try to parse as JSON first
       if (content.trim().startsWith('[')) {
         const suggestions = JSON.parse(content)
-        return suggestions.map(s => ({
+        return suggestions.map((s: any) => ({
           command: s.command,
           description: s.description,
           confidence: s.confidence || 0.7,
-          type: 'ai',
+          type: 'ai' as const,
           category: s.category || 'general'
         }))
       }
 
       // Parse text response
       const lines = content.split('\n').filter(line => line.trim())
-      const suggestions = []
+      const suggestions: CommandSuggestion[] = []
 
       for (const line of lines) {
         // Try to extract command and description
@@ -192,14 +233,14 @@ ${historyInfo}
       return suggestions.slice(0, 8)
     } catch (error) {
       console.error('❌ Failed to parse AI response:', error)
-      return this.getFallbackSuggestions(input)
+      return this.getFallbackSuggestions(content)
     }
   }
 
   /**
    * Guess command category based on command content
    */
-  guessCategory(command) {
+  private guessCategory(command: string): CommandSuggestion['category'] {
     const lowerCommand = command.toLowerCase()
 
     if (lowerCommand.includes('git')) return 'git'
@@ -216,9 +257,9 @@ ${historyInfo}
   /**
    * Get fallback suggestions when AI is not available
    */
-  getFallbackSuggestions(input) {
+  private getFallbackSuggestions(input: string): CommandSuggestion[] {
     const lowerInput = input.toLowerCase()
-    const fallbackSuggestions = []
+    const fallbackSuggestions: CommandSuggestion[] = []
 
     // Common command patterns
     if (lowerInput.includes('list') || lowerInput.includes('ls')) {
@@ -267,8 +308,8 @@ ${historyInfo}
   /**
    * Get context-aware suggestions based on current state
    */
-  async getContextualSuggestions(context = {}) {
-    const suggestions = []
+  async getContextualSuggestions(context: CompletionContext = {}): Promise<CommandSuggestion[]> {
+    const suggestions: CommandSuggestion[] = []
 
     // Directory-based suggestions
     if (context.currentDirectory) {
@@ -324,14 +365,14 @@ ${historyInfo}
   /**
    * Clear the cache
    */
-  clearCache() {
+  clearCache(): void {
     this.cache.clear()
   }
 
   /**
    * Get cache statistics
    */
-  getCacheStats() {
+  getCacheStats(): CacheStats {
     const now = Date.now()
     let validEntries = 0
 
@@ -351,7 +392,7 @@ ${historyInfo}
   /**
    * Test AI completion functionality
    */
-  async testConnection() {
+  async testConnection(): Promise<TestResult> {
     try {
       const suggestions = await this.getCommandSuggestions('ls')
       return {
@@ -362,7 +403,7 @@ ${historyInfo}
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: (error as Error).message,
         message: 'AI补全功能测试失败'
       }
     }
