@@ -217,10 +217,20 @@ export default {
 
     // 判断是否为工具相关消息（tool-start, tool-complete, tool-error）
     const isToolStart = computed(() => {
-      return (props.message.type === 'tool-start' ||
-             props.message.type === 'tool-complete' ||
-             props.message.type === 'tool-error') &&
-             props.message.metadata?.toolCallId;
+      const toolTypes = ['tool-start', 'tool-complete', 'tool-error'];
+      const isToolType = toolTypes.includes(props.message.type);
+      const hasToolCallId = props.message.metadata?.toolCallId;
+      
+      console.log(`🔧 [COMMAND-EXECUTION] isToolStart 检查:`, {
+        messageId: props.message.id,
+        messageType: props.message.type,
+        isToolType,
+        hasToolCallId,
+        toolCallId: props.message.metadata?.toolCallId,
+        result: isToolType && hasToolCallId
+      });
+      
+      return isToolType && hasToolCallId;
     });
 
     // 获取工具调用ID

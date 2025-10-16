@@ -113,7 +113,7 @@
             :class="[message.role, message.type]"
           >
             <!-- 调试信息 - 打印每个消息的详细信息 -->
-            <!-- {{
+            {{
               (() => {
                 const debugInfo = {
                   id: message.id,
@@ -129,7 +129,7 @@
                 console.log('🔍 [AI-ASSISTANT] 渲染消息:', debugInfo);
                 return '';
               })()
-            }} -->
+            }}
             <!-- 用户消息 -->
             <div v-show="message.role === 'user'" class="user-message">
               <div class="message-content user-content">
@@ -367,7 +367,8 @@ export default {
       executeAction,
       clearChat,
       addUserInput,
-      addMessage
+      addMessage,
+      addSystemMessage
     } = aiChatState;
 
     const { formatMessage, formatTime } = useMessageFormatter();
@@ -510,14 +511,11 @@ export default {
       );
     };
 
-    // 判断消息是否为工具调用开始消息
+    // 判断消息是否为工具调用相关消息
     const isToolMessage = message => {
-      // 只处理 tool-start 类型的消息
-      if (message.type === 'tool-start' && message.metadata?.toolCallId) {
-        return true;
-      }
-      // 其他所有消息类型都不通过CommandExecution组件处理
-      return false;
+      // 处理所有工具相关消息类型
+      const toolTypes = ['tool-start', 'tool-complete', 'tool-error'];
+      return toolTypes.includes(message.type) && message.metadata?.toolCallId;
     };
 
     // 调试用：获取消息的类型信息
@@ -545,13 +543,40 @@ export default {
       initializeCollapsedMessages();
 
       // 调试：监听消息变化
-      // watch(messages, (newMessages) => {
-      //   console.log(`📋 [AI-ASSISTANT] 消息列表更新 (${newMessages.length} 条):`);
-      //   newMessages.forEach((message, index) => {
-      //     const debugInfo = getMessageDebugInfo(message);
-      //     console.log(`  [${index + 1}] ${JSON.stringify(debugInfo, null, 2)}`);
-      //   });
-      // }, { deep: true });
+      watch(
+        messages,
+        newMessages => {
+          console.log(`📋 [AI-ASSISTANT] 消息列表更新 (${newMessages.length} 条):`);
+          newMessages.forEach((message, index) => {
+            const debugInfo = getMessageDebugInfo(message);
+            console.log(`  [${index + 1}] ${JSON.stringify(debugInfo, null, 2)}`);
+          });
+        },
+        { deep: true }
+      );
+
+      // 添加测试工具消息（仅在开发环境）
+      if (process.env.NODE_ENV === 'development') {
+        setTimeout(() => {
+          console.log('🧪 [AI-ASSISTANT] 添加测试工具消息');
+          addSystemMessage('', 'tool-start', {
+            toolCallId: 'test-tool-call-123',
+            command: 'ls -la',
+            connectionId: props.connectionId
+          });
+
+          // 2秒后添加完成消息
+          setTimeout(() => {
+            addSystemMessage('', 'tool-complete', {
+              toolCallId: 'test-tool-call-123',
+              command: 'ls -la',
+              result:
+                'total 48\ndrwxr-xr-x  6 user user 4096 Oct 17 01:42 .\ndrwxr-xr-x  3 root root 4096 Oct 17 01:40 ..',
+              executionTime: 1500
+            });
+          }, 2000);
+        }, 1000);
+      }
     });
 
     // 本地清空聊天函数
