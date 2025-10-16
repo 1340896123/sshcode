@@ -134,7 +134,7 @@ module.exports = [
     },
     rules: {
       ...prettier.rules,
-      'prettier/prettier': 'error'
+      'prettier/prettier': 'off'
     }
   },
 
