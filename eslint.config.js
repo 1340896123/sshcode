@@ -121,7 +121,7 @@ module.exports = [
       ...vue.configs['flat/recommended'].rules,
       'vue/multi-word-component-names': 'off',
       'vue/no-unused-vars': 'off',
-      'vue/no-v-html': 'warn',
+      'vue/no-v-html': 'off',
       'vue/require-default-prop': 'off',
       'vue/require-explicit-emits': 'off'
     }

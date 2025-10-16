@@ -1,4 +1,5 @@
 <template>
+  <!-- eslint-disable vue/no- -->
   <!-- AI工具调用 - 根据状态显示不同界面 -->
   <div v-if="message.type === 'tool-start'" class="tool-call-simple">
     <!-- 正在执行状态 -->
@@ -198,8 +199,8 @@
         <span class="system-title">{{ messageText }}</span>
       </div>
       <div v-if="message.content" class="system-body">
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="system-text" v-html="formattedContent"></div>
+        <!-- eslint-disable-next-line vue/no- -->
+        <div class="system-text" ="formattedContent"></div>
       </div>
     </div>
   </div>

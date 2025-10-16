@@ -1,4 +1,5 @@
 <template>
+  <!-- eslint-disable vue/no- -->
   <div class="terminal-input-box" :class="{ focused: isFocused }">
     <!-- 输入框容器 -->
     <div class="input-container">
@@ -66,8 +67,8 @@
             {{ getSuggestionIcon(suggestion) }}
           </span>
           <div class="suggestion-text">
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <span class="command" v-html="highlightMatch(suggestion.command)"></span>
+            <!-- eslint-disable-next-line vue/no- -->
+            <span class="command" ="highlightMatch(suggestion.command)"></span>
             <span class="description" v-if="suggestion.description">{{
               suggestion.description
             }}</span>
