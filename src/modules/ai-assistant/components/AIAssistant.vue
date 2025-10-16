@@ -113,7 +113,7 @@
             :class="[message.role, message.type]"
           >
             <!-- 调试信息 - 打印每个消息的详细信息 -->
-            {{
+            <!-- {{
               (() => {
                 const debugInfo = {
                   id: message.id,
@@ -129,9 +129,9 @@
                 console.log('🔍 [AI-ASSISTANT] 渲染消息:', debugInfo);
                 return '';
               })()
-            }}
+            }} -->
             <!-- 用户消息 -->
-            <div v-if="message.role === 'user'" class="user-message">
+            <div v-show="message.role === 'user'" class="user-message">
               <div class="message-content user-content">
                 <div class="message-text">{{ message.content }}</div>
                 <div class="message-time">{{ formatTime(message.timestamp) }}</div>
@@ -146,7 +146,7 @@
             </div>
 
             <!-- AI助手消息 -->
-            <div v-else-if="message.role === 'assistant'" class="assistant-message">
+            <div v-show="message.role === 'assistant'" class="assistant-message">
               <div class="message-avatar assistant-avatar">
                 <div class="avatar-gradient-small"></div>
                 <span>🤖</span>
@@ -174,7 +174,7 @@
 
             <!-- 工具调用消息（直接渲染CommandExecution组件） -->
             <CommandExecution
-              v-else-if="isToolMessage(message)"
+              v-show="isToolMessage(message)"
               :message="message"
               :collapsed-by-default="message.defaultCollapsed"
               :realtime-output="getRealtimeOutput(message)"
@@ -185,7 +185,7 @@
 
             <!-- 其他系统消息（如果有内容才显示） -->
             <div
-              v-else-if="message.role === 'system' && message.content && message.content.trim()"
+              v-show="message.role === 'system' && message.content && message.content.trim()"
               class="system-message"
             >
               <div class="system-content">
@@ -366,7 +366,8 @@ export default {
       sendMessage: sendAIMessage,
       executeAction,
       clearChat,
-      addUserInput
+      addUserInput,
+      addMessage
     } = aiChatState;
 
     const { formatMessage, formatTime } = useMessageFormatter();
@@ -509,58 +510,18 @@ export default {
       );
     };
 
-    // 判断消息是否为工具类型（完全独立于role）
+    // 判断消息是否为工具调用开始消息
     const isToolMessage = message => {
-      // 首先检查是否为工具调用相关的消息类型
-      const isTool =
-        message.type &&
-        (message.type === 'tool-start' ||
-          message.type === 'tool-end' ||
-          message.type === 'tool-output' ||
-          message.type === 'tool-complete' ||
-          message.type === 'tool-error' ||
-          message.type === 'tool-result' ||
-          message.type.startsWith('tool-'));
-
-      if (isTool) {
-        console.log(`✅ [AI-ASSISTANT] 检测到工具消息 (type): ${message.type}, metadata:`, message.metadata);
+      // 只处理 tool-start 类型的消息
+      if (message.type === 'tool-start' && message.metadata?.toolCallId) {
         return true;
       }
-
-      // 明确排除非工具消息
-      if (message.role === 'user' || message.role === 'assistant') {
-        return false;
-      }
-
-      // 对于其他role为system的消息，检查是否包含工具调用相关内容或metadata
-      if (message.role === 'system') {
-        const hasToolMetadata = message.metadata?.toolCallId || message.metadata?.command;
-        const hasToolContent =
-          message.content && (
-            message.content.includes('正在执行命令') ||
-            message.content.includes('命令执行完成') ||
-            message.content.includes('命令执行失败') ||
-            message.content.includes('🔧 **正在执行命令**')
-          );
-
-        const isToolRelated = hasToolMetadata || hasToolContent;
-
-        if (isToolRelated) {
-          console.log(`✅ [AI-ASSISTANT] 检测到工具消息 (system):`, {
-            hasToolMetadata,
-            hasToolContent,
-            metadata: message.metadata,
-            content: message.content?.substring(0, 50)
-          });
-          return true;
-        }
-      }
-
+      // 其他所有消息类型都不通过CommandExecution组件处理
       return false;
     };
 
     // 调试用：获取消息的类型信息
-    const getMessageDebugInfo = (message) => {
+    const getMessageDebugInfo = message => {
       return {
         id: message.id,
         type: message.type,
@@ -584,13 +545,13 @@ export default {
       initializeCollapsedMessages();
 
       // 调试：监听消息变化
-      watch(messages, (newMessages) => {
-        console.log(`📋 [AI-ASSISTANT] 消息列表更新 (${newMessages.length} 条):`);
-        newMessages.forEach((message, index) => {
-          const debugInfo = getMessageDebugInfo(message);
-          console.log(`  [${index + 1}] ${JSON.stringify(debugInfo, null, 2)}`);
-        });
-      }, { deep: true });
+      // watch(messages, (newMessages) => {
+      //   console.log(`📋 [AI-ASSISTANT] 消息列表更新 (${newMessages.length} 条):`);
+      //   newMessages.forEach((message, index) => {
+      //     const debugInfo = getMessageDebugInfo(message);
+      //     console.log(`  [${index + 1}] ${JSON.stringify(debugInfo, null, 2)}`);
+      //   });
+      // }, { deep: true });
     });
 
     // 本地清空聊天函数

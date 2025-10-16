@@ -30,6 +30,14 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
   const isConnected: Ref<boolean> = ref(true);
   const messageIdCounter: Ref<number> = ref(0);
   const lastMessageId: Ref<string | null> = ref(null); // 防止重复发送
+
+  /**
+   * 生成唯一消息ID
+   */
+  const generateMessageId = (): string => {
+    // 使用时间戳 + 随机数确保唯一性，格式: msg-timestamp-random
+    return `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
   const pendingToolCalls: Ref<Map<string, ToolCallHistoryItem>> = ref(new Map()); // 存储待处理的工具调用
   const toolCallHistory: Ref<ToolCallHistoryItem[]> = ref([]); // 工具调用历史记录
   const activeToolCall: Ref<ToolCallHistoryItem | null> = ref(null); // 当前活跃的工具调用
@@ -135,7 +143,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       const convertedMessages = messages.value
         .filter(msg => msg.role !== 'system')
         .map(msg => ({
-          id: msg.id.toString(),
+          id: msg.id,
           role: msg.role,
           content: msg.content,
           timestamp: msg.timestamp.getTime()
@@ -202,7 +210,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
     }
 
     const message: Message = {
-      id: ++messageIdCounter.value,
+      id: generateMessageId(),
       role,
       content: content.trim(), // 确保内容没有前后空白
       timestamp: new Date(),
@@ -220,7 +228,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
     metadata: Record<string, unknown> = null
   ): void => {
     const message: Message = {
-      id: ++messageIdCounter.value,
+      id: generateMessageId(),
       role: 'system',
       content: content.trim(),
       timestamp: new Date(),
@@ -595,6 +603,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
     executeAction,
     clearChat,
     addUserInput,
+    addMessage,
     addSystemMessage,
     getToolCallStats,
     retryToolCall,

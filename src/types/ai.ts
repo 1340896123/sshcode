@@ -77,7 +77,7 @@ export interface UseAIChatProps {
 }
 
 export interface Message {
-  id: number;
+  id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
