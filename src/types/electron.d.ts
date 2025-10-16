@@ -33,9 +33,6 @@ interface ElectronAPI {
   startFileWatcher: (remotePath: string, localPath: string) => Promise<any>;
   stopFileWatcher: (localPath: string) => Promise<any>;
 
-  // AI connection test
-  testAIConnection: (aiConfig: any) => Promise<any>;
-
   // SSH key reading
   readSSHKey: (keyPath: string) => Promise<any>;
 

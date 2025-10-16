@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "ssh-remote-app",
   "version": "1.0.0",
   "description": "SSH远程连接应用，支持文件管理、终端和AI助手",
@@ -10,7 +11,11 @@
     "build-main": "tsc -p tsconfig.main.json",
     "build-electron": "npm run build-main && npm run build && electron-builder",
     "dist": "npm run build-electron",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .js,.ts,.vue --fix",
+    "lint:check": "eslint . --ext .js,.ts,.vue",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [
     "electron",
@@ -22,12 +27,19 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.56.0",
+    "@eslint/js": "^9.37.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.7.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
     "concurrently": "^9.2.1",
     "electron": "^27.0.0",
     "electron-builder": "^24.6.4",
+    "eslint": "^9.37.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-vue": "^10.5.1",
+    "prettier": "^3.6.2",
     "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vue-tsc": "^3.1.1",

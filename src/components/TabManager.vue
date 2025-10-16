@@ -77,10 +77,10 @@ import WelcomeScreen from './tabs/WelcomeScreen.vue'
 import ConnectionContent from './tabs/ConnectionContent.vue'
 import ContextMenu from './ContextMenu.vue'
 import { useConnectionManager } from '../composables/useConnectionManager'
-import { useTerminalManager } from '../composables/useTerminalManager'
+import { useTerminalManager } from '../modules/terminal/composables/useTerminalManager'
 import { usePanelManager } from '../composables/usePanelManager'
 import { useContextMenu } from '../composables/useContextMenu'
-import { useTerminalStore } from '../stores/terminal.js'
+import { useTerminalStore } from '../modules/terminal/stores/terminal.js'
 
 export default {
   name: 'TabManager',

@@ -13,7 +13,7 @@ export function useElectronAPI() {
   }, []);
 
   return {
-    isElectron,
+    isElectron
     // 可以在这里添加其他Electron相关的逻辑
   };
 }
@@ -24,7 +24,7 @@ export function useSessions() {
 
   const loadSessions = async () => {
     if (!window.electronAPI) return;
-    
+
     setLoading(true);
     try {
       const sessionList = await window.electronAPI.getSessions();
@@ -36,9 +36,9 @@ export function useSessions() {
     }
   };
 
-  const saveSession = async (sessionData) => {
+  const saveSession = async sessionData => {
     if (!window.electronAPI) return false;
-    
+
     try {
       await window.electronAPI.saveSession(sessionData);
       await loadSessions(); // 重新加载连接列表
@@ -49,9 +49,9 @@ export function useSessions() {
     }
   };
 
-  const deleteSession = async (sessionId) => {
+  const deleteSession = async sessionId => {
     if (!window.electronAPI) return false;
-    
+
     try {
       await window.electronAPI.deleteSession(sessionId);
       await loadSessions(); // 重新加载连接列表
@@ -78,9 +78,9 @@ export function useSessions() {
 export function useSSHConnection() {
   const [connections, setConnections] = useState(new Map());
 
-  const connect = async (sessionData) => {
+  const connect = async sessionData => {
     if (!window.electronAPI) return null;
-    
+
     try {
       const connection = await window.electronAPI.sshConnect(sessionData);
       if (connection.success) {
@@ -94,9 +94,9 @@ export function useSSHConnection() {
     }
   };
 
-  const disconnect = async (sessionId) => {
+  const disconnect = async sessionId => {
     if (!window.electronAPI) return false;
-    
+
     try {
       await window.electronAPI.sshDisconnect(sessionId);
       setConnections(prev => {
@@ -113,7 +113,7 @@ export function useSSHConnection() {
 
   const executeCommand = async (sessionId, command) => {
     if (!window.electronAPI) return null;
-    
+
     try {
       return await window.electronAPI.sshExecute(sessionId, command);
     } catch (error) {
@@ -122,7 +122,7 @@ export function useSSHConnection() {
     }
   };
 
-  const isConnected = (sessionId) => {
+  const isConnected = sessionId => {
     return connections.has(sessionId);
   };
 

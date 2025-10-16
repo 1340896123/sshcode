@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useCSSVariables } from './useTheme';
 
 // Helper function to get CSS variable value
-const getVariable = (name) => {
+const getVariable = name => {
   if (typeof window !== 'undefined') {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
@@ -13,7 +13,6 @@ const getVariable = (name) => {
  * Hook for generating component styles based on CSS variables
  */
 export const useComponentStyles = (componentType, props = {}) => {
-
   return useMemo(() => {
     const styles = {
       // Common spacing values
@@ -59,7 +58,18 @@ export const useComponentStyles = (componentType, props = {}) => {
   }, [componentType, props]);
 };
 
-const getButtonStyles = (styles, { variant = 'solid', color = 'primary', size = 'md', disabled = false, iconOnly = false, rounded = false, fullWidth = false }) => {
+const getButtonStyles = (
+  styles,
+  {
+    variant = 'solid',
+    color = 'primary',
+    size = 'md',
+    disabled = false,
+    iconOnly = false,
+    rounded = false,
+    fullWidth = false
+  }
+) => {
   const sizeConfig = {
     sm: {
       padding: iconOnly ? '6px' : '12px 12px',
@@ -246,7 +256,10 @@ const getButtonStyles = (styles, { variant = 'solid', color = 'primary', size = 
   return { baseStyle, config };
 };
 
-const getInputStyles = (styles, { size = 'md', error = false, disabled = false, readonly = false }) => {
+const getInputStyles = (
+  styles,
+  { size = 'md', error = false, disabled = false, readonly = false }
+) => {
   const sizeConfig = {
     sm: {
       height: '32px',

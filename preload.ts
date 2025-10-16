@@ -43,9 +43,6 @@ interface ElectronAPI {
   startFileWatcher: (remotePath: string, localPath: string) => Promise<APIResponse>;
   stopFileWatcher: (localPath: string) => Promise<APIResponse>;
 
-  // AI connection test
-  testAIConnection: (aiConfig: AIConfig) => Promise<APIResponse>;
-
   // SSH key reading
   readSSHKey: (keyPath: string) => Promise<APIResponse<string>>;
 
@@ -69,39 +66,51 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteSession: (sessionId: string) => ipcRenderer.invoke('delete-session', sessionId),
 
   // SSH connections
-  sshConnect: (connectionConfig: SSHConnectionConfig) => ipcRenderer.invoke('ssh-connect', connectionConfig),
-  sshExecute: (connectionId: string, command: string) => ipcRenderer.invoke('ssh-execute', connectionId, command),
+  sshConnect: (connectionConfig: SSHConnectionConfig) =>
+    ipcRenderer.invoke('ssh-connect', connectionConfig),
+  sshExecute: (connectionId: string, command: string) =>
+    ipcRenderer.invoke('ssh-execute', connectionId, command),
   sshDisconnect: (connectionId: string) => ipcRenderer.invoke('ssh-disconnect', connectionId),
 
   // SSH Shell sessions
-  sshCreateShell: (connectionId: string, options?: any) => ipcRenderer.invoke('ssh-create-shell', connectionId, options),
-  sshShellWrite: (connectionId: string, data: string) => ipcRenderer.invoke('ssh-shell-write', connectionId, data),
-  sshShellResize: (connectionId: string, rows: number, cols: number) => ipcRenderer.invoke('ssh-shell-resize', connectionId, rows, cols),
+  sshCreateShell: (connectionId: string, options?: any) =>
+    ipcRenderer.invoke('ssh-create-shell', connectionId, options),
+  sshShellWrite: (connectionId: string, data: string) =>
+    ipcRenderer.invoke('ssh-shell-write', connectionId, data),
+  sshShellResize: (connectionId: string, rows: number, cols: number) =>
+    ipcRenderer.invoke('ssh-shell-resize', connectionId, rows, cols),
   sshShellClose: (connectionId: string) => ipcRenderer.invoke('ssh-shell-close', connectionId),
 
   // File operations
-  getFileList: (connectionId: string, remotePath: string) => ipcRenderer.invoke('get-file-list', connectionId, remotePath),
-  uploadFile: (connectionId: string, localPath: string, remotePath: string) => ipcRenderer.invoke('uploadFile', connectionId, localPath, remotePath),
-  uploadDroppedFile: (connectionId: string, file: File, remotePath: string) => ipcRenderer.invoke('uploadDroppedFile', connectionId, file, remotePath),
-  selectAndUploadFile: (connectionId: string, remotePath: string) => ipcRenderer.invoke('selectAndUploadFile', connectionId, remotePath),
-  downloadFile: (connectionId: string, remotePath: string) => ipcRenderer.invoke('downloadFile', connectionId, remotePath),
-  downloadAndOpenFile: (connectionId: string, remotePath: string) => ipcRenderer.invoke('downloadAndOpenFile', connectionId, remotePath),
+  getFileList: (connectionId: string, remotePath: string) =>
+    ipcRenderer.invoke('get-file-list', connectionId, remotePath),
+  uploadFile: (connectionId: string, localPath: string, remotePath: string) =>
+    ipcRenderer.invoke('uploadFile', connectionId, localPath, remotePath),
+  uploadDroppedFile: (connectionId: string, file: File, remotePath: string) =>
+    ipcRenderer.invoke('uploadDroppedFile', connectionId, file, remotePath),
+  selectAndUploadFile: (connectionId: string, remotePath: string) =>
+    ipcRenderer.invoke('selectAndUploadFile', connectionId, remotePath),
+  downloadFile: (connectionId: string, remotePath: string) =>
+    ipcRenderer.invoke('downloadFile', connectionId, remotePath),
+  downloadAndOpenFile: (connectionId: string, remotePath: string) =>
+    ipcRenderer.invoke('downloadAndOpenFile', connectionId, remotePath),
 
   // File monitoring
-  startFileWatcher: (remotePath: string, localPath: string) => ipcRenderer.invoke('startFileWatcher', remotePath, localPath),
+  startFileWatcher: (remotePath: string, localPath: string) =>
+    ipcRenderer.invoke('startFileWatcher', remotePath, localPath),
   stopFileWatcher: (localPath: string) => ipcRenderer.invoke('stopFileWatcher', localPath),
-
-  // AI connection test
-  testAIConnection: (aiConfig: AIConfig) => ipcRenderer.invoke('testAIConnection', aiConfig),
 
   // SSH key reading
   readSSHKey: (keyPath: string) => ipcRenderer.invoke('readSSHKey', keyPath),
 
   // Event listeners
-  onFileChanged: (callback: (event: any, data: any) => void) => ipcRenderer.on('fileChanged', callback),
-  onTerminalData: (callback: (event: any, data: any) => void) => ipcRenderer.on('terminal-data', callback),
-  onTerminalClose: (callback: (event: any, data: any) => void) => ipcRenderer.on('terminal-close', callback),
-  onTerminalError: (callback: (event: any, data: any) => void) => ipcRenderer.on('terminal-error', callback),
+  onFileChanged: (callback: (event: any, data: any) => void) =>
+    ipcRenderer.on('fileChanged', callback),
+  onTerminalData: (callback: (event: any, data: any) => void) =>
+    ipcRenderer.on('terminal-data', callback),
+  onTerminalClose: (callback: (event: any, data: any) => void) =>
+    ipcRenderer.on('terminal-close', callback),
+  onTerminalError: (callback: (event: any, data: any) => void) =>
+    ipcRenderer.on('terminal-error', callback),
   removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel)
 } as ElectronAPI);
-

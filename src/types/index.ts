@@ -1,4 +1,4 @@
-// SSH Connection types
+// SSH Connection specific types
 export interface SSHConnection {
   id: string;
   name: string;
@@ -40,6 +40,52 @@ export interface SessionData {
   keyContent?: string;
 }
 
+// Unified Connection interface
+export interface Connection {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  authType: 'password' | 'key';
+  password?: string;
+  privateKey?: string;
+  keyPath?: string;
+  keyContent?: string;
+  status: 'connecting' | 'connected' | 'failed' | 'disconnected' | 'cancelled';
+  connected: boolean;
+  shellStream?: any;
+  sftpClient?: any;
+  client?: any;
+  currentWorkingDirectory?: string;
+  connectStep?: number;
+  errorMessage?: string | null;
+  connectedAt?: Date | null;
+  terminalOutput?: any[];
+  currentCommand?: string;
+  showAutocomplete?: boolean;
+  lastActivity?: Date;
+  activePanel?: string;
+  systemInfo?: SystemInfo;
+  networkHistory?: NetworkHistory;
+}
+
+// System monitoring types
+export interface SystemInfo {
+  cpu: number;
+  memory: number;
+  disk: number;
+  networkUp: number;
+  networkDown: number;
+  lastUpdate: Date | null;
+}
+
+export interface NetworkHistory {
+  lastNetworkDown: number;
+  lastNetworkUp: number;
+  lastUpdateTime: number;
+}
+
 // File System types
 export interface FileNode {
   name: string;
@@ -68,10 +114,11 @@ export interface TerminalSession {
 // AI types
 export interface AIMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string | null;
   timestamp: number;
-  toolCalls?: ToolCall[];
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
 }
 
 export interface ToolCall {
@@ -85,10 +132,13 @@ export interface ToolCall {
 }
 
 export interface AIConfig {
-  provider: string;
+  provider?: string;
+  baseUrl: string;
   apiKey: string;
-  baseUrl?: string;
   model?: string;
+  customModel?: string;
+  maxTokens?: number;
+  temperature?: number;
 }
 
 // Event System types
@@ -139,6 +189,92 @@ export interface APIResponse<T = any> {
   message?: string;
 }
 
+// Additional AI Service types
+export interface ParsedResponse {
+  content: string;
+  actions: Array<{
+    id: string;
+    type: string;
+    label: string;
+    command: string;
+  }> | null;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+export interface TestResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  message?: string;
+  suggestions?: CommandSuggestion[];
+}
+
+// AI Command Completion types
+export interface CommandSuggestion {
+  command: string;
+  description: string;
+  confidence: number;
+  type: 'ai' | 'fallback';
+  category:
+    | 'git'
+    | 'package'
+    | 'service'
+    | 'container'
+    | 'file'
+    | 'process'
+    | 'network'
+    | 'general'
+    | 'help';
+}
+
+// AI Chat types
+export interface UseAIChatProps {
+  connection: SSHConnection;
+  connectionId: string;
+}
+
+export interface Message {
+  id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  actions?: ParsedResponse['actions'];
+  type?: string;
+  metadata?: any;
+  isCollapsible?: boolean;
+  defaultCollapsed?: boolean;
+}
+
+export interface Action {
+  id: string;
+  type: string;
+  label: string;
+  command?: string;
+  prompt?: string;
+}
+
+export interface ToolCallHistoryItem extends ToolCall {
+  command: string;
+  status: 'executing' | 'completed' | 'error' | 'timeout';
+  startTime: number;
+  endTime?: number;
+  result?: string;
+  error?: string;
+  executionTime: number;
+  realtimeOutput?: string;
+}
+
+export interface AIChatEmits {
+  (e: 'execute-command', command: string): void;
+  (e: 'show-notification', message: string, type: string): void;
+  (e: 'show-settings'): void;
+  (e: 'focus-input'): void;
+}
+
 // Electron IPC types
 export interface ElectronAPI {
   // SSH operations
@@ -148,8 +284,16 @@ export interface ElectronAPI {
 
   // File operations
   sftpListDirectory: (connectionId: string, path: string) => Promise<APIResponse<FileNode[]>>;
-  sftpUploadFile: (connectionId: string, localPath: string, remotePath: string) => Promise<APIResponse>;
-  sftpDownloadFile: (connectionId: string, remotePath: string, localPath: string) => Promise<APIResponse>;
+  sftpUploadFile: (
+    connectionId: string,
+    localPath: string,
+    remotePath: string
+  ) => Promise<APIResponse>;
+  sftpDownloadFile: (
+    connectionId: string,
+    remotePath: string,
+    localPath: string
+  ) => Promise<APIResponse>;
 
   // Configuration
   getConfig: () => Promise<APIResponse<AppConfig>>;

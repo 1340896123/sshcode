@@ -108,6 +108,7 @@
 
 <script>
 import { computed } from 'vue'
+import { formatBytes, formatTime } from '@/utils/formatters.js'
 
 export default {
   name: 'SystemMonitor',
@@ -146,20 +147,7 @@ export default {
       return statusMap[status] || '未知状态'
     })
 
-    const formatBytes = (bytes) => {
-      if (bytes === 0) return '0 B'
-      const k = 1024
-      const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-    }
-
-    const formatTime = (timestamp) => {
-      if (!timestamp) return '从未'
-      const date = new Date(timestamp)
-      return date.toLocaleTimeString()
-    }
-
+    
     return {
       systemInfo,
       connectionStatusClass,

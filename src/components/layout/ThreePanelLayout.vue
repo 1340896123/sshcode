@@ -90,12 +90,12 @@
 </template>
 
 <script>
-import FileManager from '../FileManager.vue'
-import AIAssistant from '../AIAssistant.vue'
-import TerminalAutocomplete from '../TerminalAutocomplete.vue'
-import TerminalInput from '../TerminalInput.vue'
-import XTerminal from '../XTerminal.vue'
-import { useAIStore } from '../../stores/ai.js'
+import FileManager from '../../modules/file-manager/components/FileManager.vue'
+import AIAssistant from '../../modules/ai-assistant/components/AIAssistant.vue'
+import TerminalAutocomplete from '../../modules/terminal/components/TerminalAutocomplete.vue'
+import TerminalInput from '../../modules/terminal/components/TerminalInput.vue'
+import XTerminal from '../../modules/terminal/components/XTerminal.vue'
+import { useAIStore } from '../../modules/ai-assistant/stores/ai.js'
 
 export default {
   name: 'ThreePanelLayout',

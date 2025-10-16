@@ -48,6 +48,8 @@
 </template>
 
 <script>
+import { formatBytes, formatDuration } from '@/utils/formatters.js'
+
 export default {
   name: 'ConnectionStatusBar',
   props: {
@@ -71,18 +73,7 @@ export default {
       const now = new Date()
       const diff = now - connectedAt
       const seconds = Math.floor(diff / 1000)
-      const minutes = Math.floor(seconds / 60)
-      const hours = Math.floor(minutes / 60)
-
-      return `${hours}小时${minutes % 60}分${seconds % 60}秒`
-    },
-
-    formatBytes(bytes) {
-      if (bytes === 0) return '0 B'
-      const k = 1024
-      const sizes = ['B', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+      return formatDuration(seconds)
     }
   }
 }

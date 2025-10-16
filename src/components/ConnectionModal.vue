@@ -204,9 +204,6 @@
 
             <!-- 表单页面的按钮 -->
             <div v-else class="footer-actions">
-              <button class="test-connection-btn" @click="testCurrentConnection" :disabled="!isFormValid || isTestingConnection">
-                {{ isTestingConnection ? '测试中...' : '测试连接' }}
-              </button>
               <button class="primary-btn" @click="saveSession" :disabled="!isFormValid">
                 {{ isEditing ? '保存修改' : '创建连接' }}
               </button>
@@ -653,54 +650,7 @@ export default {
       }
     }
 
-    // 测试当前表单中的连接配置
-    const testCurrentConnection = async () => {
-      if (!isFormValid.value) {
-        emit('show-notification', '请先完善表单信息', 'warning')
-        return
-      }
-
-      isTestingConnection.value = true
-
-      try {
-        emit('show-notification', '正在测试连接...', 'info')
-
-        const testSession = {
-          id: 'current-test',
-          name: formData.name.trim(),
-          host: formData.host.trim(),
-          port: formData.port || 22,
-          username: formData.username.trim(),
-          authType: formData.authType,
-          password: formData.authType === 'password' ? formData.password : '',
-          keyPath: formData.authType === 'key' ? formData.keyPath : '',
-          keyContent: formData.authType === 'key' ? formData.keyContent : ''
-        }
-
-        if (window.electronAPI) {
-          const result = await window.electronAPI.sshConnect({
-            ...testSession,
-            authType: testSession.authType || 'password',
-            keyContent: testSession.authType === 'key' ? testSession.keyContent : undefined,
-            password: testSession.authType === 'password' ? testSession.password : undefined
-          })
-
-          if (result.success) {
-            emit('show-notification', '连接测试成功！配置有效', 'success')
-            // 立即断开测试连接
-            await window.electronAPI.sshDisconnect('current-test')
-          } else {
-            emit('show-notification', `连接测试失败: ${result.error}`, 'error')
-          }
-        }
-      } catch (error) {
-        console.error('连接测试失败:', error)
-        emit('show-notification', '连接测试失败', 'error')
-      } finally {
-        isTestingConnection.value = false
-      }
-    }
-
+  
     // 获取连接的连接测试结果
     const getTestResult = (sessionId) => {
       return connectionTestResults.value.get(sessionId)
@@ -771,7 +721,6 @@ export default {
       deleteSession,
       connectSession,
       testConnection,
-      testCurrentConnection,
       getTestResult,
       validateKeyFile,
       browseKeyFile,

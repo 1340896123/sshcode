@@ -12,7 +12,7 @@ export const useTheme = () => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   return {
@@ -28,7 +28,7 @@ export const useTheme = () => {
  * Hook for accessing CSS variables
  */
 export const useCSSVariables = () => {
-  const getVariable = (name) => {
+  const getVariable = name => {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   };
 

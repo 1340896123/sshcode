@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import axios from 'axios';
 
 // Type definitions
 interface SSHConnectionConfig {
@@ -47,7 +46,6 @@ interface AppConfig {
   };
 }
 
-
 let mainWindow: BrowserWindow | null = null;
 const sshConnections: Record<string, any> = {};
 const sshConnectionConfigs: Record<string, SSHConnectionConfig> = {};
@@ -63,7 +61,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-        preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'assets/icon.png'),
     titleBarStyle: 'default'
@@ -185,14 +183,18 @@ ipcMain.handle('ssh-connect', async (event, connectionConfig) => {
   const { Client } = require('ssh2');
   const conn = new Client();
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const connectConfig: any = {
       host: connectionConfig.host,
       port: connectionConfig.port || 22,
       username: connectionConfig.username,
       readyTimeout: 30000,
       algorithms: {
-        kex: ['diffie-hellman-group-exchange-sha256', 'diffie-hellman-group14-sha256', 'ecdh-sha2-nistp256'],
+        kex: [
+          'diffie-hellman-group-exchange-sha256',
+          'diffie-hellman-group14-sha256',
+          'ecdh-sha2-nistp256'
+        ],
         cipher: ['aes128-ctr', 'aes192-ctr', 'aes256-ctr'],
         serverHostKey: ['ssh-rsa', 'rsa-sha2-512', 'rsa-sha2-256', 'ssh-ed25519'],
         hmac: ['hmac-sha2-256', 'hmac-sha2-512', 'hmac-sha1']
@@ -202,7 +204,10 @@ ipcMain.handle('ssh-connect', async (event, connectionConfig) => {
     console.log('⚙️ [SSH-DEBUG] 基础连接配置准备完成');
 
     // 根据认证方式添加相应的认证信息
-    if (connectionConfig.authType === 'key' && (connectionConfig.keyContent || connectionConfig.privateKey)) {
+    if (
+      connectionConfig.authType === 'key' &&
+      (connectionConfig.keyContent || connectionConfig.privateKey)
+    ) {
       try {
         connectConfig.privateKey = connectionConfig.keyContent || connectionConfig.privateKey;
         console.log('🔑 [SSH-DEBUG] 使用密钥认证，密钥长度:', connectConfig.privateKey.length);
@@ -224,37 +229,46 @@ ipcMain.handle('ssh-connect', async (event, connectionConfig) => {
       return;
     }
 
-    console.log('🚀 [SSH-DEBUG] 开始建立SSH连接到:', `${connectConfig.username}@${connectConfig.host}:${connectConfig.port}`);
+    console.log(
+      '🚀 [SSH-DEBUG] 开始建立SSH连接到:',
+      `${connectConfig.username}@${connectConfig.host}:${connectConfig.port}`
+    );
 
-    conn.on('ready', () => {
-      console.log('✅ [SSH-DEBUG] SSH连接成功建立');
-      sshConnections[connectionConfig.id] = conn;
-      sshConnectionConfigs[connectionConfig.id] = { ...connectionConfig };
-      console.log('💾 [SSH-DEBUG] 连接已保存到连接池，当前连接数:', Object.keys(sshConnections).length);
-      resolve({ success: true, message: 'SSH连接成功' });
-    }).on('error', (err) => {
-      console.error('❌ [SSH-DEBUG] SSH连接错误:', {
-        message: err.message,
-        level: err.level,
-        code: err.code
-      });
+    conn
+      .on('ready', () => {
+        console.log('✅ [SSH-DEBUG] SSH连接成功建立');
+        sshConnections[connectionConfig.id] = conn;
+        sshConnectionConfigs[connectionConfig.id] = { ...connectionConfig };
+        console.log(
+          '💾 [SSH-DEBUG] 连接已保存到连接池，当前连接数:',
+          Object.keys(sshConnections).length
+        );
+        resolve({ success: true, message: 'SSH连接成功' });
+      })
+      .on('error', err => {
+        console.error('❌ [SSH-DEBUG] SSH连接错误:', {
+          message: err.message,
+          level: err.level,
+          code: err.code
+        });
 
-      let errorMessage = err.message;
+        let errorMessage = err.message;
 
-      // 提供更友好的错误信息
-      if (err.level === 'client-authentication') {
-        errorMessage = '认证失败，请检查用户名和密码/密钥';
-      } else if (err.code === 'ENOTFOUND') {
-        errorMessage = '主机地址无法解析，请检查主机名或IP地址';
-      } else if (err.code === 'ECONNREFUSED') {
-        errorMessage = '连接被拒绝，请检查主机地址和端口';
-      } else if (err.code === 'ETIMEDOUT') {
-        errorMessage = '连接超时，请检查网络连接';
-      }
+        // 提供更友好的错误信息
+        if (err.level === 'client-authentication') {
+          errorMessage = '认证失败，请检查用户名和密码/密钥';
+        } else if (err.code === 'ENOTFOUND') {
+          errorMessage = '主机地址无法解析，请检查主机名或IP地址';
+        } else if (err.code === 'ECONNREFUSED') {
+          errorMessage = '连接被拒绝，请检查主机地址和端口';
+        } else if (err.code === 'ETIMEDOUT') {
+          errorMessage = '连接超时，请检查网络连接';
+        }
 
-      console.log('📝 [SSH-DEBUG] 最终错误信息:', errorMessage);
-      resolve({ success: false, error: errorMessage });
-    }).connect(connectConfig);
+        console.log('📝 [SSH-DEBUG] 最终错误信息:', errorMessage);
+        resolve({ success: false, error: errorMessage });
+      })
+      .connect(connectConfig);
   });
 });
 
@@ -264,7 +278,7 @@ ipcMain.handle('ssh-execute', async (event, connectionId, command) => {
     return { success: false, error: 'SSH连接不存在' };
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     // 设置终端环境变量
     const execOptions = {
       env: {
@@ -288,13 +302,16 @@ ipcMain.handle('ssh-execute', async (event, connectionId, command) => {
       }
 
       let output = '';
-      stream.on('close', (code, signal) => {
-        resolve({ success: true, output, code, signal });
-      }).on('data', (data) => {
-        output += data.toString();
-      }).stderr.on('data', (data) => {
-        output += data.toString();
-      });
+      stream
+        .on('close', (code, signal) => {
+          resolve({ success: true, output, code, signal });
+        })
+        .on('data', data => {
+          output += data.toString();
+        })
+        .stderr.on('data', data => {
+          output += data.toString();
+        });
     });
   });
 });
@@ -309,7 +326,7 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
   }
 
   try {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const shellOptions = {
         rows: options.rows || 24,
         cols: options.cols || 80,
@@ -336,7 +353,7 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
 
         let outputBuffer = '';
 
-        stream.on('data', (data) => {
+        stream.on('data', data => {
           const output = data.toString();
           outputBuffer += output;
 
@@ -359,7 +376,7 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
           });
         });
 
-        stream.stderr.on('data', (data) => {
+        stream.stderr.on('data', data => {
           const output = data.toString();
           outputBuffer += output;
 
@@ -383,7 +400,7 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
           });
         });
 
-        stream.on('error', (err) => {
+        stream.on('error', err => {
           console.error(`SSH Shell会话错误: ${connectionId}`, err);
           delete sshShells[connectionId];
 
@@ -514,7 +531,8 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
       return { success: true, files: list };
     } catch (pathErr) {
       // 如果路径不存在，尝试备选路径
-      if (pathErr.code === 2) { // SSH_FX_NO_SUCH_FILE
+      if (pathErr.code === 2) {
+        // SSH_FX_NO_SUCH_FILE
         console.log(`路径 ${targetPath} 不存在，尝试备选路径`);
 
         let fallbackPath = '/';
@@ -645,61 +663,6 @@ ipcMain.handle('saveConfig', async (event, config) => {
     return result;
   } catch (error) {
     return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('testAIConnection', async (event, aiConfig) => {
-  try {
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-
-    if (aiConfig.provider === 'openai') {
-      headers['Authorization'] = `Bearer ${aiConfig.apiKey}`;
-    } else if (aiConfig.provider === 'anthropic') {
-      headers['x-api-key'] = aiConfig.apiKey;
-      headers['anthropic-version'] = '2023-06-01';
-    } else {
-      headers['Authorization'] = `Bearer ${aiConfig.apiKey}`;
-    }
-
-    const response = await axios.post(
-      `${aiConfig.baseUrl}/chat/completions`,
-      {
-        model: aiConfig.model,
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello, this is a connection test. Please respond with "Connection successful".'
-          }
-        ],
-        max_tokens: 10,
-        temperature: 0.1
-      },
-      {
-        headers,
-        timeout: 10000
-      }
-    );
-
-    if (response.data && response.data.choices && response.data.choices.length > 0) {
-      return { success: true, message: 'AI连接测试成功' };
-    } else {
-      return { success: false, error: 'AI响应格式异常' };
-    }
-  } catch (error) {
-    console.error('AI连接测试失败:', error);
-    let errorMessage = 'AI连接测试失败';
-
-    if (error.response) {
-      errorMessage = `API错误: ${error.response.status} - ${error.response.data?.error?.message || error.response.statusText}`;
-    } else if (error.request) {
-      errorMessage = '网络连接失败，请检查URL和网络';
-    } else {
-      errorMessage = error.message;
-    }
-
-    return { success: false, error: errorMessage };
   }
 });
 
