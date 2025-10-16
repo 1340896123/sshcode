@@ -23,7 +23,9 @@
               <span class="connection-status" :class="{ connected: isConnected }">
                 {{ isConnected ? '已连接' : '离线' }}
               </span>
-              <span class="connection-details">{{ connection.username }}@{{ connection.host }}</span>
+              <span class="connection-details"
+                >{{ connection.username }}@{{ connection.host }}</span
+              >
             </div>
           </div>
         </div>
@@ -32,7 +34,9 @@
           <!-- 清除按钮 - 在标题同一排最右边 -->
           <button class="header-clear-btn" @click="clearChatLocal" title="清空聊天记录">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6"/>
+              <path
+                d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6"
+              />
             </svg>
             <span class="clear-text">清空</span>
           </button>
@@ -115,7 +119,9 @@
               </div>
               <div class="message-avatar user-avatar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
+                  <path
+                    d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
+                  />
                 </svg>
               </div>
             </div>
@@ -158,7 +164,10 @@
             />
 
             <!-- 其他系统消息（如果有内容才显示） -->
-            <div v-else-if="message.role === 'system' && message.content && message.content.trim()" class="system-message">
+            <div
+              v-else-if="message.role === 'system' && message.content && message.content.trim()"
+              class="system-message"
+            >
               <div class="system-content">
                 <div class="system-text" v-html="renderMarkdown(message.content)"></div>
                 <div class="system-time">{{ formatTime(message.timestamp) }}</div>
@@ -204,7 +213,7 @@
               :class="{ active: canSendMessage }"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
               </svg>
             </button>
           </div>
@@ -229,14 +238,14 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch, provide } from 'vue'
-import { useAIChat } from '../composables/useAIChat'
-import { useMessageFormatter } from '@/composables/useMessageFormatter'
-import { useChatExport } from '@/composables/useChatExport'
-import { QUICK_ACTIONS } from '../constants/aiConstants'
-import MarkdownIt from 'markdown-it'
-import CommandExecution from './ai/CommandExecution.vue'
-import { useAIStore } from '../stores/ai.js'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch, provide } from 'vue';
+import { useAIChat } from '../composables/useAIChat';
+import { useMessageFormatter } from '@/composables/useMessageFormatter';
+import { useChatExport } from '@/composables/useChatExport';
+import { QUICK_ACTIONS } from '../constants/aiConstants';
+import MarkdownIt from 'markdown-it';
+import CommandExecution from './ai/CommandExecution.vue';
+import { useAIStore } from '../stores/ai.js';
 
 export default {
   name: 'AIAssistant',
@@ -256,20 +265,20 @@ export default {
   emits: ['show-notification', 'execute-command', 'show-settings'],
   setup(props, { emit: emitEvent }) {
     // 获取完整的AI聊天状态以提供给子组件
-    const aiChatState = useAIChat(props, emitEvent)
+    const aiChatState = useAIChat(props, emitEvent);
 
     // 提供AI聊天上下文给子组件
-    provide('aiChatContext', aiChatState)
+    provide('aiChatContext', aiChatState);
 
     // 引用
-    const chatArea = ref(null)
-    const messageInput = ref(null)
+    const chatArea = ref(null);
+    const messageInput = ref(null);
 
     // 折叠状态管理
-    const collapsedMessages = ref(new Set())
+    const collapsedMessages = ref(new Set());
 
     // 工具消息缓存，防止重复检测和渲染
-    const renderedToolMessages = ref(new Set())
+    const renderedToolMessages = ref(new Set());
 
     // Markdown 渲染器
     const md = new MarkdownIt({
@@ -285,17 +294,17 @@ export default {
               <button class="copy-code-btn" onclick="this.parentElement.nextElementSibling.textContent.select(); document.execCommand('copy'); this.textContent='已复制!'; setTimeout(() => this.textContent='复制', 1000)">复制</button>
             </div>
             <pre class="code-block language-${lang}"><code class="language-${lang}">${code}</code></pre>
-          </div>`
+          </div>`;
         }
-        return `<pre class="code-block"><code>${code}</code></pre>`
+        return `<pre class="code-block"><code>${code}</code></pre>`;
       }
-    })
+    });
 
     // 渲染Markdown内容
-    const renderMarkdown = (content) => {
+    const renderMarkdown = content => {
       try {
         if (!content || typeof content !== 'string') {
-          return content || ''
+          return content || '';
         }
 
         // 基本的安全清理
@@ -303,28 +312,28 @@ export default {
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
           .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
           .replace(/javascript:/gi, '')
-          .replace(/on\w+\s*=/gi, '')
+          .replace(/on\w+\s*=/gi, '');
 
-        return md.render(cleanContent)
+        return md.render(cleanContent);
       } catch (error) {
-        console.error('Markdown渲染错误:', error)
+        console.error('Markdown渲染错误:', error);
         // 降级到简单的文本处理
         return content
           .replace(/\n/g, '<br>')
           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*(.*?)\*/g, '<em>$1</em>')
-          .replace(/`(.*?)`/g, '<code>$1</code>')
+          .replace(/`(.*?)`/g, '<code>$1</code>');
       }
-    }
+    };
 
     // 初始化工具调用的默认折叠状态
     const initializeCollapsedMessages = () => {
       messages.value.forEach(message => {
         if (message.defaultCollapsed) {
-          collapsedMessages.value.add(message.id)
+          collapsedMessages.value.add(message.id);
         }
-      })
-    }
+      });
+    };
 
     // 使用组合式函数 - aiChatState已包含所有需要的状态
     const {
@@ -337,18 +346,18 @@ export default {
       executeAction,
       clearChat,
       addUserInput
-    } = aiChatState
+    } = aiChatState;
 
-    const { formatMessage, formatTime } = useMessageFormatter()
-    const { exportChat } = useChatExport(messages, emitEvent)
+    const { formatMessage, formatTime } = useMessageFormatter();
+    const { exportChat } = useChatExport(messages, emitEvent);
 
     // 计算属性
     const canSendMessage = computed(() => {
-      return userInput.value.trim() && !isProcessing.value
-    })
+      return userInput.value.trim() && !isProcessing.value;
+    });
 
     // 快捷操作
-    const quickActions = computed(() => QUICK_ACTIONS)
+    const quickActions = computed(() => QUICK_ACTIONS);
 
     // 新增：入门提示语
     const starterPrompts = computed(() => [
@@ -372,131 +381,133 @@ export default {
         label: '检查网络状态',
         text: '检查网络连接状态，包括网络接口信息和开放的端口'
       }
-    ])
+    ]);
 
     // 发送消息
     const sendMessage = async () => {
-      await sendAIMessage()
-      await nextTick()
-      scrollToBottom()
-    }
+      await sendAIMessage();
+      await nextTick();
+      scrollToBottom();
+    };
 
     // 快捷命令插入
-    const insertQuickCommand = (command) => {
-      userInput.value = command
-      messageInput.value?.focus()
-    }
+    const insertQuickCommand = command => {
+      userInput.value = command;
+      messageInput.value?.focus();
+    };
 
     // 键盘事件处理
-    const handleKeyDown = (event) => {
+    const handleKeyDown = event => {
       if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault()
-        sendMessage()
+        event.preventDefault();
+        sendMessage();
       }
-    }
+    };
 
     // 处理输入
     const handleInput = () => {
-      adjustTextareaHeight()
-    }
+      adjustTextareaHeight();
+    };
 
     // 自动调整文本框高度
     const adjustTextareaHeight = () => {
-      const textarea = messageInput.value
+      const textarea = messageInput.value;
       if (textarea) {
-        textarea.style.height = 'auto'
-        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
       }
-    }
+    };
 
     // 滚动到底部
     const scrollToBottom = () => {
-      const chatElement = chatArea.value
+      const chatElement = chatArea.value;
       if (chatElement) {
-        chatElement.scrollTop = chatElement.scrollHeight
+        chatElement.scrollTop = chatElement.scrollHeight;
       }
-    }
+    };
 
     // 处理外部文本输入
-    const handleExternalText = (event) => {
+    const handleExternalText = event => {
       if (event.detail?.text && event.detail.connectionId === props.connectionId) {
-        addUserInput(event.detail.text)
+        addUserInput(event.detail.text);
       }
-    }
+    };
 
     // 处理AI配置需求事件
-    const handleAIConfigRequired = (event) => {
-      emitEvent('show-settings')
-      emitEvent('show-notification', event.detail?.message || '请先配置AI服务设置', 'error')
-    }
+    const handleAIConfigRequired = event => {
+      emitEvent('show-settings');
+      emitEvent('show-notification', event.detail?.message || '请先配置AI服务设置', 'error');
+    };
 
     // 折叠/展开消息
-    const toggleCollapse = (messageId) => {
+    const toggleCollapse = messageId => {
       if (collapsedMessages.value.has(messageId)) {
-        collapsedMessages.value.delete(messageId)
+        collapsedMessages.value.delete(messageId);
       } else {
-        collapsedMessages.value.add(messageId)
+        collapsedMessages.value.add(messageId);
       }
-    }
+    };
 
     // 复制到剪贴板
-    const copyToClipboard = async (text) => {
+    const copyToClipboard = async text => {
       try {
-        await navigator.clipboard.writeText(text)
-        emitEvent('show-notification', '已复制到剪贴板', 'success')
+        await navigator.clipboard.writeText(text);
+        emitEvent('show-notification', '已复制到剪贴板', 'success');
       } catch (error) {
-        console.error('复制失败:', error)
-        emitEvent('show-notification', '复制失败', 'error')
+        console.error('复制失败:', error);
+        emitEvent('show-notification', '复制失败', 'error');
       }
-    }
+    };
 
     // 处理复制通知（来自CommandExecution组件）
     const handleCopyNotification = (message, type = 'success') => {
-      emitEvent('show-notification', message, type)
-    }
+      emitEvent('show-notification', message, type);
+    };
 
     // 处理重试命令
-    const handleRetryCommand = (command) => {
-      emitEvent('execute-command', command)
-      addMessage('assistant', `🔄 重试执行命令: \`${command}\``)
-    }
+    const handleRetryCommand = command => {
+      emitEvent('execute-command', command);
+      addMessage('assistant', `🔄 重试执行命令: \`${command}\``);
+    };
 
     // 获取实时输出
-    const getRealtimeOutput = (message) => {
+    const getRealtimeOutput = message => {
       // 对于正在执行的工具调用，从状态管理中获取实时输出
       if (message.type === 'tool-start' && message.metadata?.toolCallId) {
-        return aiChatState.getRealtimeOutput(message.metadata.toolCallId)
+        return aiChatState.getRealtimeOutput(message.metadata.toolCallId);
       }
-      return ''
-    }
+      return '';
+    };
 
     // 判断是否应该显示实时输出
-    const shouldShowRealtimeOutput = (message) => {
-      return message.type === 'tool-start' &&
-             activeToolCall.value?.id === message.metadata?.toolCallId &&
-             aiChatState.getRealtimeOutput(message.metadata.toolCallId).length > 0
-    }
+    const shouldShowRealtimeOutput = message => {
+      return (
+        message.type === 'tool-start' &&
+        activeToolCall.value?.id === message.metadata?.toolCallId &&
+        aiChatState.getRealtimeOutput(message.metadata.toolCallId).length > 0
+      );
+    };
 
     // 判断消息是否为工具类型（完全独立于role）
-    const isToolMessage = (message) => {
+    const isToolMessage = message => {
       // 首先检查是否为工具调用相关的消息类型
-      const isTool = message.type && (
-        message.type === 'tool-start' ||
-        message.type === 'tool-end' ||
-        message.type === 'tool-output' ||
-        message.type === 'tool-complete' ||
-        message.type === 'tool-error' ||
-        message.type === 'tool-result' ||
-        message.type.startsWith('tool-')
-      )
+      const isTool =
+        message.type &&
+        (message.type === 'tool-start' ||
+          message.type === 'tool-end' ||
+          message.type === 'tool-output' ||
+          message.type === 'tool-complete' ||
+          message.type === 'tool-error' ||
+          message.type === 'tool-result' ||
+          message.type.startsWith('tool-'));
 
       if (isTool) {
-        return true
+        return true;
       }
 
       // 明确排除非工具消息
       if (message.role === 'user' || message.role === 'assistant') {
-        return false
+        return false;
       }
 
       // 对于其他role为system的消息，检查是否包含工具调用相关内容
@@ -505,24 +516,23 @@ export default {
           message.content.includes('正在执行命令') ||
           message.content.includes('命令执行完成') ||
           message.content.includes('命令执行失败') ||
-          message.metadata?.toolCallId
+          message.metadata?.toolCallId;
 
-        return hasToolContent
+        return hasToolContent;
       }
 
-      return false
-    }
+      return false;
+    };
 
     // 生命周期
     onMounted(() => {
       nextTick(() => {
-        messageInput.value?.focus()
-      })
+        messageInput.value?.focus();
+      });
 
       // 初始化工具调用的默认折叠状态
-      initializeCollapsedMessages()
-
-    })
+      initializeCollapsedMessages();
+    });
 
     // 本地清空聊天函数
     const clearChatLocal = () => {
@@ -530,25 +540,25 @@ export default {
       if (messages.value.length > 0) {
         if (confirm('确定要清空所有聊天记录吗？此操作不可撤销。')) {
           // 调用原始的clearChat函数
-          clearChat()
+          clearChat();
           // 清理工具消息缓存
-          renderedToolMessages.value.clear()
-          emitEvent('show-notification', '聊天记录已清空', 'success')
+          renderedToolMessages.value.clear();
+          emitEvent('show-notification', '聊天记录已清空', 'success');
         }
       } else {
         // 如果没有消息，直接清空缓存
-        renderedToolMessages.value.clear()
-        emitEvent('show-notification', '聊天记录已经是空的', 'info')
+        renderedToolMessages.value.clear();
+        emitEvent('show-notification', '聊天记录已经是空的', 'info');
       }
-    }
+    };
 
     // 手动清理工具消息缓存（用于调试）
     const clearToolMessageCache = () => {
-      renderedToolMessages.value.clear()
-    }
+      renderedToolMessages.value.clear();
+    };
 
     // 监听连接变化
-    watch(() => props.connectionId, clearChatLocal)
+    watch(() => props.connectionId, clearChatLocal);
 
     return {
       // 状态
@@ -590,9 +600,9 @@ export default {
       isToolMessage,
       initializeCollapsedMessages,
       renderMarkdown
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>

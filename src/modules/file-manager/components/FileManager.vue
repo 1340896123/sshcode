@@ -3,18 +3,10 @@
     <!-- 文件管理工具栏 -->
     <div class="file-toolbar">
       <div class="navigation-controls">
-        <button class="nav-btn" @click="goBack" :disabled="!canGoBack" title="后退">
-          ←
-        </button>
-        <button class="nav-btn" @click="goForward" :disabled="!canGoForward" title="前进">
-          →
-        </button>
-        <button class="nav-btn" @click="goHome" title="主目录">
-          🏠
-        </button>
-        <button class="nav-btn" @click="refreshDirectory" title="刷新">
-          🔄
-        </button>
+        <button class="nav-btn" @click="goBack" :disabled="!canGoBack" title="后退">←</button>
+        <button class="nav-btn" @click="goForward" :disabled="!canGoForward" title="前进">→</button>
+        <button class="nav-btn" @click="goHome" title="主目录">🏠</button>
+        <button class="nav-btn" @click="refreshDirectory" title="刷新">🔄</button>
       </div>
 
       <div class="current-path">
@@ -28,15 +20,11 @@
       </div>
 
       <div class="file-actions">
-        <button class="action-btn" @click="createNewFile" title="新建文件">
-          📄 新建
-        </button>
+        <button class="action-btn" @click="createNewFile" title="新建文件">📄 新建</button>
         <button class="action-btn" @click="createNewDirectory" title="新建目录">
           📁 新建文件夹
         </button>
-        <button class="action-btn" @click="uploadFile" title="上传文件">
-          ⬆️ 上传
-        </button>
+        <button class="action-btn" @click="uploadFile" title="上传文件">⬆️ 上传</button>
       </div>
     </div>
 
@@ -92,7 +80,11 @@
             <div class="file-date">{{ formatDate(file.modifyTime) }}</div>
           </div>
           <div class="file-actions-overlay">
-            <button class="mini-action-btn" @click.stop="navigateToDirectory(file.name)" title="打开">
+            <button
+              class="mini-action-btn"
+              @click.stop="navigateToDirectory(file.name)"
+              title="打开"
+            >
               👁️
             </button>
             <button class="mini-action-btn" @click.stop="renameItem(file)" title="重命名">
@@ -132,9 +124,7 @@
             <button class="mini-action-btn" @click.stop="downloadFile(file)" title="下载">
               ⬇️
             </button>
-            <button class="mini-action-btn" @click.stop="openFile(file)" title="打开">
-              👁️
-            </button>
+            <button class="mini-action-btn" @click.stop="openFile(file)" title="打开">👁️</button>
             <button class="mini-action-btn" @click.stop="renameItem(file)" title="重命名">
               ✏️
             </button>
@@ -149,12 +139,8 @@
     <!-- 状态栏 -->
     <div class="file-status-bar">
       <div class="status-info">
-        <span v-if="selectedFiles.size > 0">
-          已选择 {{ selectedFiles.size }} 个项目
-        </span>
-        <span v-else>
-          {{ directories.length }} 个目录，{{ regularFiles.length }} 个文件
-        </span>
+        <span v-if="selectedFiles.size > 0"> 已选择 {{ selectedFiles.size }} 个项目 </span>
+        <span v-else> {{ directories.length }} 个目录，{{ regularFiles.length }} 个文件 </span>
       </div>
       <div class="status-actions">
         <button
@@ -192,23 +178,25 @@
       :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
       @click.stop
     >
-      <div class="context-menu-item" @click="contextMenuAction('open')" v-if="!contextMenu.item?.type?.includes('dir')">
+      <div
+        class="context-menu-item"
+        @click="contextMenuAction('open')"
+        v-if="!contextMenu.item?.type?.includes('dir')"
+      >
         👁️ 打开
       </div>
-      <div class="context-menu-item" @click="contextMenuAction('download')" v-if="!contextMenu.item?.type?.includes('dir')">
+      <div
+        class="context-menu-item"
+        @click="contextMenuAction('download')"
+        v-if="!contextMenu.item?.type?.includes('dir')"
+      >
         ⬇️ 下载
       </div>
-      <div class="context-menu-item" @click="contextMenuAction('rename')">
-        ✏️ 重命名
-      </div>
+      <div class="context-menu-item" @click="contextMenuAction('rename')">✏️ 重命名</div>
       <div class="context-menu-separator" v-if="!contextMenu.item?.type?.includes('dir')"></div>
-      <div class="context-menu-item danger" @click="contextMenuAction('delete')">
-        🗑️ 删除
-      </div>
+      <div class="context-menu-item danger" @click="contextMenuAction('delete')">🗑️ 删除</div>
       <div class="context-menu-separator"></div>
-      <div class="context-menu-item" @click="contextMenuAction('properties')">
-        ℹ️ 属性
-      </div>
+      <div class="context-menu-item" @click="contextMenuAction('properties')">ℹ️ 属性</div>
     </div>
 
     <!-- 新建文件/目录对话框 -->
@@ -279,7 +267,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 
 export default {
   name: 'FileManager',
@@ -296,13 +284,13 @@ export default {
   emits: ['show-notification', 'execute-command'],
   setup(props, { emit }) {
     // 状态管理
-    const files = ref([])
-    const currentPath = ref('/')
-    const loading = ref(false)
-    const error = ref('')
-    const selectedFiles = ref(new Set())
-    const navigationHistory = ref([])
-    const historyIndex = ref(-1)
+    const files = ref([]);
+    const currentPath = ref('/');
+    const loading = ref(false);
+    const error = ref('');
+    const selectedFiles = ref(new Set());
+    const navigationHistory = ref([]);
+    const historyIndex = ref(-1);
 
     // 右键菜单状态
     const contextMenu = reactive({
@@ -310,432 +298,465 @@ export default {
       x: 0,
       y: 0,
       item: null
-    })
+    });
 
     // 新建项目模态框
     const newItemModal = reactive({
       show: false,
       type: 'file', // 'file' or 'directory'
       name: ''
-    })
+    });
 
     // 重命名模态框
     const renameModal = reactive({
       show: false,
       item: null,
       newName: ''
-    })
+    });
 
     // 拖拽状态
     const dragOverlay = reactive({
       show: false
-    })
+    });
 
     // 计算属性
     const directories = computed(() => {
-      return files.value.filter(file => file.type === 'd' || file.type?.includes('dir')).sort((a, b) => a.name.localeCompare(b.name))
-    })
+      return files.value
+        .filter(file => file.type === 'd' || file.type?.includes('dir'))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    });
 
     const regularFiles = computed(() => {
-      return files.value.filter(file => file.type !== 'd' && !file.type?.includes('dir')).sort((a, b) => a.name.localeCompare(b.name))
-    })
+      return files.value
+        .filter(file => file.type !== 'd' && !file.type?.includes('dir'))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    });
 
-    const canGoBack = computed(() => historyIndex.value > 0)
-    const canGoForward = computed(() => historyIndex.value < navigationHistory.value.length - 1)
+    const canGoBack = computed(() => historyIndex.value > 0);
+    const canGoForward = computed(() => historyIndex.value < navigationHistory.value.length - 1);
 
     // 加载文件列表
     const loadFileList = async (path = currentPath.value) => {
-      if (!props.connectionId) return
+      if (!props.connectionId) return;
 
-      loading.value = true
-      error.value = ''
+      loading.value = true;
+      error.value = '';
 
       try {
         if (window.electronAPI) {
-          const result = await window.electronAPI.getFileList(props.connectionId, path)
+          const result = await window.electronAPI.getFileList(props.connectionId, path);
           if (result.success) {
-            files.value = result.files || []
-            
+            files.value = result.files || [];
+
             // 如果返回了备选路径，使用备选路径
             if (result.fallbackPath) {
-              currentPath.value = result.fallbackPath
-              emit('show-notification', `路径 ${path} 不存在，已自动切换到 ${result.fallbackPath}`, 'warning')
+              currentPath.value = result.fallbackPath;
+              emit(
+                'show-notification',
+                `路径 ${path} 不存在，已自动切换到 ${result.fallbackPath}`,
+                'warning'
+              );
             } else {
-              currentPath.value = path
+              currentPath.value = path;
             }
 
             // 更新导航历史
-            if (historyIndex.value === -1 || navigationHistory.value[historyIndex.value] !== currentPath.value) {
-              navigationHistory.value = navigationHistory.value.slice(0, historyIndex.value + 1)
-              navigationHistory.value.push(currentPath.value)
-              historyIndex.value = navigationHistory.value.length - 1
+            if (
+              historyIndex.value === -1 ||
+              navigationHistory.value[historyIndex.value] !== currentPath.value
+            ) {
+              navigationHistory.value = navigationHistory.value.slice(0, historyIndex.value + 1);
+              navigationHistory.value.push(currentPath.value);
+              historyIndex.value = navigationHistory.value.length - 1;
             }
           } else {
-            error.value = result.error || '加载文件列表失败'
-            emit('show-notification', `加载文件列表失败: ${error.value}`, 'error')
+            error.value = result.error || '加载文件列表失败';
+            emit('show-notification', `加载文件列表失败: ${error.value}`, 'error');
           }
         } else {
           // ElectronAPI不可用时显示错误
-          error.value = 'ElectronAPI不可用，请在Electron环境中运行应用'
-          emit('show-notification', 'ElectronAPI不可用，请在Electron环境中运行应用', 'error')
+          error.value = 'ElectronAPI不可用，请在Electron环境中运行应用';
+          emit('show-notification', 'ElectronAPI不可用，请在Electron环境中运行应用', 'error');
         }
       } catch (err) {
-        error.value = err.message || '加载文件列表时发生异常'
-        emit('show-notification', `加载文件列表异常: ${error.value}`, 'error')
+        error.value = err.message || '加载文件列表时发生异常';
+        emit('show-notification', `加载文件列表异常: ${error.value}`, 'error');
       } finally {
-        loading.value = false
+        loading.value = false;
       }
-    }
+    };
 
     // 移除模拟文件列表函数，现在使用真实的SSH文件操作
 
     // 导航方法
-    const navigateToDirectory = (dirName) => {
-      const newPath = currentPath.value === '/' ? `/${dirName}` : `${currentPath.value}/${dirName}`
-      loadFileList(newPath)
-    }
+    const navigateToDirectory = dirName => {
+      const newPath = currentPath.value === '/' ? `/${dirName}` : `${currentPath.value}/${dirName}`;
+      loadFileList(newPath);
+    };
 
     const navigateToParentDirectory = () => {
-      if (currentPath.value === '/') return
+      if (currentPath.value === '/') return;
 
-      const parentPath = currentPath.value.split('/').slice(0, -1).join('/') || '/'
-      loadFileList(parentPath)
-    }
+      const parentPath = currentPath.value.split('/').slice(0, -1).join('/') || '/';
+      loadFileList(parentPath);
+    };
 
     const navigateToPath = () => {
-      loadFileList(currentPath.value)
-    }
+      loadFileList(currentPath.value);
+    };
 
     const goBack = () => {
       if (canGoBack.value) {
-        historyIndex.value--
-        loadFileList(navigationHistory.value[historyIndex.value])
+        historyIndex.value--;
+        loadFileList(navigationHistory.value[historyIndex.value]);
       }
-    }
+    };
 
     const goForward = () => {
       if (canGoForward.value) {
-        historyIndex.value++
-        loadFileList(navigationHistory.value[historyIndex.value])
+        historyIndex.value++;
+        loadFileList(navigationHistory.value[historyIndex.value]);
       }
-    }
+    };
 
     const goHome = () => {
       // 根据用户名确定主目录路径
-      const homePath = props.connection.username === 'root' ? '/root' : `/home/${props.connection.username}`
-      loadFileList(homePath)
-    }
+      const homePath =
+        props.connection.username === 'root' ? '/root' : `/home/${props.connection.username}`;
+      loadFileList(homePath);
+    };
 
     const refreshDirectory = () => {
-      loadFileList(currentPath.value)
-    }
+      loadFileList(currentPath.value);
+    };
 
     // 文件选择
     const toggleFileSelection = (fileName, event) => {
       if (event.ctrlKey || event.metaKey) {
         // 多选
         if (selectedFiles.value.has(fileName)) {
-          selectedFiles.value.delete(fileName)
+          selectedFiles.value.delete(fileName);
         } else {
-          selectedFiles.value.add(fileName)
+          selectedFiles.value.add(fileName);
         }
       } else {
         // 单选
-        selectedFiles.value.clear()
-        selectedFiles.value.add(fileName)
+        selectedFiles.value.clear();
+        selectedFiles.value.add(fileName);
       }
-    }
+    };
 
     const clearSelection = () => {
-      selectedFiles.value.clear()
-    }
+      selectedFiles.value.clear();
+    };
 
     // 文件操作
-    const openFile = (file) => {
+    const openFile = file => {
       if (file.type?.includes('dir')) {
-        navigateToDirectory(file.name)
+        navigateToDirectory(file.name);
       } else {
-        downloadAndOpenFile(file)
+        downloadAndOpenFile(file);
       }
-    }
+    };
 
-    const downloadFile = async (file) => {
+    const downloadFile = async file => {
       try {
-        emit('show-notification', '正在下载文件...', 'info')
+        emit('show-notification', '正在下载文件...', 'info');
 
         if (window.electronAPI) {
-          const remotePath = currentPath.value === '/' ? `/${file.name}` : `${currentPath.value}/${file.name}`
-          const result = await window.electronAPI.downloadFile(props.connectionId, remotePath)
+          const remotePath =
+            currentPath.value === '/' ? `/${file.name}` : `${currentPath.value}/${file.name}`;
+          const result = await window.electronAPI.downloadFile(props.connectionId, remotePath);
 
           if (result.success) {
-            emit('show-notification', `${file.name} 下载完成`, 'success')
+            emit('show-notification', `${file.name} 下载完成`, 'success');
           } else {
-            emit('show-notification', `下载失败: ${result.error}`, 'error')
+            emit('show-notification', `下载失败: ${result.error}`, 'error');
           }
         } else {
-          emit('show-notification', 'ElectronAPI不可用，无法下载文件', 'error')
+          emit('show-notification', 'ElectronAPI不可用，无法下载文件', 'error');
         }
       } catch (err) {
-        emit('show-notification', `下载文件失败: ${err.message}`, 'error')
+        emit('show-notification', `下载文件失败: ${err.message}`, 'error');
       }
-    }
+    };
 
-    const downloadAndOpenFile = async (file) => {
+    const downloadAndOpenFile = async file => {
       try {
-        emit('show-notification', '正在下载并打开文件...', 'info')
+        emit('show-notification', '正在下载并打开文件...', 'info');
 
         if (window.electronAPI) {
-          const remotePath = currentPath.value === '/' ? `/${file.name}` : `${currentPath.value}/${file.name}`
-          const result = await window.electronAPI.downloadAndOpenFile(props.connectionId, remotePath)
+          const remotePath =
+            currentPath.value === '/' ? `/${file.name}` : `${currentPath.value}/${file.name}`;
+          const result = await window.electronAPI.downloadAndOpenFile(
+            props.connectionId,
+            remotePath
+          );
 
           if (result.success) {
-            emit('show-notification', `${file.name} 已打开`, 'success')
+            emit('show-notification', `${file.name} 已打开`, 'success');
           } else {
-            emit('show-notification', `打开文件失败: ${result.error}`, 'error')
+            emit('show-notification', `打开文件失败: ${result.error}`, 'error');
           }
         } else {
-          emit('show-notification', 'ElectronAPI不可用，无法打开文件', 'error')
+          emit('show-notification', 'ElectronAPI不可用，无法打开文件', 'error');
         }
       } catch (err) {
-        emit('show-notification', `打开文件失败: ${err.message}`, 'error')
+        emit('show-notification', `打开文件失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     const uploadFile = async () => {
       try {
         if (window.electronAPI) {
-          const result = await window.electronAPI.selectAndUploadFile(props.connectionId, currentPath.value)
+          const result = await window.electronAPI.selectAndUploadFile(
+            props.connectionId,
+            currentPath.value
+          );
 
           if (result.success) {
-            emit('show-notification', '文件上传成功', 'success')
-            refreshDirectory()
+            emit('show-notification', '文件上传成功', 'success');
+            refreshDirectory();
           } else {
-            emit('show-notification', `上传失败: ${result.error}`, 'error')
+            emit('show-notification', `上传失败: ${result.error}`, 'error');
           }
         } else {
-          emit('show-notification', 'ElectronAPI不可用，无法上传文件', 'error')
+          emit('show-notification', 'ElectronAPI不可用，无法上传文件', 'error');
         }
       } catch (err) {
-        emit('show-notification', `上传文件失败: ${err.message}`, 'error')
+        emit('show-notification', `上传文件失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     // 新建文件/目录
     const createNewFile = () => {
-      newItemModal.type = 'file'
-      newItemModal.name = ''
-      newItemModal.show = true
+      newItemModal.type = 'file';
+      newItemModal.name = '';
+      newItemModal.show = true;
       nextTick(() => {
-        document.querySelector('[ref="newItemInput"]')?.focus()
-      })
-    }
+        document.querySelector('[ref="newItemInput"]')?.focus();
+      });
+    };
 
     const createNewDirectory = () => {
-      newItemModal.type = 'directory'
-      newItemModal.name = ''
-      newItemModal.show = true
+      newItemModal.type = 'directory';
+      newItemModal.name = '';
+      newItemModal.show = true;
       nextTick(() => {
-        document.querySelector('[ref="newItemInput"]')?.focus()
-      })
-    }
+        document.querySelector('[ref="newItemInput"]')?.focus();
+      });
+    };
 
     const confirmCreateNewItem = async () => {
       if (!newItemModal.name.trim()) {
-        emit('show-notification', '名称不能为空', 'warning')
-        return
+        emit('show-notification', '名称不能为空', 'warning');
+        return;
       }
 
       try {
-        const command = newItemModal.type === 'directory'
-          ? `mkdir -p "${currentPath.value}/${newItemModal.name}"`
-          : `touch "${currentPath.value}/${newItemModal.name}"`
+        const command =
+          newItemModal.type === 'directory'
+            ? `mkdir -p "${currentPath.value}/${newItemModal.name}"`
+            : `touch "${currentPath.value}/${newItemModal.name}"`;
 
-        emit('execute-command', command)
-        emit('show-notification', `${newItemModal.type === 'directory' ? '目录' : '文件'}创建成功`, 'success')
-        closeNewItemModal()
-        refreshDirectory()
+        emit('execute-command', command);
+        emit(
+          'show-notification',
+          `${newItemModal.type === 'directory' ? '目录' : '文件'}创建成功`,
+          'success'
+        );
+        closeNewItemModal();
+        refreshDirectory();
       } catch (err) {
-        emit('show-notification', `创建失败: ${err.message}`, 'error')
+        emit('show-notification', `创建失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     const closeNewItemModal = () => {
-      newItemModal.show = false
-      newItemModal.name = ''
-    }
+      newItemModal.show = false;
+      newItemModal.name = '';
+    };
 
     // 重命名
-    const renameItem = (item) => {
-      renameModal.item = item
-      renameModal.newName = item.name
-      renameModal.show = true
+    const renameItem = item => {
+      renameModal.item = item;
+      renameModal.newName = item.name;
+      renameModal.show = true;
       nextTick(() => {
-        document.querySelector('[ref="renameInput"]')?.focus()
-        document.querySelector('[ref="renameInput"]')?.select()
-      })
-    }
+        document.querySelector('[ref="renameInput"]')?.focus();
+        document.querySelector('[ref="renameInput"]')?.select();
+      });
+    };
 
     const confirmRename = async () => {
       if (!renameModal.newName.trim() || renameModal.newName === renameModal.item.name) {
-        closeRenameModal()
-        return
+        closeRenameModal();
+        return;
       }
 
       try {
-        const oldPath = currentPath.value === '/' ? `/${renameModal.item.name}` : `${currentPath.value}/${renameModal.item.name}`
-        const newPath = currentPath.value === '/' ? `/${renameModal.newName}` : `${currentPath.value}/${renameModal.newName}`
-        const command = `mv "${oldPath}" "${newPath}"`
+        const oldPath =
+          currentPath.value === '/'
+            ? `/${renameModal.item.name}`
+            : `${currentPath.value}/${renameModal.item.name}`;
+        const newPath =
+          currentPath.value === '/'
+            ? `/${renameModal.newName}`
+            : `${currentPath.value}/${renameModal.newName}`;
+        const command = `mv "${oldPath}" "${newPath}"`;
 
-        emit('execute-command', command)
-        emit('show-notification', '重命名成功', 'success')
-        closeRenameModal()
-        refreshDirectory()
+        emit('execute-command', command);
+        emit('show-notification', '重命名成功', 'success');
+        closeRenameModal();
+        refreshDirectory();
       } catch (err) {
-        emit('show-notification', `重命名失败: ${err.message}`, 'error')
+        emit('show-notification', `重命名失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     const closeRenameModal = () => {
-      renameModal.show = false
-      renameModal.item = null
-      renameModal.newName = ''
-    }
+      renameModal.show = false;
+      renameModal.item = null;
+      renameModal.newName = '';
+    };
 
     // 删除
-    const deleteItem = async (item) => {
+    const deleteItem = async item => {
       if (!confirm(`确定要删除 ${item.name} 吗？此操作不可撤销。`)) {
-        return
+        return;
       }
 
       try {
-        const path = currentPath.value === '/' ? `/${item.name}` : `${currentPath.value}/${item.name}`
-        const command = item.type?.includes('dir') ? `rm -rf "${path}"` : `rm "${path}"`
+        const path =
+          currentPath.value === '/' ? `/${item.name}` : `${currentPath.value}/${item.name}`;
+        const command = item.type?.includes('dir') ? `rm -rf "${path}"` : `rm "${path}"`;
 
-        emit('execute-command', command)
-        emit('show-notification', `${item.name} 已删除`, 'success')
-        refreshDirectory()
+        emit('execute-command', command);
+        emit('show-notification', `${item.name} 已删除`, 'success');
+        refreshDirectory();
       } catch (err) {
-        emit('show-notification', `删除失败: ${err.message}`, 'error')
+        emit('show-notification', `删除失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     const deleteSelectedFiles = async () => {
-      if (selectedFiles.value.size === 0) return
+      if (selectedFiles.value.size === 0) return;
 
       if (!confirm(`确定要删除选中的 ${selectedFiles.value.size} 个项目吗？此操作不可撤销。`)) {
-        return
+        return;
       }
 
       try {
         for (const fileName of selectedFiles.value) {
-          const file = [...directories.value, ...regularFiles.value].find(f => f.name === fileName)
+          const file = [...directories.value, ...regularFiles.value].find(f => f.name === fileName);
           if (file) {
-            const path = currentPath.value === '/' ? `/${fileName}` : `${currentPath.value}/${fileName}`
-            const command = file.type?.includes('dir') ? `rm -rf "${path}"` : `rm "${path}"`
-            emit('execute-command', command)
+            const path =
+              currentPath.value === '/' ? `/${fileName}` : `${currentPath.value}/${fileName}`;
+            const command = file.type?.includes('dir') ? `rm -rf "${path}"` : `rm "${path}"`;
+            emit('execute-command', command);
           }
         }
 
-        emit('show-notification', `已删除 ${selectedFiles.value.size} 个项目`, 'success')
-        clearSelection()
-        refreshDirectory()
+        emit('show-notification', `已删除 ${selectedFiles.value.size} 个项目`, 'success');
+        clearSelection();
+        refreshDirectory();
       } catch (err) {
-        emit('show-notification', `删除失败: ${err.message}`, 'error')
+        emit('show-notification', `删除失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     const downloadSelectedFiles = async () => {
-      if (selectedFiles.value.size === 0) return
+      if (selectedFiles.value.size === 0) return;
 
       try {
-        let count = 0
+        let count = 0;
         for (const fileName of selectedFiles.value) {
-          const file = regularFiles.value.find(f => f.name === fileName)
+          const file = regularFiles.value.find(f => f.name === fileName);
           if (file) {
-            await downloadFile(file)
-            count++
+            await downloadFile(file);
+            count++;
           }
         }
 
-        emit('show-notification', `已下载 ${count} 个文件`, 'success')
-        clearSelection()
+        emit('show-notification', `已下载 ${count} 个文件`, 'success');
+        clearSelection();
       } catch (err) {
-        emit('show-notification', `批量下载失败: ${err.message}`, 'error')
+        emit('show-notification', `批量下载失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     // 右键菜单
     const showContextMenu = (event, item) => {
       // 先设置位置但隐藏菜单
-      let x = event.clientX
-      let y = event.clientY
+      let x = event.clientX;
+      let y = event.clientY;
 
       // 初步位置调整，避免立即超出边界
-      const padding = 8
-      if (x < padding) x = padding
-      if (y < padding) y = padding
+      const padding = 8;
+      if (x < padding) x = padding;
+      if (y < padding) y = padding;
 
-      contextMenu.x = x
-      contextMenu.y = y
-      contextMenu.item = item
+      contextMenu.x = x;
+      contextMenu.y = y;
+      contextMenu.item = item;
 
       // 显示菜单
-      contextMenu.show = true
+      contextMenu.show = true;
 
       // 使用 nextTick 确保菜单已渲染后再精确计算位置
       nextTick(() => {
-        const menuElement = document.querySelector('.context-menu')
-        if (!menuElement) return
+        const menuElement = document.querySelector('.context-menu');
+        if (!menuElement) return;
 
-        const menuRect = menuElement.getBoundingClientRect()
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
+        const menuRect = menuElement.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
 
         // 精确位置调整
         if (x + menuRect.width > viewportWidth - padding) {
-          x = viewportWidth - menuRect.width - padding
+          x = viewportWidth - menuRect.width - padding;
         }
 
         if (y + menuRect.height > viewportHeight - padding) {
-          y = viewportHeight - menuRect.height - padding
+          y = viewportHeight - menuRect.height - padding;
         }
 
         // 更新最终位置
-        contextMenu.x = x
-        contextMenu.y = y
-      })
-    }
+        contextMenu.x = x;
+        contextMenu.y = y;
+      });
+    };
 
     const hideContextMenu = () => {
-      contextMenu.show = false
-      contextMenu.item = null
-    }
+      contextMenu.show = false;
+      contextMenu.item = null;
+    };
 
-    const contextMenuAction = (action) => {
-      if (!contextMenu.item) return
+    const contextMenuAction = action => {
+      if (!contextMenu.item) return;
 
       switch (action) {
         case 'open':
-          openFile(contextMenu.item)
-          break
+          openFile(contextMenu.item);
+          break;
         case 'download':
-          downloadFile(contextMenu.item)
-          break
+          downloadFile(contextMenu.item);
+          break;
         case 'rename':
-          renameItem(contextMenu.item)
-          break
+          renameItem(contextMenu.item);
+          break;
         case 'delete':
-          deleteItem(contextMenu.item)
-          break
+          deleteItem(contextMenu.item);
+          break;
         case 'properties':
-          showFileProperties(contextMenu.item)
-          break
+          showFileProperties(contextMenu.item);
+          break;
       }
 
-      hideContextMenu()
-    }
+      hideContextMenu();
+    };
 
-    const showFileProperties = (file) => {
+    const showFileProperties = file => {
       const details = `
 名称: ${file.name}
 类型: ${file.type?.includes('dir') ? '目录' : '文件'}
@@ -743,142 +764,182 @@ export default {
 权限: ${getFilePermissions(file)}
 修改时间: ${formatDate(file.modifyTime)}
 所有者: ${file.owner}:${file.group}
-      `.trim()
+      `.trim();
 
-      emit('show-notification', details, 'info')
-    }
+      emit('show-notification', details, 'info');
+    };
 
     // 拖拽处理
     const handleDragStart = (event, file) => {
-      event.dataTransfer.effectAllowed = 'copy'
-      event.dataTransfer.setData('text/plain', file.name)
-    }
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData('text/plain', file.name);
+    };
 
     const handleFileDrop = (event, targetFile) => {
       // 处理文件拖拽到其他文件上（可以实现文件移动等功能）
-      event.preventDefault()
-    }
+      event.preventDefault();
+    };
 
-    const handleGlobalFileDrop = async (event) => {
-      event.preventDefault()
-      dragOverlay.show = false
+    const handleGlobalFileDrop = async event => {
+      event.preventDefault();
+      dragOverlay.show = false;
 
-      const files = Array.from(event.dataTransfer.files)
-      if (files.length === 0) return
+      const files = Array.from(event.dataTransfer.files);
+      if (files.length === 0) return;
 
       try {
         for (const file of files) {
           if (window.electronAPI) {
-            const result = await window.electronAPI.uploadDroppedFile(props.connectionId, file, currentPath.value)
+            const result = await window.electronAPI.uploadDroppedFile(
+              props.connectionId,
+              file,
+              currentPath.value
+            );
 
             if (result.success) {
-              emit('show-notification', `${file.name} 上传成功`, 'success')
+              emit('show-notification', `${file.name} 上传成功`, 'success');
             } else {
-              emit('show-notification', `${file.name} 上传失败: ${result.error}`, 'error')
+              emit('show-notification', `${file.name} 上传失败: ${result.error}`, 'error');
             }
           } else {
-            emit('show-notification', 'ElectronAPI不可用，无法上传文件', 'error')
+            emit('show-notification', 'ElectronAPI不可用，无法上传文件', 'error');
           }
         }
 
-        refreshDirectory()
+        refreshDirectory();
       } catch (err) {
-        emit('show-notification', `文件上传失败: ${err.message}`, 'error')
+        emit('show-notification', `文件上传失败: ${err.message}`, 'error');
       }
-    }
+    };
 
     // 工具函数
-    const getFileIcon = (file) => {
-      const extension = file.name.split('.').pop()?.toLowerCase()
+    const getFileIcon = file => {
+      const extension = file.name.split('.').pop()?.toLowerCase();
       const iconMap = {
         // 文档
-        'txt': '📄', 'md': '📝', 'pdf': '📕', 'doc': '📘', 'docx': '📘',
-        'xls': '📗', 'xlsx': '📗', 'ppt': '📙', 'pptx': '📙',
+        txt: '📄',
+        md: '📝',
+        pdf: '📕',
+        doc: '📘',
+        docx: '📘',
+        xls: '📗',
+        xlsx: '📗',
+        ppt: '📙',
+        pptx: '📙',
         // 代码
-        'js': '📜', 'ts': '📘', 'html': '🌐', 'css': '🎨', 'json': '📋',
-        'py': '🐍', 'java': '☕', 'cpp': '⚙️', 'c': '⚙️', 'go': '🐹',
+        js: '📜',
+        ts: '📘',
+        html: '🌐',
+        css: '🎨',
+        json: '📋',
+        py: '🐍',
+        java: '☕',
+        cpp: '⚙️',
+        c: '⚙️',
+        go: '🐹',
         // 图片
-        'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'svg': '🎨',
-        'ico': '🖼️', 'bmp': '🖼️',
+        jpg: '🖼️',
+        jpeg: '🖼️',
+        png: '🖼️',
+        gif: '🖼️',
+        svg: '🎨',
+        ico: '🖼️',
+        bmp: '🖼️',
         // 音频
-        'mp3': '🎵', 'wav': '🎵', 'flac': '🎵', 'aac': '🎵',
+        mp3: '🎵',
+        wav: '🎵',
+        flac: '🎵',
+        aac: '🎵',
         // 视频
-        'mp4': '🎬', 'avi': '🎬', 'mkv': '🎬', 'mov': '🎬',
+        mp4: '🎬',
+        avi: '🎬',
+        mkv: '🎬',
+        mov: '🎬',
         // 压缩包
-        'zip': '📦', 'rar': '📦', 'tar': '📦', 'gz': '📦', '7z': '📦',
+        zip: '📦',
+        rar: '📦',
+        tar: '📦',
+        gz: '📦',
+        '7z': '📦',
         // 其他
-        'exe': '⚙️', 'dmg': '💿', 'iso': '💿', 'apk': '📱'
-      }
+        exe: '⚙️',
+        dmg: '💿',
+        iso: '💿',
+        apk: '📱'
+      };
 
-      return iconMap[extension] || '📄'
-    }
+      return iconMap[extension] || '📄';
+    };
 
-    const getFilePermissions = (file) => {
-      return file.permissions || 'rw-r--r--'
-    }
+    const getFilePermissions = file => {
+      return file.permissions || 'rw-r--r--';
+    };
 
-    const formatFileSize = (bytes) => {
-      if (!bytes || bytes === 0) return '0 B'
+    const formatFileSize = bytes => {
+      if (!bytes || bytes === 0) return '0 B';
 
-      const k = 1024
-      const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-    }
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    };
 
-    const formatDate = (date) => {
-      if (!date) return '-'
+    const formatDate = date => {
+      if (!date) return '-';
 
-      const d = new Date(date)
+      const d = new Date(date);
       return d.toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit'
-      })
-    }
+      });
+    };
 
     // 事件监听
-    const handleClickOutside = (event) => {
+    const handleClickOutside = event => {
       if (!event.target.closest('.context-menu')) {
-        hideContextMenu()
+        hideContextMenu();
       }
-    }
+    };
 
-    const handleGlobalDragOver = (event) => {
-      event.preventDefault()
-      dragOverlay.show = true
-    }
+    const handleGlobalDragOver = event => {
+      event.preventDefault();
+      dragOverlay.show = true;
+    };
 
-    const handleGlobalDragLeave = (event) => {
-      event.preventDefault()
+    const handleGlobalDragLeave = event => {
+      event.preventDefault();
       if (event.target === document.documentElement) {
-        dragOverlay.show = false
+        dragOverlay.show = false;
       }
-    }
+    };
 
     // 生命周期
     onMounted(() => {
-      loadFileList()
-      document.addEventListener('click', handleClickOutside)
-      document.addEventListener('dragover', handleGlobalDragOver)
-      document.addEventListener('dragleave', handleGlobalDragLeave)
-    })
+      loadFileList();
+      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('dragover', handleGlobalDragOver);
+      document.addEventListener('dragleave', handleGlobalDragLeave);
+    });
 
     onUnmounted(() => {
-      document.removeEventListener('click', handleClickOutside)
-      document.removeEventListener('dragover', handleGlobalDragOver)
-      document.removeEventListener('dragleave', handleGlobalDragLeave)
-    })
+      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('dragover', handleGlobalDragOver);
+      document.removeEventListener('dragleave', handleGlobalDragLeave);
+    });
 
     // 监听连接变化
-    watch(() => props.connectionId, (newId) => {
-      if (newId) {
-        loadFileList()
+    watch(
+      () => props.connectionId,
+      newId => {
+        if (newId) {
+          loadFileList();
+        }
       }
-    })
+    );
 
     return {
       files,
@@ -929,9 +990,9 @@ export default {
       getFilePermissions,
       formatFileSize,
       formatDate
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -1430,8 +1491,12 @@ export default {
 
 // 动画
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 // 响应式设计

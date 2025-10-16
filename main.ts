@@ -2,12 +2,19 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-import type { SSHConnectionConfig, MainAppConfig } from './src/types/index.js';
+import type {
+  SSHConnectionConfig,
+  MainAppConfig,
+  SSH2ConnectConfig,
+  SFTPConnectConfig
+} from './src/types/index.js';
+import type { Client } from 'ssh2';
+import type { ClientChannel } from 'ssh2';
 
 let mainWindow: BrowserWindow | null = null;
-const sshConnections: Record<string, any> = {};
+const sshConnections: Record<string, Client> = {};
 const sshConnectionConfigs: Record<string, SSHConnectionConfig> = {};
-const sshShells: Record<string, any> = {};
+const sshShells: Record<string, ClientChannel> = {};
 let appConfig: MainAppConfig;
 
 function createWindow() {
@@ -142,7 +149,7 @@ ipcMain.handle('ssh-connect', async (event, connectionConfig) => {
   const conn = new Client();
 
   return new Promise((resolve, reject) => {
-    const connectConfig: any = {
+    const connectConfig: SSH2ConnectConfig = {
       host: connectionConfig.host,
       port: connectionConfig.port || 22,
       username: connectionConfig.username,
@@ -466,7 +473,7 @@ ipcMain.handle('get-file-list', async (event, connectionId, remotePath) => {
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
 
-    const connectConfig: any = {
+    const connectConfig: SFTPConnectConfig = {
       host: config.host,
       port: config.port || 22,
       username: config.username
@@ -672,7 +679,7 @@ ipcMain.handle('uploadFile', async (event, connectionId, localPath, remotePath) 
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
 
-    const connectConfig: any = {
+    const connectConfig: SFTPConnectConfig = {
       host: config.host,
       port: config.port || 22,
       username: config.username
@@ -713,7 +720,7 @@ ipcMain.handle('uploadDroppedFile', async (event, connectionId, file, remotePath
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
 
-    const connectConfig: any = {
+    const connectConfig: SFTPConnectConfig = {
       host: config.host,
       port: config.port || 22,
       username: config.username
@@ -765,7 +772,7 @@ ipcMain.handle('selectAndUploadFile', async (event, connectionId, remotePath) =>
       const sftp = require('ssh2-sftp-client');
       const sftpClient = new sftp();
 
-      const connectConfig: any = {
+      const connectConfig: SFTPConnectConfig = {
         host: config.host,
         port: config.port || 22,
         username: config.username
@@ -809,7 +816,7 @@ ipcMain.handle('downloadFile', async (event, connectionId, remotePath) => {
     const sftp = require('ssh2-sftp-client');
     const sftpClient = new sftp();
 
-    const connectConfig: any = {
+    const connectConfig: SFTPConnectConfig = {
       host: config.host,
       port: config.port || 22,
       username: config.username
@@ -861,7 +868,7 @@ ipcMain.handle('downloadAndOpenFile', async (event, connectionId, remotePath) =>
     const os = require('os');
     const path = require('path');
 
-    const connectConfig: any = {
+    const connectConfig: SFTPConnectConfig = {
       host: config.host,
       port: config.port || 22,
       username: config.username

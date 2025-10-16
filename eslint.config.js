@@ -1,11 +1,11 @@
 const typescript = require('@typescript-eslint/eslint-plugin');
 const typescriptParser = require('@typescript-eslint/parser');
 const vue = require('eslint-plugin-vue');
+const vueParser = require('vue-eslint-parser');
 const prettier = require('eslint-config-prettier');
 const prettierPlugin = require('eslint-plugin-prettier');
 
 module.exports = [
-
   // TypeScript files with project checking (excluding vite.config.ts)
   {
     files: ['src/**/*.ts'],
@@ -107,7 +107,7 @@ module.exports = [
   {
     files: ['**/*.vue'],
     languageOptions: {
-      parser: vue.parser,
+      parser: vueParser,
       parserOptions: {
         parser: typescriptParser,
         ecmaVersion: 'latest',

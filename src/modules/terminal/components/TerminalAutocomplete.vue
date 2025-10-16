@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue';
 
 const props = defineProps({
   currentInput: {
@@ -24,9 +24,9 @@ const props = defineProps({
     type: Boolean,
     default: false
   }
-})
+});
 
-const emit = defineEmits(['select', 'hide'])
+const emit = defineEmits(['select', 'hide']);
 
 // 常用Linux命令数据源
 const commandDatabase = [
@@ -170,112 +170,123 @@ const commandDatabase = [
   { command: 'nano', description: 'Text editor' },
   { command: 'emacs', description: 'Text editor' },
   { command: 'code', description: 'Visual Studio Code' }
-]
+];
 
-const showSuggestions = ref(false)
-const selectedIndex = ref(0)
-const filteredSuggestions = ref([])
+const showSuggestions = ref(false);
+const selectedIndex = ref(0);
+const filteredSuggestions = ref([]);
 
 // 过滤匹配的命令
-const filterSuggestions = (input) => {
+const filterSuggestions = input => {
   if (!input || input.trim().length < 1) {
-    filteredSuggestions.value = []
-    return
+    filteredSuggestions.value = [];
+    return;
   }
 
-  const trimmedInput = input.trim().toLowerCase()
+  const trimmedInput = input.trim().toLowerCase();
 
   // 精确匹配优先
   const exactMatches = commandDatabase.filter(cmd =>
     cmd.command.toLowerCase().startsWith(trimmedInput)
-  )
+  );
 
   // 模糊匹配（包含）
-  const fuzzyMatches = commandDatabase.filter(cmd =>
-    cmd.command.toLowerCase().includes(trimmedInput) &&
-    !cmd.command.toLowerCase().startsWith(trimmedInput)
-  )
+  const fuzzyMatches = commandDatabase.filter(
+    cmd =>
+      cmd.command.toLowerCase().includes(trimmedInput) &&
+      !cmd.command.toLowerCase().startsWith(trimmedInput)
+  );
 
   // 描述匹配
-  const descriptionMatches = commandDatabase.filter(cmd =>
-    cmd.description && cmd.description.toLowerCase().includes(trimmedInput) &&
-    !cmd.command.toLowerCase().includes(trimmedInput)
-  )
+  const descriptionMatches = commandDatabase.filter(
+    cmd =>
+      cmd.description &&
+      cmd.description.toLowerCase().includes(trimmedInput) &&
+      !cmd.command.toLowerCase().includes(trimmedInput)
+  );
 
-  filteredSuggestions.value = [...exactMatches, ...fuzzyMatches, ...descriptionMatches].slice(0, 10)
-  selectedIndex.value = 0
-  showSuggestions.value = filteredSuggestions.value.length > 0
-}
+  filteredSuggestions.value = [...exactMatches, ...fuzzyMatches, ...descriptionMatches].slice(
+    0,
+    10
+  );
+  selectedIndex.value = 0;
+  showSuggestions.value = filteredSuggestions.value.length > 0;
+};
 
 // 监听输入变化
-watch(() => props.currentInput, (newInput) => {
-  if (props.isVisible) {
-    filterSuggestions(newInput)
-  } else {
-    showSuggestions.value = false
+watch(
+  () => props.currentInput,
+  newInput => {
+    if (props.isVisible) {
+      filterSuggestions(newInput);
+    } else {
+      showSuggestions.value = false;
+    }
   }
-})
+);
 
-watch(() => props.isVisible, (visible) => {
-  if (!visible) {
-    showSuggestions.value = false
-  } else if (props.currentInput) {
-    filterSuggestions(props.currentInput)
+watch(
+  () => props.isVisible,
+  visible => {
+    if (!visible) {
+      showSuggestions.value = false;
+    } else if (props.currentInput) {
+      filterSuggestions(props.currentInput);
+    }
   }
-})
+);
 
 // 选择建议
-const selectSuggestion = (suggestion) => {
-  emit('select', suggestion.command)
-  showSuggestions.value = false
-  selectedIndex.value = 0
-}
+const selectSuggestion = suggestion => {
+  emit('select', suggestion.command);
+  showSuggestions.value = false;
+  selectedIndex.value = 0;
+};
 
 // 键盘导航
-const handleKeyDown = (event) => {
+const handleKeyDown = event => {
   if (!showSuggestions.value || filteredSuggestions.value.length === 0) {
-    return false
+    return false;
   }
 
   switch (event.key) {
     case 'ArrowDown':
-      event.preventDefault()
-      selectedIndex.value = (selectedIndex.value + 1) % filteredSuggestions.value.length
-      return true
+      event.preventDefault();
+      selectedIndex.value = (selectedIndex.value + 1) % filteredSuggestions.value.length;
+      return true;
 
     case 'ArrowUp':
-      event.preventDefault()
-      selectedIndex.value = selectedIndex.value === 0
-        ? filteredSuggestions.value.length - 1
-        : selectedIndex.value - 1
-      return true
+      event.preventDefault();
+      selectedIndex.value =
+        selectedIndex.value === 0 ? filteredSuggestions.value.length - 1 : selectedIndex.value - 1;
+      return true;
 
     case 'Enter':
-      event.preventDefault()
+      event.preventDefault();
       if (selectedIndex.value >= 0 && selectedIndex.value < filteredSuggestions.value.length) {
-        selectSuggestion(filteredSuggestions.value[selectedIndex.value])
-        return true
+        selectSuggestion(filteredSuggestions.value[selectedIndex.value]);
+        return true;
       }
-      break
+      break;
 
     case 'Escape':
-      event.preventDefault()
-      showSuggestions.value = false
-      selectedIndex.value = 0
-      return true
+      event.preventDefault();
+      showSuggestions.value = false;
+      selectedIndex.value = 0;
+      return true;
 
     case 'Tab':
-      event.preventDefault()
+      event.preventDefault();
       // Tab键自动补全第一个匹配项
       if (filteredSuggestions.value.length > 0) {
-        selectSuggestion(filteredSuggestions.value[0])
-        return true
+        selectSuggestion(filteredSuggestions.value[0]);
+        return true;
       }
-      break
+      break;
   }
 
-  return false
-}
+  return false;
+};
 
 // 暴露方法给父组件
 defineExpose({
@@ -283,7 +294,7 @@ defineExpose({
   showSuggestions,
   filteredSuggestions,
   selectedIndex
-})
+});
 </script>
 
 <style lang="scss" scoped>

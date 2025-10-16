@@ -5,12 +5,8 @@
       <h3>连接失败</h3>
       <p class="failed-message">{{ connection.errorMessage || '未知错误' }}</p>
       <div class="failed-actions">
-        <button class="retry-btn" @click="$emit('reconnect')">
-          🔄 重试连接
-        </button>
-        <button class="edit-btn" @click="$emit('edit')">
-          ✏️ 编辑配置
-        </button>
+        <button class="retry-btn" @click="$emit('reconnect')">🔄 重试连接</button>
+        <button class="edit-btn" @click="$emit('edit')">✏️ 编辑配置</button>
       </div>
     </div>
   </div>
@@ -26,7 +22,7 @@ export default {
     }
   },
   emits: ['reconnect', 'edit']
-}
+};
 </script>
 
 <style lang="scss" scoped>

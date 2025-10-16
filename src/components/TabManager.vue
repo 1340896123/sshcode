@@ -70,17 +70,17 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
-import Convert from 'ansi-to-html'
-import TabBar from './tabs/TabBar.vue'
-import WelcomeScreen from './tabs/WelcomeScreen.vue'
-import ConnectionContent from './tabs/ConnectionContent.vue'
-import ContextMenu from './ContextMenu.vue'
-import { useConnectionManager } from '../composables/useConnectionManager'
-import { useTerminalManager } from '../modules/terminal/composables/useTerminalManager.js'
-import { usePanelManager } from '../composables/usePanelManager'
-import { useContextMenu } from '../composables/useContextMenu'
-import { useTerminalStore } from '../modules/terminal/stores/terminal.js'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue';
+import Convert from 'ansi-to-html';
+import TabBar from './tabs/TabBar.vue';
+import WelcomeScreen from './tabs/WelcomeScreen.vue';
+import ConnectionContent from './tabs/ConnectionContent.vue';
+import ContextMenu from './ContextMenu.vue';
+import { useConnectionManager } from '../composables/useConnectionManager';
+import { useTerminalManager } from '../modules/terminal/composables/useTerminalManager.js';
+import { usePanelManager } from '../composables/usePanelManager';
+import { useContextMenu } from '../composables/useContextMenu';
+import { useTerminalStore } from '../modules/terminal/stores/terminal.js';
 
 export default {
   name: 'TabManager',
@@ -90,7 +90,13 @@ export default {
     ConnectionContent,
     ContextMenu
   },
-  emits: ['session-connected', 'session-disconnected', 'show-notification', 'open-session-modal', 'show-settings'],
+  emits: [
+    'session-connected',
+    'session-disconnected',
+    'show-notification',
+    'open-session-modal',
+    'show-settings'
+  ],
   setup(props, { emit }) {
     // ANSI转换器实例
     const ansiConvert = new Convert({
@@ -99,7 +105,7 @@ export default {
       newline: false,
       escapeXML: true,
       stream: false
-    })
+    });
 
     // 使用组合式函数管理各个功能模块
     const {
@@ -116,7 +122,7 @@ export default {
       stopConnectionMonitoring,
       startSystemMonitoring,
       stopSystemMonitoring
-    } = useConnectionManager(emit)
+    } = useConnectionManager(emit);
 
     const {
       executeCommand,
@@ -131,7 +137,7 @@ export default {
       setAutocompleteRef,
       addTerminalOutput,
       scrollToBottom
-    } = useTerminalManager(activeConnections, activeTabId, emit, ansiConvert)
+    } = useTerminalManager(activeConnections, activeTabId, emit, ansiConvert);
 
     const {
       panelWidths,
@@ -140,7 +146,7 @@ export default {
       handleMouseMove,
       handleMouseUp,
       resetPanelWidths
-    } = usePanelManager()
+    } = usePanelManager();
 
     const {
       contextMenu,
@@ -152,35 +158,35 @@ export default {
       handleContextMenuCopy,
       handleContextMenuAddToAI,
       handleContextMenuSelectAll
-    } = useContextMenu(activeConnections, emit)
+    } = useContextMenu(activeConnections, emit);
 
     // 处理子组件事件
     const handleShowNotification = (message, type = 'info') => {
-      emit('show-notification', message, type)
-    }
+      emit('show-notification', message, type);
+    };
 
-    const handleExecuteCommand = (command) => {
-      const connection = activeConnections.value.find(c => c.id === activeTabId.value)
+    const handleExecuteCommand = command => {
+      const connection = activeConnections.value.find(c => c.id === activeTabId.value);
       if (connection && connection.status === 'connected') {
-        executeCommand(connection)
+        executeCommand(connection);
       }
-    }
+    };
 
     // 获取终端store实例
-    const terminalStore = useTerminalStore()
+    const terminalStore = useTerminalStore();
 
     // 处理AI命令执行请求
-    const handleExecuteTerminalCommand = async (event) => {
-      const { commandId, command, connectionId } = event.detail
+    const handleExecuteTerminalCommand = async event => {
+      const { commandId, command, connectionId } = event.detail;
 
-      const connection = activeConnections.value.find(c => c.id === connectionId)
+      const connection = activeConnections.value.find(c => c.id === connectionId);
       if (!connection) {
         // 使用store记录命令失败
         terminalStore.errorCommand({
           commandId,
           error: '连接不存在'
-        })
-        return
+        });
+        return;
       }
 
       if (connection.status !== 'connected') {
@@ -188,8 +194,8 @@ export default {
         terminalStore.errorCommand({
           commandId,
           error: '连接未建立'
-        })
-        return
+        });
+        return;
       }
 
       // 使用store记录命令开始
@@ -197,7 +203,7 @@ export default {
         commandId,
         command,
         connectionId
-      })
+      });
 
       try {
         if (window.electronAPI) {
@@ -218,25 +224,25 @@ export default {
               type: 'output',
               content: result.output,
               timestamp: new Date()
-            })
+            });
 
             // 使用store记录命令完成
             terminalStore.completeCommand({
               commandId,
               result: result.output
-            })
+            });
           } else {
             addTerminalOutput(connection, {
               type: 'error',
               content: `命令执行失败: ${result.error}`,
               timestamp: new Date()
-            })
+            });
 
             // 使用store记录命令失败
             terminalStore.errorCommand({
               commandId,
               error: result.error
-            })
+            });
           }
         } else {
           // ElectronAPI不可用时返回错误
@@ -244,49 +250,48 @@ export default {
             type: 'error',
             content: 'ElectronAPI不可用，无法执行命令',
             timestamp: new Date()
-          })
+          });
 
           // 使用store记录命令失败
           terminalStore.errorCommand({
             commandId,
             error: 'ElectronAPI不可用，无法执行命令'
-          })
+          });
         }
 
-        await nextTick()
-        scrollToBottom(connectionId)
-
+        await nextTick();
+        scrollToBottom(connectionId);
       } catch (error) {
         addTerminalOutput(connection, {
           type: 'error',
           content: `命令执行异常: ${error.message}`,
           timestamp: new Date()
-        })
+        });
 
         // 使用store记录命令失败
         terminalStore.errorCommand({
           commandId,
           error: error.message
-        })
+        });
       }
-    }
+    };
 
     // 初始化
     onMounted(() => {
-      window.addEventListener('execute-terminal-command', handleExecuteTerminalCommand)
-    })
+      window.addEventListener('execute-terminal-command', handleExecuteTerminalCommand);
+    });
 
     // 组件卸载时清理
     onUnmounted(() => {
       activeConnections.value.forEach(connection => {
-        stopConnectionMonitoring(connection.id)
-        stopSystemMonitoring(connection.id)
-      })
+        stopConnectionMonitoring(connection.id);
+        stopSystemMonitoring(connection.id);
+      });
 
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      window.removeEventListener('execute-terminal-command', handleExecuteTerminalCommand)
-    })
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('execute-terminal-command', handleExecuteTerminalCommand);
+    });
 
     return {
       // 状态
@@ -336,9 +341,9 @@ export default {
       // 事件处理
       handleShowNotification,
       handleExecuteCommand
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>

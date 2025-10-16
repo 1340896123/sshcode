@@ -9,7 +9,7 @@
         连接时间: {{ formatConnectionTime(connection.connectedAt) }}
       </div>
     </div>
-    
+
     <!-- 系统监控信息 -->
     <div class="system-monitor" v-if="connection.systemInfo">
       <div class="monitor-item cpu-monitor">
@@ -19,7 +19,7 @@
           {{ connection.systemInfo.cpu }}%
         </span>
       </div>
-      
+
       <div class="monitor-item memory-monitor">
         <span class="monitor-icon">💾</span>
         <span class="monitor-label">内存</span>
@@ -27,7 +27,7 @@
           {{ connection.systemInfo.memory }}%
         </span>
       </div>
-      
+
       <div class="monitor-item disk-monitor">
         <span class="monitor-icon">💿</span>
         <span class="monitor-label">磁盘</span>
@@ -35,12 +35,14 @@
           {{ connection.systemInfo.disk }}%
         </span>
       </div>
-      
+
       <div class="monitor-item network-monitor">
         <span class="monitor-icon">🌐</span>
         <span class="monitor-label">网络</span>
         <span class="monitor-value">
-          ↓{{ formatBytes(connection.systemInfo.networkDown) }}/s ↑{{ formatBytes(connection.systemInfo.networkUp) }}/s
+          ↓{{ formatBytes(connection.systemInfo.networkDown) }}/s ↑{{
+            formatBytes(connection.systemInfo.networkUp)
+          }}/s
         </span>
       </div>
     </div>
@@ -48,7 +50,7 @@
 </template>
 
 <script>
-import { formatBytes, formatDuration } from '@/utils/formatters.js'
+import { formatBytes, formatDuration } from '@/utils/formatters.js';
 
 export default {
   name: 'ConnectionStatusBar',
@@ -65,18 +67,18 @@ export default {
         connected: '已连接',
         failed: '连接失败',
         disconnected: '已断开'
-      }
-      return texts[status] || '未知状态'
+      };
+      return texts[status] || '未知状态';
     },
 
     formatConnectionTime(connectedAt) {
-      const now = new Date()
-      const diff = now - connectedAt
-      const seconds = Math.floor(diff / 1000)
-      return formatDuration(seconds)
+      const now = new Date();
+      const diff = now - connectedAt;
+      const seconds = Math.floor(diff / 1000);
+      return formatDuration(seconds);
     }
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -210,7 +212,7 @@ export default {
     border-left: 3px solid color(success);
     min-width: 200px;
     width: 200px;
-    
+
     .monitor-value {
       min-width: 125px;
     }

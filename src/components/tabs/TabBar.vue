@@ -54,11 +54,11 @@ export default {
         connected: '🟢',
         failed: '❌',
         disconnected: '🔌'
-      }
-      return icons[connection.status] || '🔌'
+      };
+      return icons[connection.status] || '🔌';
     }
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>

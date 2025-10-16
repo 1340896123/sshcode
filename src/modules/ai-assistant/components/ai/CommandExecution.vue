@@ -1,12 +1,13 @@
 <template>
-
   <!-- AI工具调用 - 根据状态显示不同界面 -->
   <div v-if="message.type === 'tool-start'" class="tool-call-simple">
     <!-- 正在执行状态 -->
     <div v-if="status === 'executing'" class="tool-executing">
       <div class="executing-prompt">
         <LoaderIcon class="spinner" />
-        <span>🤖 AI正在执行 <code>{{ command }}</code> 命令</span>
+        <span
+          >🤖 AI正在执行 <code>{{ command }}</code> 命令</span
+        >
       </div>
 
       <!-- 执行中的折叠面板 -->
@@ -65,8 +66,7 @@
     </div>
 
     <!-- 工具完成状态 -->
-  <div v-else-if="message.type === 'tool-complete'" class="tool-completed">
-
+    <div v-else-if="message.type === 'tool-complete'" class="tool-completed">
       <!-- 完成后的折叠面板 -->
       <div class="tool-call-panel completed-panel" :class="{ 'is-collapsed': isCollapsed }">
         <div class="panel-header" @click="toggleCollapse">
@@ -75,12 +75,7 @@
             <span v-if="executionTime" class="panel-time">
               ⏱ {{ (executionTime / 1000).toFixed(2) }}s
             </span>
-            <button
-              v-if="canCopy"
-              class="panel-copy"
-              @click.stop="copyContent"
-              title="复制内容"
-            >
+            <button v-if="canCopy" class="panel-copy" @click.stop="copyContent" title="复制内容">
               <CopyIcon />
             </button>
             <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
@@ -103,7 +98,9 @@
     <div v-else-if="status === 'failed' || status === 'error'" class="tool-failed">
       <div class="failed-prompt">
         <XIcon class="error-icon" />
-        <span>❌ 命令执行失败: <code>{{ command }}</code></span>
+        <span
+          >❌ 命令执行失败: <code>{{ command }}</code></span
+        >
       </div>
 
       <!-- 失败后的折叠面板 -->
@@ -114,20 +111,10 @@
             <span v-if="executionTime" class="panel-time">
               ⏱ {{ (executionTime / 1000).toFixed(2) }}s
             </span>
-            <button
-              v-if="canCopy"
-              class="panel-copy"
-              @click.stop="copyContent"
-              title="复制内容"
-            >
+            <button v-if="canCopy" class="panel-copy" @click.stop="copyContent" title="复制内容">
               <CopyIcon />
             </button>
-            <button
-              v-if="canRetry"
-              class="panel-retry"
-              @click.stop="retryCommand"
-              title="重试命令"
-            >
+            <button v-if="canRetry" class="panel-retry" @click.stop="retryCommand" title="重试命令">
               <LoaderIcon />
             </button>
             <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
@@ -152,7 +139,9 @@
   <div v-else-if="message.type === 'tool-result'" class="tool-call-result">
     <!-- 简单状态提示 -->
     <div class="result-prompt" :class="resultStatusClass">
-      <span v-if="message.metadata?.status === 'error'">❌ 命令执行失败: <code>{{ command }}</code></span>
+      <span v-if="message.metadata?.status === 'error'"
+        >❌ 命令执行失败: <code>{{ command }}</code></span
+      >
     </div>
 
     <!-- 折叠面板 -->
@@ -165,20 +154,10 @@
           <span v-if="executionTime" class="panel-time">
             ⏱ {{ (executionTime / 1000).toFixed(2) }}s
           </span>
-          <button
-            v-if="canCopy"
-            class="panel-copy"
-            @click.stop="copyContent"
-            title="复制内容"
-          >
+          <button v-if="canCopy" class="panel-copy" @click.stop="copyContent" title="复制内容">
             <CopyIcon />
           </button>
-          <button
-            v-if="canRetry"
-            class="panel-retry"
-            @click.stop="retryCommand"
-            title="重试命令"
-          >
+          <button v-if="canRetry" class="panel-retry" @click.stop="retryCommand" title="重试命令">
             <LoaderIcon />
           </button>
           <ChevronDownIcon v-if="!isCollapsed" class="toggle-icon" />
@@ -226,14 +205,14 @@
 </template>
 
 <script>
-import { computed, ref, watch, inject, onMounted, onUnmounted } from 'vue'
-import MarkdownIt from 'markdown-it'
-import ChevronDownIcon from '../../../file-manager/components/icons/ChevronDownIcon.vue'
-import ChevronRightIcon from '../../../file-manager/components/icons/ChevronRightIcon.vue'
-import CopyIcon from '../../../file-manager/components/icons/CopyIcon.vue'
-import XIcon from '../../../file-manager/components/icons/XIcon.vue'
-import LoaderIcon from '../../../file-manager/components/icons/LoaderIcon.vue'
-import InfoIcon from '../../../file-manager/components/icons/InfoIcon.vue'
+import { computed, ref, watch, inject, onMounted, onUnmounted } from 'vue';
+import MarkdownIt from 'markdown-it';
+import ChevronDownIcon from '../../../file-manager/components/icons/ChevronDownIcon.vue';
+import ChevronRightIcon from '../../../file-manager/components/icons/ChevronRightIcon.vue';
+import CopyIcon from '../../../file-manager/components/icons/CopyIcon.vue';
+import XIcon from '../../../file-manager/components/icons/XIcon.vue';
+import LoaderIcon from '../../../file-manager/components/icons/LoaderIcon.vue';
+import InfoIcon from '../../../file-manager/components/icons/InfoIcon.vue';
 
 export default {
   name: 'CommandExecution',
@@ -265,12 +244,12 @@ export default {
   },
   emits: ['copy-to-clipboard', 'retry-command'],
   setup(props, { emit }) {
-    const isCollapsed = ref(props.collapsedByDefault)
+    const isCollapsed = ref(props.collapsedByDefault);
 
     // 获取AI聊天上下文（如果可用）
-    const aiChatContext = inject('aiChatContext', null)
-    const activeToolCall = aiChatContext?.activeToolCall || ref(null)
-    const pendingToolCalls = aiChatContext?.pendingToolCalls || ref(new Map())
+    const aiChatContext = inject('aiChatContext', null);
+    const activeToolCall = aiChatContext?.activeToolCall || ref(null);
+    const pendingToolCalls = aiChatContext?.pendingToolCalls || ref(new Map());
 
     // 从消息中提取状态信息
     const status = computed(() => {
@@ -279,144 +258,154 @@ export default {
         case 'tool-start':
           // 检查是否仍然活跃
           if (props.message.metadata?.toolCallId) {
-            const toolCallId = props.message.metadata.toolCallId
+            const toolCallId = props.message.metadata.toolCallId;
 
             // 检查活跃工具调用
             if (activeToolCall.value?.id === toolCallId) {
-              return 'executing'
+              return 'executing';
             }
 
             // 检查待处理工具调用
             if (pendingToolCalls.value.has(toolCallId)) {
-              return 'executing'
+              return 'executing';
             }
           }
-          return 'executing'
+          return 'executing';
 
         case 'tool-complete':
         case 'tool-result':
-          return 'completed'
+          return 'completed';
 
         case 'tool-error':
-          return 'failed'
+          return 'failed';
 
         default:
-          return 'message'
+          return 'message';
       }
-    })
+    });
 
     const command = computed(() => {
-      const cmd = props.message.metadata?.command
-      console.log(`🔧 [COMMAND-EXECUTION] Command: ${cmd}, message.type: ${props.message.type}, toolCallId: ${props.message.metadata?.toolCallId}`)
-      return cmd
-    })
+      const cmd = props.message.metadata?.command;
+      console.log(
+        `🔧 [COMMAND-EXECUTION] Command: ${cmd}, message.type: ${props.message.type}, toolCallId: ${props.message.metadata?.toolCallId}`
+      );
+      return cmd;
+    });
 
     const result = computed(() => {
       // 优先从 metadata.result 获取
       if (props.message.metadata?.result) {
-        console.log(`✅ [COMMAND-EXECUTION] Found result in metadata: ${props.message.metadata.result.substring(0, 50)}...`)
-        return props.message.metadata.result
+        console.log(
+          `✅ [COMMAND-EXECUTION] Found result in metadata: ${props.message.metadata.result.substring(0, 50)}...`
+        );
+        return props.message.metadata.result;
       }
 
       // 如果没有，尝试从其他地方获取
       // 比如从 AI 聊天上下文中查找对应的工具调用结果
       if (props.message.metadata?.toolCallId && aiChatContext?.toolCallHistory?.value) {
-        const toolCallId = props.message.metadata.toolCallId
-        const completedCall = aiChatContext.toolCallHistory.value.find(tc => tc.id === toolCallId)
+        const toolCallId = props.message.metadata.toolCallId;
+        const completedCall = aiChatContext.toolCallHistory.value.find(tc => tc.id === toolCallId);
         if (completedCall?.result) {
-          console.log(`✅ [COMMAND-EXECUTION] Found result in history: ${completedCall.result.substring(0, 50)}...`)
-          return completedCall.result
+          console.log(
+            `✅ [COMMAND-EXECUTION] Found result in history: ${completedCall.result.substring(0, 50)}...`
+          );
+          return completedCall.result;
         }
       }
 
-      console.log(`❌ [COMMAND-EXECUTION] No result found for toolCallId: ${props.message.metadata?.toolCallId}`)
-      return null
-    })
+      console.log(
+        `❌ [COMMAND-EXECUTION] No result found for toolCallId: ${props.message.metadata?.toolCallId}`
+      );
+      return null;
+    });
 
     const error = computed(() => {
-      const err = props.message.metadata?.error
-      console.log(`🔧 [COMMAND-EXECUTION] Error: ${err}`)
-      return err
-    })
+      const err = props.message.metadata?.error;
+      console.log(`🔧 [COMMAND-EXECUTION] Error: ${err}`);
+      return err;
+    });
 
     // 计算执行时间（对于正在执行的命令，显示实时时间）
     const executionTime = computed(() => {
       if (props.message.metadata?.executionTime) {
-        return props.message.metadata.executionTime
+        return props.message.metadata.executionTime;
       }
 
       // 对于正在执行的命令，计算已经过的时间
       if (status.value === 'executing' && props.message.metadata?.toolCallId) {
-        const toolCallId = props.message.metadata.toolCallId
-        const toolCall = pendingToolCalls.value.get(toolCallId) || activeToolCall.value
+        const toolCallId = props.message.metadata.toolCallId;
+        const toolCall = pendingToolCalls.value.get(toolCallId) || activeToolCall.value;
 
         if (toolCall?.startTime) {
-          return Date.now() - toolCall.startTime
+          return Date.now() - toolCall.startTime;
         }
       }
 
-      return 0
-    })
+      return 0;
+    });
 
     // 实时执行时间格式化
     const formattedExecutionTime = computed(() => {
-      const time = executionTime.value
+      const time = executionTime.value;
       if (time < 1000) {
-        return `${time}ms`
+        return `${time}ms`;
       } else if (time < 60000) {
-        return `${(time / 1000).toFixed(1)}s`
+        return `${(time / 1000).toFixed(1)}s`;
       } else {
-        const minutes = Math.floor(time / 60000)
-        const seconds = Math.floor((time % 60000) / 1000)
-        return `${minutes}m ${seconds}s`
+        const minutes = Math.floor(time / 60000);
+        const seconds = Math.floor((time % 60000) / 1000);
+        return `${minutes}m ${seconds}s`;
       }
-    })
+    });
 
     // 计算属性
     const resultStatusClass = computed(() => {
       if (props.message.metadata?.status === 'completed') {
-        return 'success'
+        return 'success';
       } else if (props.message.metadata?.status === 'error') {
-        return 'error'
+        return 'error';
       }
-      return ''
-    })
+      return '';
+    });
 
     const isCollapsible = computed(() => {
-      return props.message.isCollapsible ||
-             status.value === 'completed' ||
-             status.value === 'failed' ||
-             status.value === 'executing'
-    })
+      return (
+        props.message.isCollapsible ||
+        status.value === 'completed' ||
+        status.value === 'failed' ||
+        status.value === 'executing'
+      );
+    });
 
     const canCopy = computed(() => {
       return (
         (status.value === 'completed' && result.value && result.value.trim()) ||
         (status.value === 'failed' && error.value && error.value.trim())
-      )
-    })
+      );
+    });
 
     const canRetry = computed(() => {
-      return status.value === 'failed' && command.value
-    })
+      return status.value === 'failed' && command.value;
+    });
 
     const contentToCopy = computed(() => {
       if (status.value === 'completed' && result.value && result.value.trim()) {
-        return result.value.trim()
+        return result.value.trim();
       } else if (status.value === 'failed' && error.value && error.value.trim()) {
-        return error.value.trim()
+        return error.value.trim();
       }
-      return ''
-    })
+      return '';
+    });
 
     const messageText = computed(() => {
       if (props.message.role === 'user') {
-        return '用户消息'
+        return '用户消息';
       } else if (props.message.role === 'assistant') {
-        return 'AI回复'
+        return 'AI回复';
       }
-      return '系统消息'
-    })
+      return '系统消息';
+    });
 
     // 创建 MarkdownIt 实例
     const md = new MarkdownIt({
@@ -424,92 +413,94 @@ export default {
       linkify: true,
       typographer: true,
       breaks: true
-    })
+    });
 
     const formattedContent = computed(() => {
-      if (!props.message.content) return ''
+      if (!props.message.content) return '';
       try {
-        return md.render(props.message.content)
+        return md.render(props.message.content);
       } catch (error) {
-        console.error('Markdown渲染失败:', error)
-        return props.message.content.replace(/\n/g, '<br>')
+        console.error('Markdown渲染失败:', error);
+        return props.message.content.replace(/\n/g, '<br>');
       }
-    })
+    });
 
     const summary = computed(() => {
       // 可以从结果中生成摘要
       if (result.value && result.value.length > 1000) {
-        return `命令输出较长，共 ${result.value.length} 个字符。建议使用折叠功能查看详细内容。`
+        return `命令输出较长，共 ${result.value.length} 个字符。建议使用折叠功能查看详细内容。`;
       }
-      return null
-    })
+      return null;
+    });
 
     const suggestion = computed(() => {
       if (error.value) {
         if (error.value.includes('command not found')) {
-          return '请检查命令拼写是否正确，或确保命令已安装'
+          return '请检查命令拼写是否正确，或确保命令已安装';
         } else if (error.value.includes('permission denied')) {
-          return '权限不足，请检查用户权限或使用sudo命令'
+          return '权限不足，请检查用户权限或使用sudo命令';
         } else if (error.value.includes('No such file or directory')) {
-          return '文件或目录不存在，请检查路径是否正确'
+          return '文件或目录不存在，请检查路径是否正确';
         }
       }
-      return null
-    })
+      return null;
+    });
 
     // 方法
     const toggleCollapse = () => {
       if (isCollapsible.value) {
-        isCollapsed.value = !isCollapsed.value
+        isCollapsed.value = !isCollapsed.value;
       }
-    }
+    };
 
     const copyContent = async () => {
       try {
-        await navigator.clipboard.writeText(contentToCopy.value)
-        emit('copy-to-clipboard', '已复制到剪贴板', 'success')
+        await navigator.clipboard.writeText(contentToCopy.value);
+        emit('copy-to-clipboard', '已复制到剪贴板', 'success');
       } catch (error) {
-        console.error('复制失败:', error)
-        emit('copy-to-clipboard', '复制失败', 'error')
+        console.error('复制失败:', error);
+        emit('copy-to-clipboard', '复制失败', 'error');
       }
-    }
+    };
 
     const retryCommand = () => {
       if (command.value) {
-        emit('retry-command', command.value)
+        emit('retry-command', command.value);
       }
-    }
+    };
 
-    const formatTime = (timestamp) => {
+    const formatTime = timestamp => {
       return new Date(timestamp).toLocaleTimeString('zh-CN', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
-      })
-    }
+      });
+    };
 
-    const getStatusText = (status) => {
+    const getStatusText = status => {
       switch (status) {
         case 'executing':
-          return '执行中'
+          return '执行中';
         case 'completed':
-          return '已完成'
+          return '已完成';
         case 'error':
         case 'failed':
-          return '执行失败'
+          return '执行失败';
         default:
-          return '未知状态'
+          return '未知状态';
       }
-    }
+    };
 
     // 监听实时输出变化
-    watch(() => props.realtimeOutput, (newOutput) => {
-      if (newOutput && status.value === 'executing' && !isCollapsed.value) {
-        // 可以在这里添加自动滚动到底部的逻辑
+    watch(
+      () => props.realtimeOutput,
+      newOutput => {
+        if (newOutput && status.value === 'executing' && !isCollapsed.value) {
+          // 可以在这里添加自动滚动到底部的逻辑
+        }
       }
-    })
+    );
 
-  
     return {
       // 状态
       isCollapsed,
@@ -537,14 +528,13 @@ export default {
       retryCommand,
       formatTime,
       getStatusText
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
-
 
 // AI工具调用 - 根据状态显示不同样式
 .tool-call-simple {
@@ -859,22 +849,22 @@ export default {
   display: flex;
   gap: 2px;
   align-items: center;
-  
+
   .dot {
     width: 4px;
     height: 4px;
     background: var(--color-info, #3b82f6);
     border-radius: 50%;
     animation: executionDotPulse 1.4s infinite ease-in-out both;
-    
+
     &:nth-child(1) {
       animation-delay: -0.32s;
     }
-    
+
     &:nth-child(2) {
       animation-delay: -0.16s;
     }
-    
+
     &:nth-child(3) {
       animation-delay: 0s;
     }
@@ -882,7 +872,9 @@ export default {
 }
 
 @keyframes executionDotPulse {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0.8);
     opacity: 0.5;
   }
@@ -1106,7 +1098,8 @@ export default {
     font-style: italic;
   }
 
-  :deep(ul), :deep(ol) {
+  :deep(ul),
+  :deep(ol) {
     margin: 12px 0;
     padding-left: 20px;
   }
@@ -1156,7 +1149,8 @@ export default {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

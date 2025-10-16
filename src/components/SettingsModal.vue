@@ -7,7 +7,7 @@
             <h2>设置</h2>
             <button class="close-btn" @click="$emit('close')">×</button>
           </div>
-          
+
           <!-- 标签页导航 -->
           <div class="tabs-navigation">
             <button
@@ -28,7 +28,11 @@
                 <h3>聊天配置</h3>
                 <div class="setting-item">
                   <label>AI 提供商</label>
-                  <select v-model="settings.aiChat.provider" class="setting-select" @change="updateAIChatDefaults">
+                  <select
+                    v-model="settings.aiChat.provider"
+                    class="setting-select"
+                    @change="updateAIChatDefaults"
+                  >
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
                     <option value="local">Local</option>
@@ -67,7 +71,11 @@
                       class="setting-input"
                       placeholder="自定义模型名称或选择预设"
                     />
-                    <select v-model="settings.aiChat.model" class="setting-select model-select" @change="syncCustomModel">
+                    <select
+                      v-model="settings.aiChat.model"
+                      class="setting-select model-select"
+                      @change="syncCustomModel"
+                    >
                       <option value="">自定义模型</option>
                       <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                       <option value="gpt-4">GPT-4</option>
@@ -153,7 +161,11 @@
                 <h3>代码补全配置</h3>
                 <div class="setting-item">
                   <label>补全提供商</label>
-                  <select v-model="settings.aiCompletion.provider" class="setting-select" @change="updateAICompletionDefaults">
+                  <select
+                    v-model="settings.aiCompletion.provider"
+                    class="setting-select"
+                    @change="updateAICompletionDefaults"
+                  >
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
                     <option value="github">GitHub Copilot</option>
@@ -170,7 +182,11 @@
                       class="setting-input"
                       placeholder="请输入API密钥"
                     />
-                    <button type="button" class="toggle-btn" @click="showCompletionApiKey = !showCompletionApiKey">
+                    <button
+                      type="button"
+                      class="toggle-btn"
+                      @click="showCompletionApiKey = !showCompletionApiKey"
+                    >
                       {{ showCompletionApiKey ? '🙈' : '👁️' }}
                     </button>
                   </div>
@@ -193,7 +209,11 @@
                       class="setting-input"
                       placeholder="自定义模型名称或选择预设"
                     />
-                    <select v-model="settings.aiCompletion.model" class="setting-select model-select" @change="syncCompletionCustomModel">
+                    <select
+                      v-model="settings.aiCompletion.model"
+                      class="setting-select model-select"
+                      @change="syncCompletionCustomModel"
+                    >
                       <option value="">自定义模型</option>
                       <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                       <option value="gpt-4">GPT-4</option>
@@ -359,7 +379,7 @@
                     min="1"
                     max="1440"
                   />
-                  <small style="color: color(text-muted); margin-top: 4px; display: block;">
+                  <small style="color: color(text-muted); margin-top: 4px; display: block">
                     连接在无活动状态下保持的时间，0表示禁用自动断开
                   </small>
                 </div>
@@ -372,7 +392,7 @@
                     min="10"
                     max="300"
                   />
-                  <small style="color: color(text-muted); margin-top: 4px; display: block;">
+                  <small style="color: color(text-muted); margin-top: 4px; display: block">
                     在超时前多少秒显示警告
                   </small>
                 </div>
@@ -385,7 +405,7 @@
                     />
                     自动重连
                   </label>
-                  <small style="color: color(text-muted); margin-top: 4px; display: block;">
+                  <small style="color: color(text-muted); margin-top: 4px; display: block">
                     超时断开后自动尝试重新连接
                   </small>
                 </div>
@@ -517,15 +537,9 @@
           </div>
 
           <div class="modal-footer">
-            <button class="secondary-btn" @click="resetSettings">
-              重置
-            </button>
-            <button class="primary-btn" @click="saveSettings">
-              保存设置
-            </button>
-            <button class="secondary-btn" @click="$emit('close')">
-              取消
-            </button>
+            <button class="secondary-btn" @click="resetSettings">重置</button>
+            <button class="primary-btn" @click="saveSettings">保存设置</button>
+            <button class="secondary-btn" @click="$emit('close')">取消</button>
           </div>
         </div>
       </div>
@@ -534,7 +548,7 @@
 </template>
 
 <script>
-import { reactive, ref } from 'vue'
+import { reactive, ref } from 'vue';
 
 export default {
   name: 'SettingsModal',
@@ -546,14 +560,14 @@ export default {
   },
   emits: ['close', 'show-notification'],
   setup(props, { emit }) {
-    const activeTab = ref('ai-chat')
-    
+    const activeTab = ref('ai-chat');
+
     const tabs = [
       { id: 'ai-chat', name: 'AI聊天', icon: '💬' },
       { id: 'ai-completion', name: 'AI补全', icon: '🔧' },
       { id: 'terminal', name: '终端', icon: '🖥️' },
       { id: 'general', name: '常规', icon: '⚙️' }
-    ]
+    ];
 
     const defaultSettings = {
       aiChat: {
@@ -609,12 +623,12 @@ export default {
         sessionTimeout: 30,
         confirmDangerousCommands: true
       }
-    }
+    };
 
-    const showApiKey = ref(false)
-    const showCompletionApiKey = ref(false)
-    
-    const settings = reactive({ ...defaultSettings })
+    const showApiKey = ref(false);
+    const showCompletionApiKey = ref(false);
+
+    const settings = reactive({ ...defaultSettings });
 
     // 提供商默认配置
     const providerDefaults = {
@@ -638,161 +652,182 @@ export default {
         baseUrl: '',
         model: ''
       }
-    }
+    };
 
     // 存储不同提供商的配置缓存
     const providerConfigCache = ref({
       aiChat: {},
       aiCompletion: {}
-    })
+    });
 
     // GPT池 - 保存所有提供商的配置信息
     const providerPool = ref({
       aiChat: {},
       aiCompletion: {}
-    })
+    });
 
     // 更新GPT池中的提供商配置
     const updateProviderPool = (type, provider, config) => {
       if (!providerPool.value[type]) {
-        providerPool.value[type] = {}
+        providerPool.value[type] = {};
       }
-      
+
       // 深拷贝配置，避免引用问题
-      const configCopy = JSON.parse(JSON.stringify(config))
+      const configCopy = JSON.parse(JSON.stringify(config));
       providerPool.value[type][provider] = {
         ...configCopy,
         lastUpdated: new Date().toISOString()
-      }
-      
-      console.log(`GPT池更新: ${type}.${provider}`, configCopy)
-    }
+      };
+
+      console.log(`GPT池更新: ${type}.${provider}`, configCopy);
+    };
 
     // 从GPT池中获取提供商配置
     const getProviderFromPool = (type, provider) => {
-      const poolConfig = providerPool.value[type]?.[provider]
+      const poolConfig = providerPool.value[type]?.[provider];
       if (poolConfig) {
-        console.log(`从GPT池获取配置: ${type}.${provider}`, poolConfig)
-        return poolConfig
+        console.log(`从GPT池获取配置: ${type}.${provider}`, poolConfig);
+        return poolConfig;
       }
-      return null
-    }
+      return null;
+    };
 
     const updateAIChatDefaults = async () => {
-      const provider = settings.aiChat.provider
-      console.log(`AI聊天提供商切换到: ${provider}`)
-      
+      const provider = settings.aiChat.provider;
+      console.log(`AI聊天提供商切换到: ${provider}`);
+
       try {
         // 优先从GPT池中获取该提供商的配置
-        const poolConfig = getProviderFromPool('aiChat', provider)
+        const poolConfig = getProviderFromPool('aiChat', provider);
         if (poolConfig) {
-          settings.aiChat.baseUrl = poolConfig.baseUrl
-          settings.aiChat.model = poolConfig.model
-          settings.aiChat.customModel = poolConfig.customModel || ''
-          settings.aiChat.apiKey = poolConfig.apiKey || ''
-          settings.aiChat.maxTokens = poolConfig.maxTokens || settings.aiChat.maxTokens
-          settings.aiChat.temperature = poolConfig.temperature || settings.aiChat.temperature
-          
-          console.log(`从GPT池加载AI聊天提供商配置: ${provider}`, poolConfig)
-          return
+          settings.aiChat.baseUrl = poolConfig.baseUrl;
+          settings.aiChat.model = poolConfig.model;
+          settings.aiChat.customModel = poolConfig.customModel || '';
+          settings.aiChat.apiKey = poolConfig.apiKey || '';
+          settings.aiChat.maxTokens = poolConfig.maxTokens || settings.aiChat.maxTokens;
+          settings.aiChat.temperature = poolConfig.temperature || settings.aiChat.temperature;
+
+          console.log(`从GPT池加载AI聊天提供商配置: ${provider}`, poolConfig);
+          return;
         }
-        
+
         // 如果GPT池中没有，尝试从缓存中获取该提供商的配置
         if (providerConfigCache.value.aiChat[provider]) {
-          const cachedConfig = providerConfigCache.value.aiChat[provider]
-          settings.aiChat.baseUrl = cachedConfig.baseUrl
-          settings.aiChat.model = cachedConfig.model
-          settings.aiChat.customModel = cachedConfig.customModel || ''
-          settings.aiChat.apiKey = cachedConfig.apiKey || ''
-          settings.aiChat.maxTokens = cachedConfig.maxTokens || settings.aiChat.maxTokens
-          settings.aiChat.temperature = cachedConfig.temperature || settings.aiChat.temperature
-          
-          console.log(`从缓存加载AI聊天提供商配置: ${provider}`, cachedConfig)
-          return
+          const cachedConfig = providerConfigCache.value.aiChat[provider];
+          settings.aiChat.baseUrl = cachedConfig.baseUrl;
+          settings.aiChat.model = cachedConfig.model;
+          settings.aiChat.customModel = cachedConfig.customModel || '';
+          settings.aiChat.apiKey = cachedConfig.apiKey || '';
+          settings.aiChat.maxTokens = cachedConfig.maxTokens || settings.aiChat.maxTokens;
+          settings.aiChat.temperature = cachedConfig.temperature || settings.aiChat.temperature;
+
+          console.log(`从缓存加载AI聊天提供商配置: ${provider}`, cachedConfig);
+          return;
         }
-        
+
         // 如果都没有，使用默认配置
         if (providerDefaults[provider]) {
-          settings.aiChat.baseUrl = providerDefaults[provider].baseUrl
-          settings.aiChat.model = providerDefaults[provider].model
-          settings.aiChat.customModel = ''
-          
+          settings.aiChat.baseUrl = providerDefaults[provider].baseUrl;
+          settings.aiChat.model = providerDefaults[provider].model;
+          settings.aiChat.customModel = '';
+
           // 对于自定义提供商，清空API密钥以避免混淆
           if (provider === 'custom') {
-            settings.aiChat.apiKey = ''
+            settings.aiChat.apiKey = '';
           }
-          
+
           console.log(`使用默认AI聊天提供商配置: ${provider}`, {
             baseUrl: settings.aiChat.baseUrl,
             model: settings.aiChat.model
-          })
+          });
         } else {
           // 处理未知的提供商
-          console.warn(`未知的AI聊天提供商: ${provider}`)
-          settings.aiChat.baseUrl = ''
-          settings.aiChat.model = ''
-          settings.aiChat.customModel = ''
-          settings.aiChat.apiKey = ''
+          console.warn(`未知的AI聊天提供商: ${provider}`);
+          settings.aiChat.baseUrl = '';
+          settings.aiChat.model = '';
+          settings.aiChat.customModel = '';
+          settings.aiChat.apiKey = '';
         }
       } catch (error) {
-        console.error('加载AI聊天提供商配置失败:', error)
+        console.error('加载AI聊天提供商配置失败:', error);
         // 发生错误时使用默认配置作为回退
         if (providerDefaults[provider]) {
-          settings.aiChat.baseUrl = providerDefaults[provider].baseUrl
-          settings.aiChat.model = providerDefaults[provider].model
-          settings.aiChat.customModel = ''
+          settings.aiChat.baseUrl = providerDefaults[provider].baseUrl;
+          settings.aiChat.model = providerDefaults[provider].model;
+          settings.aiChat.customModel = '';
         }
       }
-    }
+    };
 
     const updateAICompletionDefaults = async () => {
-      const provider = settings.aiCompletion.provider
-      console.log(`AI补全提供商切换到: ${provider}`)
-      
+      const provider = settings.aiCompletion.provider;
+      console.log(`AI补全提供商切换到: ${provider}`);
+
       try {
         // 优先从GPT池中获取该提供商的配置
-        const poolConfig = getProviderFromPool('aiCompletion', provider)
+        const poolConfig = getProviderFromPool('aiCompletion', provider);
         if (poolConfig) {
-          settings.aiCompletion.baseUrl = poolConfig.baseUrl
-          settings.aiCompletion.model = poolConfig.model
-          settings.aiCompletion.customModel = poolConfig.customModel || ''
-          settings.aiCompletion.apiKey = poolConfig.apiKey || ''
-          settings.aiCompletion.autoTrigger = poolConfig.autoTrigger !== undefined ? poolConfig.autoTrigger : settings.aiCompletion.autoTrigger
-          settings.aiCompletion.triggerDelay = poolConfig.triggerDelay || settings.aiCompletion.triggerDelay
-          settings.aiCompletion.maxSuggestions = poolConfig.maxSuggestions || settings.aiCompletion.maxSuggestions
-          
-          console.log(`从GPT池加载AI补全提供商配置: ${provider}`, poolConfig)
-          return
+          settings.aiCompletion.baseUrl = poolConfig.baseUrl;
+          settings.aiCompletion.model = poolConfig.model;
+          settings.aiCompletion.customModel = poolConfig.customModel || '';
+          settings.aiCompletion.apiKey = poolConfig.apiKey || '';
+          settings.aiCompletion.autoTrigger =
+            poolConfig.autoTrigger !== undefined
+              ? poolConfig.autoTrigger
+              : settings.aiCompletion.autoTrigger;
+          settings.aiCompletion.triggerDelay =
+            poolConfig.triggerDelay || settings.aiCompletion.triggerDelay;
+          settings.aiCompletion.maxSuggestions =
+            poolConfig.maxSuggestions || settings.aiCompletion.maxSuggestions;
+
+          console.log(`从GPT池加载AI补全提供商配置: ${provider}`, poolConfig);
+          return;
         }
-        
+
         // 如果GPT池中没有，尝试从缓存中获取该提供商的配置
         if (providerConfigCache.value.aiCompletion[provider]) {
-          const cachedConfig = providerConfigCache.value.aiCompletion[provider]
-          settings.aiCompletion.baseUrl = cachedConfig.baseUrl
-          settings.aiCompletion.model = cachedConfig.model
-          settings.aiCompletion.customModel = cachedConfig.customModel || ''
-          settings.aiCompletion.apiKey = cachedConfig.apiKey || ''
-          settings.aiCompletion.autoTrigger = cachedConfig.autoTrigger !== undefined ? cachedConfig.autoTrigger : settings.aiCompletion.autoTrigger
-          settings.aiCompletion.triggerDelay = cachedConfig.triggerDelay || settings.aiCompletion.triggerDelay
-          settings.aiCompletion.maxSuggestions = cachedConfig.maxSuggestions || settings.aiCompletion.maxSuggestions
-          
-          console.log(`从缓存加载AI补全提供商配置: ${provider}`, cachedConfig)
-          return
+          const cachedConfig = providerConfigCache.value.aiCompletion[provider];
+          settings.aiCompletion.baseUrl = cachedConfig.baseUrl;
+          settings.aiCompletion.model = cachedConfig.model;
+          settings.aiCompletion.customModel = cachedConfig.customModel || '';
+          settings.aiCompletion.apiKey = cachedConfig.apiKey || '';
+          settings.aiCompletion.autoTrigger =
+            cachedConfig.autoTrigger !== undefined
+              ? cachedConfig.autoTrigger
+              : settings.aiCompletion.autoTrigger;
+          settings.aiCompletion.triggerDelay =
+            cachedConfig.triggerDelay || settings.aiCompletion.triggerDelay;
+          settings.aiCompletion.maxSuggestions =
+            cachedConfig.maxSuggestions || settings.aiCompletion.maxSuggestions;
+
+          console.log(`从缓存加载AI补全提供商配置: ${provider}`, cachedConfig);
+          return;
         }
-        
+
         // 如果缓存中没有，尝试从配置文件中加载
         if (window.electronAPI) {
-          const savedSettings = await window.electronAPI.getConfig()
-          if (savedSettings && savedSettings.aiCompletion && savedSettings.aiCompletion.provider === provider) {
-            const providerConfig = savedSettings.aiCompletion
-            settings.aiCompletion.baseUrl = providerConfig.baseUrl || providerDefaults[provider]?.baseUrl || ''
-            settings.aiCompletion.model = providerConfig.model || providerDefaults[provider]?.model || ''
-            settings.aiCompletion.customModel = providerConfig.customModel || ''
-            settings.aiCompletion.apiKey = providerConfig.apiKey || ''
-            settings.aiCompletion.autoTrigger = providerConfig.autoTrigger !== undefined ? providerConfig.autoTrigger : settings.aiCompletion.autoTrigger
-            settings.aiCompletion.triggerDelay = providerConfig.triggerDelay || settings.aiCompletion.triggerDelay
-            settings.aiCompletion.maxSuggestions = providerConfig.maxSuggestions || settings.aiCompletion.maxSuggestions
-            
+          const savedSettings = await window.electronAPI.getConfig();
+          if (
+            savedSettings &&
+            savedSettings.aiCompletion &&
+            savedSettings.aiCompletion.provider === provider
+          ) {
+            const providerConfig = savedSettings.aiCompletion;
+            settings.aiCompletion.baseUrl =
+              providerConfig.baseUrl || providerDefaults[provider]?.baseUrl || '';
+            settings.aiCompletion.model =
+              providerConfig.model || providerDefaults[provider]?.model || '';
+            settings.aiCompletion.customModel = providerConfig.customModel || '';
+            settings.aiCompletion.apiKey = providerConfig.apiKey || '';
+            settings.aiCompletion.autoTrigger =
+              providerConfig.autoTrigger !== undefined
+                ? providerConfig.autoTrigger
+                : settings.aiCompletion.autoTrigger;
+            settings.aiCompletion.triggerDelay =
+              providerConfig.triggerDelay || settings.aiCompletion.triggerDelay;
+            settings.aiCompletion.maxSuggestions =
+              providerConfig.maxSuggestions || settings.aiCompletion.maxSuggestions;
+
             // 缓存配置以备后用
             providerConfigCache.value.aiCompletion[provider] = {
               baseUrl: settings.aiCompletion.baseUrl,
@@ -802,108 +837,108 @@ export default {
               autoTrigger: settings.aiCompletion.autoTrigger,
               triggerDelay: settings.aiCompletion.triggerDelay,
               maxSuggestions: settings.aiCompletion.maxSuggestions
-            }
-            
-            console.log(`从配置文件加载AI补全提供商配置: ${provider}`, providerConfig)
-            return
+            };
+
+            console.log(`从配置文件加载AI补全提供商配置: ${provider}`, providerConfig);
+            return;
           }
         }
-        
+
         // 如果都没有，使用默认配置
         if (providerDefaults[provider]) {
-          settings.aiCompletion.baseUrl = providerDefaults[provider].baseUrl
-          settings.aiCompletion.model = providerDefaults[provider].model
-          settings.aiCompletion.customModel = ''
-          
+          settings.aiCompletion.baseUrl = providerDefaults[provider].baseUrl;
+          settings.aiCompletion.model = providerDefaults[provider].model;
+          settings.aiCompletion.customModel = '';
+
           // 对于自定义提供商，清空API密钥以避免混淆
           if (provider === 'custom') {
-            settings.aiCompletion.apiKey = ''
+            settings.aiCompletion.apiKey = '';
           }
-          
+
           console.log(`使用默认AI补全提供商配置: ${provider}`, {
             baseUrl: settings.aiCompletion.baseUrl,
             model: settings.aiCompletion.model
-          })
+          });
         } else {
           // 处理未知的提供商
-          console.warn(`未知的AI补全提供商: ${provider}`)
-          settings.aiCompletion.baseUrl = ''
-          settings.aiCompletion.model = ''
-          settings.aiCompletion.customModel = ''
-          settings.aiCompletion.apiKey = ''
+          console.warn(`未知的AI补全提供商: ${provider}`);
+          settings.aiCompletion.baseUrl = '';
+          settings.aiCompletion.model = '';
+          settings.aiCompletion.customModel = '';
+          settings.aiCompletion.apiKey = '';
         }
       } catch (error) {
-        console.error('加载AI补全提供商配置失败:', error)
+        console.error('加载AI补全提供商配置失败:', error);
         // 发生错误时使用默认配置作为回退
         if (providerDefaults[provider]) {
-          settings.aiCompletion.baseUrl = providerDefaults[provider].baseUrl
-          settings.aiCompletion.model = providerDefaults[provider].model
-          settings.aiCompletion.customModel = ''
+          settings.aiCompletion.baseUrl = providerDefaults[provider].baseUrl;
+          settings.aiCompletion.model = providerDefaults[provider].model;
+          settings.aiCompletion.customModel = '';
         }
       }
-    }
+    };
 
     const syncCustomModel = () => {
       if (settings.aiChat.model) {
-        settings.aiChat.customModel = settings.aiChat.model
+        settings.aiChat.customModel = settings.aiChat.model;
       }
-    }
+    };
 
     const syncCompletionCustomModel = () => {
       if (settings.aiCompletion.model) {
-        settings.aiCompletion.customModel = settings.aiCompletion.model
+        settings.aiCompletion.customModel = settings.aiCompletion.model;
       }
-    }
+    };
 
     const loadSettings = async () => {
       try {
-        console.log('开始加载设置...')
-        
+        console.log('开始加载设置...');
+
         if (window.electronAPI) {
-          console.log('检测到 Electron 环境，使用 electronAPI 加载配置')
-          const savedSettings = await window.electronAPI.getConfig()
-          console.log('获取到的保存设置:', savedSettings)
-          
+          console.log('检测到 Electron 环境，使用 electronAPI 加载配置');
+          const savedSettings = await window.electronAPI.getConfig();
+          console.log('获取到的保存设置:', savedSettings);
+
           if (savedSettings) {
-            await applySettings(savedSettings)
+            await applySettings(savedSettings);
           } else {
-            console.log('未找到保存的设置，使用默认设置')
-            await tryLoadFromLocalStorage()
+            console.log('未找到保存的设置，使用默认设置');
+            await tryLoadFromLocalStorage();
           }
         } else {
-          console.warn('未检测到 electronAPI，尝试从 localStorage 加载配置')
-          await tryLoadFromLocalStorage()
+          console.warn('未检测到 electronAPI，尝试从 localStorage 加载配置');
+          await tryLoadFromLocalStorage();
         }
       } catch (error) {
-        console.error('加载设置失败:', error)
+        console.error('加载设置失败:', error);
         // 发出通知给用户
-        emit('show-notification', '加载设置失败，使用默认配置', 'warning')
-        
+        emit('show-notification', '加载设置失败，使用默认配置', 'warning');
+
         // 最后的 fallback：使用默认设置
-        Object.assign(settings, defaultSettings)
+        Object.assign(settings, defaultSettings);
       }
-    }
+    };
 
     const tryLoadFromLocalStorage = async () => {
       try {
-        const localSettings = localStorage.getItem('sshcode-settings')
+        const localSettings = localStorage.getItem('sshcode-settings');
         if (localSettings) {
-          const parsedSettings = JSON.parse(localSettings)
-          console.log('从 localStorage 加载设置成功:', parsedSettings)
-          await applySettings(parsedSettings)
+          const parsedSettings = JSON.parse(localSettings);
+          console.log('从 localStorage 加载设置成功:', parsedSettings);
+          await applySettings(parsedSettings);
         } else {
-          console.log('localStorage 中也没有设置，使用默认设置')
-          Object.assign(settings, defaultSettings)
+          console.log('localStorage 中也没有设置，使用默认设置');
+          Object.assign(settings, defaultSettings);
         }
       } catch (error) {
-        console.error('从 localStorage 加载设置失败:', error)
-        Object.assign(settings, defaultSettings)
+        console.error('从 localStorage 加载设置失败:', error);
+        Object.assign(settings, defaultSettings);
       }
-    }
+    };
 
-    const applySettings = async (savedSettings) => {
-      const lastSavedProviders = savedSettings.lastSavedProviders
-      
+    const applySettings = async savedSettings => {
+      const lastSavedProviders = savedSettings.lastSavedProviders;
+
       const processedSettings = {
         ...defaultSettings,
         aiChat: {
@@ -933,139 +968,153 @@ export default {
           ...(savedSettings.security || {})
         },
         lastSavedProviders: lastSavedProviders
-      }
-      
-      console.log('处理后的设置:', processedSettings)
-      Object.assign(settings, processedSettings)
-      console.log('设置已应用到响应式对象')
-      
+      };
+
+      console.log('处理后的设置:', processedSettings);
+      Object.assign(settings, processedSettings);
+      console.log('设置已应用到响应式对象');
+
       // 加载GPT池配置
       if (savedSettings.providerPool) {
-        providerPool.value = savedSettings.providerPool
-        console.log('GPT池配置加载完成:', providerPool.value)
+        providerPool.value = savedSettings.providerPool;
+        console.log('GPT池配置加载完成:', providerPool.value);
       } else {
-        console.log('未找到GPT池配置，使用默认空池')
+        console.log('未找到GPT池配置，使用默认空池');
       }
-      
-      if (lastSavedProviders) {
-        console.log('检测到最后一次保存的供应商信息:', lastSavedProviders)
-        await restoreLastSavedProviders(lastSavedProviders, savedSettings)
-      } else {
-        console.log('未找到最后一次保存的供应商信息')
-      }
-      
-      initializeProviderCache(savedSettings)
-      
-      console.log('配置加载成功:', processedSettings)
-      console.log('当前设置状态:', settings)
-    }
 
-    const initializeProviderCache = (savedSettings) => {
+      if (lastSavedProviders) {
+        console.log('检测到最后一次保存的供应商信息:', lastSavedProviders);
+        await restoreLastSavedProviders(lastSavedProviders, savedSettings);
+      } else {
+        console.log('未找到最后一次保存的供应商信息');
+      }
+
+      initializeProviderCache(savedSettings);
+
+      console.log('配置加载成功:', processedSettings);
+      console.log('当前设置状态:', settings);
+    };
+
+    const initializeProviderCache = savedSettings => {
       // 为AI聊天提供商初始化缓存
       if (savedSettings.aiChat) {
-        const currentProvider = savedSettings.aiChat.provider
+        const currentProvider = savedSettings.aiChat.provider;
         if (currentProvider) {
           providerConfigCache.value.aiChat[currentProvider] = {
-            baseUrl: savedSettings.aiChat.baseUrl || providerDefaults[currentProvider]?.baseUrl || '',
+            baseUrl:
+              savedSettings.aiChat.baseUrl || providerDefaults[currentProvider]?.baseUrl || '',
             model: savedSettings.aiChat.model || providerDefaults[currentProvider]?.model || '',
             customModel: savedSettings.aiChat.customModel || '',
             apiKey: savedSettings.aiChat.apiKey || '',
             maxTokens: savedSettings.aiChat.maxTokens || defaultSettings.aiChat.maxTokens,
             temperature: savedSettings.aiChat.temperature || defaultSettings.aiChat.temperature
-          }
+          };
         }
       }
-      
+
       // 为AI补全提供商初始化缓存
       if (savedSettings.aiCompletion) {
-        const currentProvider = savedSettings.aiCompletion.provider
+        const currentProvider = savedSettings.aiCompletion.provider;
         if (currentProvider) {
           providerConfigCache.value.aiCompletion[currentProvider] = {
-            baseUrl: savedSettings.aiCompletion.baseUrl || providerDefaults[currentProvider]?.baseUrl || '',
-            model: savedSettings.aiCompletion.model || providerDefaults[currentProvider]?.model || '',
+            baseUrl:
+              savedSettings.aiCompletion.baseUrl ||
+              providerDefaults[currentProvider]?.baseUrl ||
+              '',
+            model:
+              savedSettings.aiCompletion.model || providerDefaults[currentProvider]?.model || '',
             customModel: savedSettings.aiCompletion.customModel || '',
             apiKey: savedSettings.aiCompletion.apiKey || '',
-            autoTrigger: savedSettings.aiCompletion.autoTrigger !== undefined ? savedSettings.aiCompletion.autoTrigger : defaultSettings.aiCompletion.autoTrigger,
-            triggerDelay: savedSettings.aiCompletion.triggerDelay || defaultSettings.aiCompletion.triggerDelay,
-            maxSuggestions: savedSettings.aiCompletion.maxSuggestions || defaultSettings.aiCompletion.maxSuggestions
-          }
+            autoTrigger:
+              savedSettings.aiCompletion.autoTrigger !== undefined
+                ? savedSettings.aiCompletion.autoTrigger
+                : defaultSettings.aiCompletion.autoTrigger,
+            triggerDelay:
+              savedSettings.aiCompletion.triggerDelay || defaultSettings.aiCompletion.triggerDelay,
+            maxSuggestions:
+              savedSettings.aiCompletion.maxSuggestions ||
+              defaultSettings.aiCompletion.maxSuggestions
+          };
         }
       }
-      
-      console.log('提供商配置缓存初始化完成:', providerConfigCache.value)
-    }
+
+      console.log('提供商配置缓存初始化完成:', providerConfigCache.value);
+    };
 
     const saveSettings = async () => {
       try {
         // 更新GPT池 - 保存当前提供商配置到池中
-        updateProviderPool('aiChat', settings.aiChat.provider, settings.aiChat)
-        updateProviderPool('aiCompletion', settings.aiCompletion.provider, settings.aiCompletion)
-        
+        updateProviderPool('aiChat', settings.aiChat.provider, settings.aiChat);
+        updateProviderPool('aiCompletion', settings.aiCompletion.provider, settings.aiCompletion);
+
         // 记录最后一次保存的供应商信息
         const lastSavedProviders = {
           aiChat: settings.aiChat.provider,
           aiCompletion: settings.aiCompletion.provider,
           timestamp: new Date().toISOString()
-        }
-        
+        };
+
         // 创建一个可序列化的设置对象副本
-        const serializableSettings = JSON.parse(JSON.stringify(settings))
-        
+        const serializableSettings = JSON.parse(JSON.stringify(settings));
+
         // 确保GPT池数据正确序列化
-        const serializedProviderPool = JSON.parse(JSON.stringify(providerPool.value))
-        
+        const serializedProviderPool = JSON.parse(JSON.stringify(providerPool.value));
+
         // 将供应商信息和GPT池添加到设置中
-        serializableSettings.lastSavedProviders = lastSavedProviders
-        serializableSettings.providerPool = serializedProviderPool
-        
+        serializableSettings.lastSavedProviders = lastSavedProviders;
+        serializableSettings.providerPool = serializedProviderPool;
+
         console.log('准备保存的设置:', {
           lastSavedProviders,
           providerPool: serializedProviderPool
-        })
-        
+        });
+
         if (window.electronAPI) {
-          await window.electronAPI.saveConfig(serializableSettings)
-          emit('show-notification', '设置已保存', 'success')
+          await window.electronAPI.saveConfig(serializableSettings);
+          emit('show-notification', '设置已保存', 'success');
         } else {
-          localStorage.setItem('sshcode-settings', JSON.stringify(serializableSettings))
-          emit('show-notification', '设置已保存（本地存储）', 'success')
+          localStorage.setItem('sshcode-settings', JSON.stringify(serializableSettings));
+          emit('show-notification', '设置已保存（本地存储）', 'success');
         }
-        emit('close')
+        emit('close');
       } catch (error) {
-        console.error('保存设置失败:', error)
-        emit('show-notification', `保存设置失败: ${error.message}`, 'error')
+        console.error('保存设置失败:', error);
+        emit('show-notification', `保存设置失败: ${error.message}`, 'error');
       }
-    }
+    };
 
     const restoreLastSavedProviders = async (lastSavedProviders, savedSettings) => {
       try {
         // 恢复AI聊天提供商配置
         if (lastSavedProviders.aiChat && lastSavedProviders.aiChat !== settings.aiChat.provider) {
-          console.log(`恢复AI聊天提供商: ${lastSavedProviders.aiChat}`)
-          settings.aiChat.provider = lastSavedProviders.aiChat
-          await updateAIChatDefaults()
+          console.log(`恢复AI聊天提供商: ${lastSavedProviders.aiChat}`);
+          settings.aiChat.provider = lastSavedProviders.aiChat;
+          await updateAIChatDefaults();
         }
-        
+
         // 恢复AI补全提供商配置
-        if (lastSavedProviders.aiCompletion && lastSavedProviders.aiCompletion !== settings.aiCompletion.provider) {
-          console.log(`恢复AI补全提供商: ${lastSavedProviders.aiCompletion}`)
-          settings.aiCompletion.provider = lastSavedProviders.aiCompletion
-          await updateAICompletionDefaults()
+        if (
+          lastSavedProviders.aiCompletion &&
+          lastSavedProviders.aiCompletion !== settings.aiCompletion.provider
+        ) {
+          console.log(`恢复AI补全提供商: ${lastSavedProviders.aiCompletion}`);
+          settings.aiCompletion.provider = lastSavedProviders.aiCompletion;
+          await updateAICompletionDefaults();
         }
-        
-        console.log('供应商配置恢复完成')
+
+        console.log('供应商配置恢复完成');
       } catch (error) {
-        console.error('恢复供应商配置失败:', error)
+        console.error('恢复供应商配置失败:', error);
       }
-    }
+    };
 
     const resetSettings = () => {
-      Object.assign(settings, defaultSettings)
-      emit('show-notification', '设置已重置', 'info')
-    }
+      Object.assign(settings, defaultSettings);
+      emit('show-notification', '设置已重置', 'info');
+    };
 
     // 组件挂载时加载设置
-    loadSettings()
+    loadSettings();
 
     return {
       activeTab,
@@ -1079,9 +1128,9 @@ export default {
       updateAICompletionDefaults,
       syncCustomModel,
       syncCompletionCustomModel
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>

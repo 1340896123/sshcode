@@ -29,12 +29,7 @@
           <ChevronDownIcon v-if="!isCollapsed" />
           <ChevronRightIcon v-else />
         </button>
-        <button
-          v-if="hasContent"
-          class="copy-button"
-          @click.stop="copyContent"
-          title="复制内容"
-        >
+        <button v-if="hasContent" class="copy-button" @click.stop="copyContent" title="复制内容">
           <CopyIcon />
         </button>
       </div>
@@ -43,7 +38,10 @@
     <!-- 工具调用内容 -->
     <div v-if="!isCollapsed && hasContent" class="tool-call-content">
       <!-- 成功结果 -->
-      <div v-if="message.type === 'tool-result' && message.metadata?.status === 'completed'" class="result-content">
+      <div
+        v-if="message.type === 'tool-result' && message.metadata?.status === 'completed'"
+        class="result-content"
+      >
         <div class="result-header">
           <CheckIcon class="status-icon success" />
           <span>命令执行成功</span>
@@ -54,7 +52,10 @@
       </div>
 
       <!-- 错误结果 -->
-      <div v-else-if="message.type === 'tool-result' && message.metadata?.status === 'error'" class="error-content">
+      <div
+        v-else-if="message.type === 'tool-result' && message.metadata?.status === 'error'"
+        class="error-content"
+      >
         <div class="error-header">
           <XIcon class="status-icon error" />
           <span>命令执行失败</span>
@@ -82,7 +83,7 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, ref } from 'vue';
 
 export default {
   name: 'ToolCallMessage',
@@ -98,99 +99,100 @@ export default {
   },
   emits: ['copy-to-clipboard'],
   setup(props, { emit }) {
-    const isCollapsed = ref(props.collapsedByDefault)
+    const isCollapsed = ref(props.collapsedByDefault);
 
     // 计算属性
-    const command = computed(() => props.message.metadata?.command)
+    const command = computed(() => props.message.metadata?.command);
 
     const title = computed(() => {
       switch (props.message.type) {
         case 'tool-start':
-          return '🤖 AI工具调用'
+          return '🤖 AI工具调用';
         case 'tool-result':
-          return props.message.metadata?.status === 'completed' ? '✅ 命令完成' : '❌ 命令失败'
+          return props.message.metadata?.status === 'completed' ? '✅ 命令完成' : '❌ 命令失败';
         default:
-          return '🔧 系统消息'
+          return '🔧 系统消息';
       }
-    })
+    });
 
     const description = computed(() => {
       if (props.message.type === 'tool-start' && command.value) {
-        return `执行命令: ${command.value}`
+        return `执行命令: ${command.value}`;
       } else if (props.message.type === 'tool-result') {
         if (props.message.metadata?.status === 'completed') {
-          return '命令已成功执行'
+          return '命令已成功执行';
         } else if (props.message.metadata?.status === 'error') {
-          return '命令执行时发生错误'
+          return '命令执行时发生错误';
         }
       }
-      return props.message.content || '系统消息'
-    })
+      return props.message.content || '系统消息';
+    });
 
     const iconClass = computed(() => {
       switch (props.message.type) {
         case 'tool-start':
-          return 'icon-executing'
+          return 'icon-executing';
         case 'tool-result':
-          return props.message.metadata?.status === 'completed' ? 'icon-success' : 'icon-error'
+          return props.message.metadata?.status === 'completed' ? 'icon-success' : 'icon-error';
         default:
-          return 'icon-info'
+          return 'icon-info';
       }
-    })
+    });
 
     const iconComponent = computed(() => {
       switch (props.message.type) {
         case 'tool-start':
-          return 'LoaderIcon'
+          return 'LoaderIcon';
         case 'tool-result':
-          return props.message.metadata?.status === 'completed' ? 'CheckIcon' : 'XIcon'
+          return props.message.metadata?.status === 'completed' ? 'CheckIcon' : 'XIcon';
         default:
-          return 'InfoIcon'
+          return 'InfoIcon';
       }
-    })
+    });
 
     const isCollapsible = computed(() => {
-      return props.message.isCollapsible || props.message.type === 'tool-result'
-    })
+      return props.message.isCollapsible || props.message.type === 'tool-result';
+    });
 
     const hasContent = computed(() => {
       return (
-        (props.message.type === 'tool-result' && (props.message.metadata?.result || props.message.metadata?.error)) ||
+        (props.message.type === 'tool-result' &&
+          (props.message.metadata?.result || props.message.metadata?.error)) ||
         props.message.content
-      )
-    })
+      );
+    });
 
     const contentToCopy = computed(() => {
       if (props.message.type === 'tool-result') {
-        return props.message.metadata?.result || props.message.metadata?.error || ''
+        return props.message.metadata?.result || props.message.metadata?.error || '';
       }
-      return props.message.content || ''
-    })
+      return props.message.content || '';
+    });
 
     // 方法
     const toggleCollapse = () => {
       if (isCollapsible.value) {
-        isCollapsed.value = !isCollapsed.value
+        isCollapsed.value = !isCollapsed.value;
       }
-    }
+    };
 
     const copyContent = async () => {
       try {
-        await navigator.clipboard.writeText(contentToCopy.value)
-        emit('copy-to-clipboard', '已复制到剪贴板')
+        await navigator.clipboard.writeText(contentToCopy.value);
+        emit('copy-to-clipboard', '已复制到剪贴板');
       } catch (error) {
-        console.error('复制失败:', error)
-        emit('copy-to-clipboard', '复制失败', 'error')
+        console.error('复制失败:', error);
+        emit('copy-to-clipboard', '复制失败', 'error');
       }
-    }
+    };
 
-    const formatTime = (timestamp) => {
+    const formatTime = timestamp => {
       return new Date(timestamp).toLocaleTimeString('zh-CN', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
-      })
-    }
+      });
+    };
 
     return {
       // 状态
@@ -210,9 +212,9 @@ export default {
       toggleCollapse,
       copyContent,
       formatTime
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>

@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue';
 
 export default {
   name: 'ResizeHandle',
@@ -27,7 +27,7 @@ export default {
     direction: {
       type: String,
       default: 'horizontal',
-      validator: (value) => ['horizontal', 'vertical'].includes(value)
+      validator: value => ['horizontal', 'vertical'].includes(value)
     },
     // 最小尺寸
     minSize: {
@@ -62,48 +62,48 @@ export default {
   },
   emits: ['resize-start', 'resize', 'resize-end'],
   setup(props, { emit }) {
-    const isResizing = ref(false)
-    const startPosition = ref(0)
-    const startSize = ref(props.initialSize)
+    const isResizing = ref(false);
+    const startPosition = ref(0);
+    const startSize = ref(props.initialSize);
 
     // 开始拖动
-    const startResize = (event) => {
-      if (props.disabled) return
-      
-      isResizing.value = true
-      startPosition.value = props.direction === 'horizontal' ? event.clientY : event.clientX
-      startSize.value = props.initialSize
+    const startResize = event => {
+      if (props.disabled) return;
+
+      isResizing.value = true;
+      startPosition.value = props.direction === 'horizontal' ? event.clientY : event.clientX;
+      startSize.value = props.initialSize;
 
       // 添加全局事件监听器
-      document.addEventListener('mousemove', handleResize)
-      document.addEventListener('mouseup', stopResize)
-      
+      document.addEventListener('mousemove', handleResize);
+      document.addEventListener('mouseup', stopResize);
+
       // 设置鼠标样式
-      document.body.style.cursor = props.direction === 'horizontal' ? 'ns-resize' : 'ew-resize'
-      document.body.style.userSelect = 'none'
+      document.body.style.cursor = props.direction === 'horizontal' ? 'ns-resize' : 'ew-resize';
+      document.body.style.userSelect = 'none';
 
       // 触发开始事件
       emit('resize-start', {
         size: startSize.value,
         position: startPosition.value
-      })
+      });
 
-      event.preventDefault()
-    }
+      event.preventDefault();
+    };
 
     // 处理拖动
-    const handleResize = (event) => {
-      if (!isResizing.value) return
+    const handleResize = event => {
+      if (!isResizing.value) return;
 
-      const currentPosition = props.direction === 'horizontal' ? event.clientY : event.clientX
-      const delta = currentPosition - startPosition.value
-      
+      const currentPosition = props.direction === 'horizontal' ? event.clientY : event.clientX;
+      const delta = currentPosition - startPosition.value;
+
       // 计算新尺寸
-      let newSize
+      let newSize;
       if (props.direction === 'horizontal') {
-        newSize = Math.max(props.minSize, Math.min(props.maxSize, startSize.value - delta))
+        newSize = Math.max(props.minSize, Math.min(props.maxSize, startSize.value - delta));
       } else {
-        newSize = Math.max(props.minSize, Math.min(props.maxSize, startSize.value + delta))
+        newSize = Math.max(props.minSize, Math.min(props.maxSize, startSize.value + delta));
       }
 
       // 触发调整大小事件
@@ -112,41 +112,41 @@ export default {
         delta: delta,
         startPosition: startPosition.value,
         currentPosition: currentPosition
-      })
-    }
+      });
+    };
 
     // 停止拖动
     const stopResize = () => {
-      if (!isResizing.value) return
+      if (!isResizing.value) return;
 
-      isResizing.value = false
-      
+      isResizing.value = false;
+
       // 移除全局事件监听器
-      document.removeEventListener('mousemove', handleResize)
-      document.removeEventListener('mouseup', stopResize)
-      
+      document.removeEventListener('mousemove', handleResize);
+      document.removeEventListener('mouseup', stopResize);
+
       // 恢复鼠标样式
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
 
       // 触发结束事件
       emit('resize-end', {
         size: startSize.value
-      })
-    }
+      });
+    };
 
     // 组件卸载时清理事件监听器
     onUnmounted(() => {
-      document.removeEventListener('mousemove', handleResize)
-      document.removeEventListener('mouseup', stopResize)
-    })
+      document.removeEventListener('mousemove', handleResize);
+      document.removeEventListener('mouseup', stopResize);
+    });
 
     return {
       isResizing,
       startResize
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>

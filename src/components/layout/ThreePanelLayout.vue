@@ -26,13 +26,21 @@
       <div class="panel-header">
         <h3><span class="panel-icon">💻</span> SSH Terminal - {{ connection.host }}</h3>
         <div class="panel-controls">
-          <button class="control-btn" @click="showTerminalInput" title="显示浮动输入框 (Ctrl+Shift+T)">
+          <button
+            class="control-btn"
+            @click="showTerminalInput"
+            title="显示浮动输入框 (Ctrl+Shift+T)"
+          >
             ✏️
           </button>
           <button class="control-btn" @click="$emit('clear-terminal', connection.id)" title="清空">
             🗑️
           </button>
-          <button class="control-btn" @click="$emit('copy-terminal-content', connection.id)" title="复制">
+          <button
+            class="control-btn"
+            @click="$emit('copy-terminal-content', connection.id)"
+            title="复制"
+          >
             📋
           </button>
         </div>
@@ -51,7 +59,7 @@
             @blur="handleTerminalBlur"
             @contextmenu="handleTerminalContextMenu"
           />
-          
+
           <!-- 浮动输入框组件 -->
           <TerminalInput
             :is-visible="showTerminalInput"
@@ -90,12 +98,12 @@
 </template>
 
 <script>
-import FileManager from '../../modules/file-manager/components/FileManager.vue'
-import AIAssistant from '../../modules/ai-assistant/components/AIAssistant.vue'
-import TerminalAutocomplete from '../../modules/terminal/components/TerminalAutocomplete.vue'
-import TerminalInput from '../../modules/terminal/components/TerminalInput.vue'
-import XTerminal from '../../modules/terminal/components/XTerminal.vue'
-import { useAIStore } from '../../modules/ai-assistant/stores/ai.js'
+import FileManager from '../../modules/file-manager/components/FileManager.vue';
+import AIAssistant from '../../modules/ai-assistant/components/AIAssistant.vue';
+import TerminalAutocomplete from '../../modules/terminal/components/TerminalAutocomplete.vue';
+import TerminalInput from '../../modules/terminal/components/TerminalInput.vue';
+import XTerminal from '../../modules/terminal/components/XTerminal.vue';
+import { useAIStore } from '../../modules/ai-assistant/stores/ai.js';
 
 export default {
   name: 'ThreePanelLayout',
@@ -123,7 +131,7 @@ export default {
   data() {
     return {
       showTerminalInput: false
-    }
+    };
   },
   emits: [
     'execute-command',
@@ -146,101 +154,104 @@ export default {
   ],
   mounted() {
     // 监听键盘快捷键来显示/隐藏浮动输入框
-    document.addEventListener('keydown', this.handleGlobalKeydown)
+    document.addEventListener('keydown', this.handleGlobalKeydown);
 
     // 初始化AI store
-    this.aiStore = useAIStore()
+    this.aiStore = useAIStore();
 
     // 监听AI store的终端输入状态
-    this.watchAITerminalInput()
+    this.watchAITerminalInput();
   },
   beforeUnmount() {
-    document.removeEventListener('keydown', this.handleGlobalKeydown)
+    document.removeEventListener('keydown', this.handleGlobalKeydown);
   },
   methods: {
     formatTimestamp(timestamp) {
-      return new Date(timestamp).toLocaleTimeString()
+      return new Date(timestamp).toLocaleTimeString();
     },
 
     // 新的终端事件处理方法
     handleTerminalData(data) {
       // 可以在这里处理终端数据
-      console.log('Terminal data:', data)
+      console.log('Terminal data:', data);
     },
 
     handleTerminalResize({ cols, rows }) {
-      console.log('Terminal resized:', { cols, rows })
+      console.log('Terminal resized:', { cols, rows });
     },
 
     handleTerminalFocus() {
-      console.log('Terminal focused')
+      console.log('Terminal focused');
     },
 
     handleTerminalBlur() {
-      console.log('Terminal blurred')
+      console.log('Terminal blurred');
     },
 
     handleTerminalContextMenu(event) {
-      this.$emit('handle-terminal-context-menu', event, this.connection.id)
+      this.$emit('handle-terminal-context-menu', event, this.connection.id);
     },
 
     // TerminalInput 相关方法
     handleTerminalInputCommand(command) {
-      console.log('🎯 [ThreePanelLayout] 收到TerminalInput命令:', command)
+      console.log('🎯 [ThreePanelLayout] 收到TerminalInput命令:', command);
       // 将命令转发给父组件执行
-      this.$emit('execute-command', command)
+      this.$emit('execute-command', command);
       // 执行后隐藏输入框
-      this.hideTerminalInput()
+      this.hideTerminalInput();
     },
 
     hideTerminalInput() {
-      this.showTerminalInput = false
+      this.showTerminalInput = false;
     },
 
     showTerminalInput() {
-      this.showTerminalInput = true
+      this.showTerminalInput = true;
     },
 
     // 全局键盘事件处理
     handleGlobalKeydown(event) {
       // Ctrl+Shift+T 显示浮动输入框
       if (event.ctrlKey && event.shiftKey && event.key === 'T') {
-        event.preventDefault()
-        this.showTerminalInput = !this.showTerminalInput
-        console.log('🔧 [ThreePanelLayout] 切换TerminalInput显示状态:', this.showTerminalInput)
+        event.preventDefault();
+        this.showTerminalInput = !this.showTerminalInput;
+        console.log('🔧 [ThreePanelLayout] 切换TerminalInput显示状态:', this.showTerminalInput);
       }
-      
+
       // Escape 隐藏浮动输入框
       if (event.key === 'Escape' && this.showTerminalInput) {
-        event.preventDefault()
-        this.hideTerminalInput()
+        event.preventDefault();
+        this.hideTerminalInput();
       }
     },
 
     // 处理显示输入框的事件
     handleShowTerminalInput(event) {
-      this.showTerminalInput = true
+      this.showTerminalInput = true;
     },
 
     // 监听AI store的终端输入状态变化
     watchAITerminalInput() {
       if (this.aiStore) {
         // 监听store中的终端输入状态
-        this.$watch(() => this.aiStore.terminalInput.isVisible, (isVisible) => {
-          if (isVisible) {
-            this.showTerminalInput = true
-            // 如果有文本内容，也设置到本地状态
-            if (this.aiStore.terminalInput.text) {
-              // 可以在这里处理文本内容
+        this.$watch(
+          () => this.aiStore.terminalInput.isVisible,
+          isVisible => {
+            if (isVisible) {
+              this.showTerminalInput = true;
+              // 如果有文本内容，也设置到本地状态
+              if (this.aiStore.terminalInput.text) {
+                // 可以在这里处理文本内容
+              }
+            } else {
+              this.showTerminalInput = false;
             }
-          } else {
-            this.showTerminalInput = false
           }
-        })
+        );
       }
     }
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
