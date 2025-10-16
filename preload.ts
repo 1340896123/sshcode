@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ElectronAPI, SSHConnectionConfig, SessionData, AppConfig, APIResponse } from './src/types/index.js';
+import type {
+  ElectronAPI,
+  SSHConnectionConfig,
+  SessionData,
+  AppConfig,
+  APIResponse
+} from './src/types/index.js';
 
 // Expose secure API to renderer process
 contextBridge.exposeInMainWorld('electronAPI', {

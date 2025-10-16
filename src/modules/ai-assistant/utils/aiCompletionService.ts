@@ -4,12 +4,7 @@
  */
 
 import type { AIConfig, TestResult, CommandSuggestion } from '@/types/index.js';
-import type {
-  CompletionContext,
-  CacheEntry,
-  CacheStats,
-  AppConfiguration
-} from '@/types/ai.js';
+import type { CompletionContext, CacheEntry, CacheStats, AppConfiguration } from '@/types/ai.js';
 
 class AICompletionService {
   private config: AppConfiguration | null = null;

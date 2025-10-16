@@ -1,18 +1,7 @@
 <template>
-  <!-- 用户消息 - 简单气泡 -->
-  <div v-if="message.role === 'user'" class="user-message">
-    <div class="user-bubble">
-      {{ message.content }}
-    </div>
-  </div>
-
-  <!-- AI回复 - 正常显示 -->
-  <div v-else-if="message.role === 'assistant'" class="assistant-message">
-    <div class="assistant-content" v-html="formattedContent"></div>
-  </div>
 
   <!-- AI工具调用 - 根据状态显示不同界面 -->
-  <div v-else-if="message.type === 'tool-start'" class="tool-call-simple">
+  <div v-if="message.type === 'tool-start'" class="tool-call-simple">
     <!-- 正在执行状态 -->
     <div v-if="status === 'executing'" class="tool-executing">
       <div class="executing-prompt">
@@ -556,103 +545,6 @@ export default {
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
 
-// 用户消息 - 简单气泡
-.user-message {
-  margin: 8px 0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.user-bubble {
-  background: var(--color-primary, #8b5cf6);
-  color: white;
-  padding: 12px 16px;
-  border-radius: 18px;
-  border-bottom-right-radius: 4px;
-  max-width: 80%;
-  font-size: 14px;
-  line-height: 1.4;
-  word-wrap: break-word;
-  animation: fadeIn 0.3s ease;
-}
-
-// AI回复
-.assistant-message {
-  margin: 8px 0;
-  display: flex;
-  justify-content: flex-start;
-}
-
-.assistant-content {
-  background: var(--bg-surface, #2a2a2a);
-  color: var(--text-primary, #e0e0e0);
-  padding: 12px 16px;
-  border-radius: 12px;
-  border-top-left-radius: 4px;
-  max-width: 85%;
-  font-size: 14px;
-  line-height: 1.5;
-  border: 1px solid var(--border-color, #3a3a3a);
-  animation: fadeIn 0.3s ease;
-
-  :deep(p) {
-    margin: 0 0 12px 0;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  :deep(code) {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 12px;
-    color: var(--color-warning, #f59e0b);
-  }
-
-  :deep(pre) {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 6px;
-    padding: 10px;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 11px;
-    line-height: 1.4;
-    color: var(--text-primary, #e0e0e0);
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-x: auto;
-    margin: 12px 0;
-    border: 1px solid var(--border-color, #4a4a4a);
-  }
-
-  :deep(blockquote) {
-    border-left: 4px solid var(--color-primary, #8b5cf6);
-    padding-left: 12px;
-    margin: 12px 0;
-    color: var(--text-secondary, #b0b0b0);
-    font-style: italic;
-  }
-
-  :deep(ul), :deep(ol) {
-    margin: 12px 0;
-    padding-left: 20px;
-  }
-
-  :deep(li) {
-    margin-bottom: 4px;
-  }
-
-  :deep(a) {
-    color: var(--color-info, #3b82f6);
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-}
 
 // AI工具调用 - 根据状态显示不同样式
 .tool-call-simple {
@@ -1274,11 +1166,6 @@ export default {
 
 // 响应式设计
 @media (max-width: 768px) {
-  .user-bubble,
-  .assistant-content {
-    max-width: 90%;
-  }
-
   .panel-header {
     padding: 10px 12px;
   }

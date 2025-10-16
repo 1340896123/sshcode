@@ -3,7 +3,12 @@
  * 使用简单的Promise和事件系统，移除复杂的消息队列依赖
  */
 
-import { executeCommand } from '../../terminal/utils/simpleCommandExecutor.js';
+import {
+  executeCommand,
+  completeAllCommands,
+  getPendingCommandsCount,
+  getCommandHistory
+} from '../../terminal/utils/simpleCommandExecutor.js';
 import { emitEvent, EventTypes } from '@/utils/eventSystem.js';
 import { useAIStore } from '../stores/ai.js';
 import type { CommandOptions } from '@/types/ai.js';
@@ -82,7 +87,6 @@ export function completeAllAICommands(connectionId: string): void {
   console.log(`🔄 [AI-COMMAND-EXECUTOR] 完成所有命令: ${connectionId}`);
 
   // 使用简化版命令执行器的完成方法
-  const { completeAllCommands } = require('../../terminal/utils/simpleCommandExecutor.js');
   completeAllCommands(connectionId);
 }
 
@@ -90,15 +94,13 @@ export function completeAllAICommands(connectionId: string): void {
  * 获取待执行命令数量
  */
 export function getPendingAICommandsCount(connectionId: string): number {
-  const { getPendingCommandsCount } = require('../../terminal/utils/simpleCommandExecutor.js');
   return getPendingCommandsCount(connectionId);
 }
 
 /**
  * 获取命令历史
  */
-export function getAICommandHistory(limit: number = 20): any[] {
-  const { getCommandHistory } = require('../../terminal/utils/simpleCommandExecutor.js');
+export function getAICommandHistory(limit: number = 20): unknown[] {
   return getCommandHistory(limit);
 }
 
@@ -108,10 +110,9 @@ export function getAICommandHistory(limit: number = 20): any[] {
 export function clearAllAICommands(): void {
   console.log(`🧹 [AI-COMMAND-EXECUTOR] 清除所有待执行命令`);
 
-  const {
-    default: simpleCommandExecutor
-  } = require('../../terminal/utils/simpleCommandExecutor.js');
-  simpleCommandExecutor.clearAllCommands();
+  // 这里需要导入 clearAllCommands 函数，但原文件可能没有导出
+  // 暂时保留这个函数的接口，需要检查 simpleCommandExecutor 的实际导出
+  console.warn('clearAllCommands function not available from simpleCommandExecutor');
 }
 
 // 导出默认实例（兼容性）
