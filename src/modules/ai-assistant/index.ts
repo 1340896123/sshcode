@@ -9,7 +9,6 @@ export { default as AIAssistant } from './components/AIAssistant.vue';
 
 // AI子组件
 export { default as CommandExecution } from './components/ai/CommandExecution.vue';
-export { default as ToolCallMessage } from './components/ai/ToolCallMessage.vue';
 
 // Composables
 export { default as useAIChat } from './composables/useAIChat.ts';
