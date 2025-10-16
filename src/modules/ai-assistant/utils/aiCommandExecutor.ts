@@ -39,7 +39,7 @@ export async function executeAICommand(
     console.log(`✅ [AI-COMMAND-EXECUTOR] 命令执行完成:`, {
       command,
       connectionId,
-      commandId: commandOptions.commandId,
+      commandId: options.toolCallId || 'no-id',
       resultLength: result?.length || 0
     });
 
