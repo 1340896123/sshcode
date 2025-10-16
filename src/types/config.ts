@@ -29,18 +29,22 @@ export interface MainAppConfig {
     provider: string;
   };
   general: {
+    theme: 'light' | 'dark';
     language: string;
-    theme: string;
+    autoSave: boolean;
     autoSaveSessions: boolean;
     checkUpdates: boolean;
   };
   terminal: {
     font: string;
     fontSize: number;
+    fontFamily: string;
+    copyOnSelect: boolean;
     bell: boolean;
     cursorBlink: boolean;
   };
   security: {
+    passwordEncryption: boolean;
     encryptPasswords: boolean;
     sessionTimeout: number;
     confirmDangerousCommands: boolean;

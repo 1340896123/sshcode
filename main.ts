@@ -236,7 +236,7 @@ ipcMain.handle('ssh-execute', async (event, connectionId, command) => {
     return { success: false, error: 'SSH连接不存在' };
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     // 设置终端环境变量
     const execOptions = {
       env: {
@@ -255,7 +255,7 @@ ipcMain.handle('ssh-execute', async (event, connectionId, command) => {
 
     conn.exec(command, execOptions, (err, stream) => {
       if (err) {
-        reject({ success: false, error: err.message });
+        _reject({ success: false, error: err.message });
         return;
       }
 
@@ -284,7 +284,7 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
   }
 
   try {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const shellOptions = {
         rows: options.rows || 24,
         cols: options.cols || 80,
@@ -302,7 +302,7 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
 
       conn.shell(shellOptions, (err, stream) => {
         if (err) {
-          reject({ success: false, error: err.message });
+          _reject({ success: false, error: err.message });
           return;
         }
 
