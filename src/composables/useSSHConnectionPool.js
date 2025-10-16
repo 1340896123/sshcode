@@ -60,7 +60,7 @@ export function useSSHConnectionPool() {
 
       // 构建批量监控命令
       const batchCommand = buildSystemMonitorCommand();
-      console.log('📊 [SSH-POOL] 执行批量监控命令:', connectionId);
+      // console.log('📊 [SSH-POOL] 执行批量监控命令:', connectionId);
 
       const startTime = Date.now();
       const result = await window.electronAPI.sshExecute(connectionId, batchCommand);

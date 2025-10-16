@@ -112,6 +112,24 @@
             class="message-wrapper"
             :class="[message.role, message.type]"
           >
+            <!-- 调试信息 - 打印每个消息的详细信息 -->
+            {{
+              (() => {
+                const debugInfo = {
+                  id: message.id,
+                  type: message.type,
+                  role: message.role,
+                  isTool: isToolMessage(message),
+                  hasMetadata: !!message.metadata,
+                  toolCallId: message.metadata?.toolCallId,
+                  command: message.metadata?.command,
+                  contentLength: message.content?.length || 0,
+                  contentPreview: message.content?.substring(0, 100) || ''
+                };
+                console.log('🔍 [AI-ASSISTANT] 渲染消息:', debugInfo);
+                return '';
+              })()
+            }}
             <!-- 用户消息 -->
             <div v-if="message.role === 'user'" class="user-message">
               <div class="message-content user-content">
@@ -505,6 +523,7 @@ export default {
           message.type.startsWith('tool-'));
 
       if (isTool) {
+        console.log(`✅ [AI-ASSISTANT] 检测到工具消息 (type): ${message.type}, metadata:`, message.metadata);
         return true;
       }
 
@@ -513,18 +532,46 @@ export default {
         return false;
       }
 
-      // 对于其他role为system的消息，检查是否包含工具调用相关内容
-      if (message.role === 'system' && message.content) {
+      // 对于其他role为system的消息，检查是否包含工具调用相关内容或metadata
+      if (message.role === 'system') {
+        const hasToolMetadata = message.metadata?.toolCallId || message.metadata?.command;
         const hasToolContent =
-          message.content.includes('正在执行命令') ||
-          message.content.includes('命令执行完成') ||
-          message.content.includes('命令执行失败') ||
-          message.metadata?.toolCallId;
+          message.content && (
+            message.content.includes('正在执行命令') ||
+            message.content.includes('命令执行完成') ||
+            message.content.includes('命令执行失败') ||
+            message.content.includes('🔧 **正在执行命令**')
+          );
 
-        return hasToolContent;
+        const isToolRelated = hasToolMetadata || hasToolContent;
+
+        if (isToolRelated) {
+          console.log(`✅ [AI-ASSISTANT] 检测到工具消息 (system):`, {
+            hasToolMetadata,
+            hasToolContent,
+            metadata: message.metadata,
+            content: message.content?.substring(0, 50)
+          });
+          return true;
+        }
       }
 
       return false;
+    };
+
+    // 调试用：获取消息的类型信息
+    const getMessageDebugInfo = (message) => {
+      return {
+        id: message.id,
+        type: message.type,
+        role: message.role,
+        isTool: isToolMessage(message),
+        hasMetadata: !!message.metadata,
+        toolCallId: message.metadata?.toolCallId,
+        command: message.metadata?.command,
+        contentLength: message.content?.length || 0,
+        contentPreview: message.content?.substring(0, 50) || ''
+      };
     };
 
     // 生命周期
@@ -535,6 +582,15 @@ export default {
 
       // 初始化工具调用的默认折叠状态
       initializeCollapsedMessages();
+
+      // 调试：监听消息变化
+      watch(messages, (newMessages) => {
+        console.log(`📋 [AI-ASSISTANT] 消息列表更新 (${newMessages.length} 条):`);
+        newMessages.forEach((message, index) => {
+          const debugInfo = getMessageDebugInfo(message);
+          console.log(`  [${index + 1}] ${JSON.stringify(debugInfo, null, 2)}`);
+        });
+      }, { deep: true });
     });
 
     // 本地清空聊天函数
@@ -601,6 +657,7 @@ export default {
       getRealtimeOutput,
       shouldShowRealtimeOutput,
       isToolMessage,
+      getMessageDebugInfo,
       initializeCollapsedMessages,
       renderMarkdown
     };

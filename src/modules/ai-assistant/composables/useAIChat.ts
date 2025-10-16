@@ -226,10 +226,20 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       timestamp: new Date(),
       type,
       metadata,
-      isCollapsible: type === 'tool-result',
-      // 工具调用结果默认为折叠状态
-      defaultCollapsed: type === 'tool-result'
+      isCollapsible: type === 'tool-result' || type === 'tool-start' || type === 'tool-complete' || type === 'tool-error',
+      // 工具调用结果默认为折叠状态，但开始消息展开显示
+      defaultCollapsed: type === 'tool-result' || type === 'tool-complete' || type === 'tool-error'
     };
+
+    console.log(`📝 [AI-CHAT] 添加系统消息:`, {
+      id: message.id,
+      type: message.type,
+      role: message.role,
+      contentLength: message.content.length,
+      metadata: message.metadata,
+      isCollapsible: message.isCollapsible,
+      defaultCollapsed: message.defaultCollapsed
+    });
     messages.value.push(message);
   };
 
@@ -375,10 +385,10 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       return;
     }
 
-    console.log(`✅ [AI-CHAT] 添加工具开始消息: ${data.commandId}`);
+    console.log(`✅ [AI-CHAT] 添加工具开始消息: ${data.commandId}, command: ${data.command}`);
 
-    // 添加工具调用开始消息
-    addSystemMessage(`🔧 **正在执行命令:** \`${data.command}\``, 'tool-start', {
+    // 添加工具调用开始消息 - 使用空的content，让CommandExecution组件处理显示
+    addSystemMessage('', 'tool-start', {
       toolCallId: data.commandId,
       command: data.command,
       connectionId: data.connectionId
@@ -388,13 +398,20 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
   const handleCommandComplete = (data: CommandCompleteEventData): void => {
     console.log(`✅ [AI-CHAT] 收到命令完成事件:`, {
       commandId: data.commandId,
-      command: data.command
+      command: data.command,
+      executionTime: data.executionTime,
+      result: data.result?.substring(0, 50) + '...'
     });
 
     const executionTime = data.executionTime || 0;
 
-    // 更新工具调用历史
+    // 从工具调用历史中获取命令信息（如果data.command为undefined）
     const toolCall = toolCallHistory.value.find(tc => tc.id === data.commandId);
+    const actualCommand = data.command || toolCall?.command;
+
+    console.log(`🔧 [AI-CHAT] 实际命令: ${actualCommand}, 来自历史: ${toolCall?.command}`);
+
+    // 更新工具调用历史
     if (toolCall) {
       toolCall.status = 'completed';
       toolCall.endTime = Date.now();
@@ -422,7 +439,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       existingToolStartMessage.content = ''; // 清空内容，让CommandExecution组件处理显示
       existingToolStartMessage.metadata = {
         toolCallId: data.commandId,
-        command: data.command,
+        command: actualCommand, // 使用实际命令
         result: data.result,
         executionTime
       };
@@ -437,7 +454,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       'tool-complete',
       {
         toolCallId: data.commandId,
-        command: data.command,
+        command: actualCommand, // 使用实际命令
         result: data.result,
         executionTime
       }
@@ -451,8 +468,13 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       error: data.error
     });
 
-    // 更新工具调用历史
+    // 从工具调用历史中获取命令信息（如果data.command为undefined）
     const toolCall = toolCallHistory.value.find(tc => tc.id === data.commandId);
+    const actualCommand = data.command || toolCall?.command;
+
+    console.log(`🔧 [AI-CHAT] 错误处理 - 实际命令: ${actualCommand}, 来自历史: ${toolCall?.command}`);
+
+    // 更新工具调用历史
     if (toolCall) {
       toolCall.status = 'error';
       toolCall.endTime = Date.now();
@@ -479,7 +501,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       existingToolStartMessage.content = ''; // 清空内容，让CommandExecution组件处理显示
       existingToolStartMessage.metadata = {
         toolCallId: data.commandId,
-        command: data.command,
+        command: actualCommand, // 使用实际命令
         error: data.error
       };
       return;
@@ -493,7 +515,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       'tool-error',
       {
         toolCallId: data.commandId,
-        command: data.command,
+        command: actualCommand, // 使用实际命令
         error: data.error
       }
     );

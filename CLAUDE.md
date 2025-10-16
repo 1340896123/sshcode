@@ -144,3 +144,32 @@ npm run format:check   # Check code formatting with Prettier
 4. **Building**: Use `npm run build-electron` to create distributable packages
 5. **SSH Testing**: Ensure test environments have accessible SSH servers for connection testing
 6. **AI Features**: Configure API keys in application settings for AI functionality
+
+## Module Structure
+
+### Feature-Based Modules
+The codebase is organized into feature-based modules under `src/modules/`:
+
+- **ai-assistant/**: Complete AI integration module with chat interface, command execution, and completion services
+  - `components/`: Vue components for AI chat and tool execution
+  - `composables/`: Reactive AI chat management
+  - `stores/`: Pinia store for AI state
+  - `utils/`: AI services, command execution, and completion
+  - `constants/`: AI module configuration and constants
+  - `styles/`: SCSS imports for AI components
+
+- **terminal/**: Terminal emulation and SSH shell management
+  - `components/`: XTerm-based terminal emulator and input components
+  - `composables/`: Terminal session and connection management
+  - `utils/`: Command execution utilities and timeout management
+
+- **file-manager/**: SFTP-based file operations and browser
+  - `components/`: File browser with drag-drop support and icon components
+
+Each module exports its functionality through an `index.ts` barrel export for clean import paths.
+
+### Component Architecture
+- **Modular Components**: Feature-organized with clear separation of concerns
+- **Composables Pattern**: Reusable reactive logic (useConnectionManager, useAIChat, useComponentStyles, etc.)
+- **Event System**: Cross-component communication via `src/utils/eventSystem.ts` using mitt event emitter
+- **Styling System**: Dynamic component styling with `useComponentStyles` hook supporting CSS variables
