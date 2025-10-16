@@ -4,10 +4,11 @@
  */
 
 import type { AIConfig, TestResult, CommandSuggestion } from '@/types/index.js';
-import type { CompletionContext, CacheEntry, CacheStats, AppConfiguration } from '@/types/ai.js';
+import type { CompletionContext, CacheEntry, CacheStats } from '@/types/ai.js';
+import type { AppConfig } from '@/types/config.js';
 
 class AICompletionService {
-  private config: AppConfiguration | null = null;
+  private config: AppConfig | null = null;
   private isInitialized: boolean = false;
   private cache: Map<string, CacheEntry> = new Map();
   private cacheTimeout: number = 5 * 60 * 1000; // 5 minutes cache
@@ -75,7 +76,7 @@ class AICompletionService {
     input: string,
     context: CompletionContext
   ): Promise<CommandSuggestion[]> {
-    const aiConfig = this.config?.aiCompletion || {};
+    const aiConfig = this.config?.ai || {} as AIConfig;
 
     if (!aiConfig.apiKey || !aiConfig.baseUrl) {
       return this.getFallbackSuggestions(input);

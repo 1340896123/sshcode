@@ -36,7 +36,6 @@ export type {
   CompletionContext,
   CacheEntry,
   CacheStats,
-  AppConfiguration,
   CommandOptions
 } from './ai.js';
 

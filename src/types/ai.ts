@@ -171,44 +171,7 @@ export interface CacheStats {
   cacheSize: number;
 }
 
-export interface AppConfiguration {
-  ai?: {
-    provider?: string;
-    baseUrl: string;
-    apiKey: string;
-    model?: string;
-    customModel?: string;
-    maxTokens?: number;
-    temperature?: number;
-  };
-  aiChat?: {
-    enabled: boolean;
-    maxTokens: number;
-    temperature: number;
-    model: string;
-  };
-  aiCompletion?: {
-    apiKey?: string;
-    baseUrl?: string;
-    model?: string;
-    customModel?: string;
-  };
-  general?: {
-    theme: 'light' | 'dark';
-    language: string;
-    autoSave: boolean;
-  };
-  terminal?: {
-    fontSize: number;
-    fontFamily: string;
-    copyOnSelect: boolean;
-  };
-  security?: {
-    passwordEncryption: boolean;
-    sessionTimeout: number;
-    confirmDangerousCommands: boolean;
-  };
-}
+// 移除重复的AppConfiguration接口，使用config.ts中的AppConfig
 
 // AI Command Executor types
 export interface CommandOptions {

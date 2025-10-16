@@ -62,8 +62,8 @@ export async function getAIConfig(): Promise<AIConfig> {
     // 从electron API获取配置
     if (window.electronAPI?.getConfig) {
       const config = await window.electronAPI.getConfig();
-      if (config.aiChat && isConfigValid(config.aiChat)) {
-        return config.aiChat;
+      if (config.ai && isConfigValid(config.ai)) {
+        return config.ai;
       }
     }
 

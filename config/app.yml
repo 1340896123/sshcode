@@ -1,3 +1,11 @@
+ai:
+  provider: custom
+  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
+  apiKey: 33da1545a3814919bbdb37b22b948eef.ti6ZZG8uQTEKzS7l
+  model: ''
+  customModel: glm-4.6
+  maxTokens: 8000
+  temperature: 0.7
 general:
   language: zh-CN
   theme: dark
@@ -7,6 +15,8 @@ general:
   connectionTimeout: 30
   enableNotifications: true
   soundEnabled: true
+  autoSave: true
+  checkUpdates: true
 terminal:
   font: Consolas
   fontSize: 14
@@ -20,10 +30,13 @@ terminal:
   idleTimeout: 600
   timeoutWarning: 30
   autoReconnect: false
+  fontFamily: Consolas
+  copyOnSelect: false
 security:
   encryptPasswords: false
   sessionTimeout: 30
   confirmDangerousCommands: true
+  passwordEncryption: false
 aiChat:
   provider: custom
   apiKey: 33da1545a3814919bbdb37b22b948eef.ti6ZZG8uQTEKzS7l
@@ -49,7 +62,7 @@ aiCompletion:
 lastSavedProviders:
   aiChat: custom
   aiCompletion: custom
-  timestamp: '2025-10-16T15:40:34.118Z'
+  timestamp: '2025-10-16T15:54:44.937Z'
 providerPool:
   aiChat:
     openai:
@@ -77,7 +90,7 @@ providerPool:
       systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
       saveHistory: true
       historyRetentionDays: 30
-      lastUpdated: '2025-10-16T15:40:34.117Z'
+      lastUpdated: '2025-10-16T15:54:44.936Z'
   aiCompletion:
     openai:
       provider: openai
@@ -100,4 +113,4 @@ providerPool:
       triggerDelay: 500
       maxSuggestions: 5
       acceptOnTab: true
-      lastUpdated: '2025-10-16T15:40:34.118Z'
+      lastUpdated: '2025-10-16T15:54:44.937Z'

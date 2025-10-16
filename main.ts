@@ -561,7 +561,47 @@ const loadConfig = () => {
     const configPath = getConfigPath();
     if (fs.existsSync(configPath)) {
       const fileContents = fs.readFileSync(configPath, 'utf8');
-      appConfig = yaml.load(fileContents) as MainAppConfig;
+      const configData = yaml.load(fileContents) as any;
+
+      // 处理配置文件格式，将aiChat映射到ai字段
+      if (configData.aiChat) {
+        appConfig = {
+          ...getDefaultConfig(),
+          ...configData,
+          ai: {
+            provider: configData.aiChat.provider || 'custom',
+            baseUrl: configData.aiChat.baseUrl || '',
+            apiKey: configData.aiChat.apiKey || '',
+            model: configData.aiChat.model || '',
+            customModel: configData.aiChat.customModel || '',
+            maxTokens: configData.aiChat.maxTokens || 8000,
+            temperature: configData.aiChat.temperature || 0.7
+          },
+          general: {
+            language: configData.general?.language || 'zh-CN',
+            theme: configData.general?.theme || 'dark',
+            autoSave: configData.general?.autoSave ?? true,
+            autoSaveSessions: configData.general?.autoSaveSessions ?? true,
+            checkUpdates: configData.general?.checkUpdates ?? true
+          },
+          terminal: {
+            font: configData.terminal?.font || 'Consolas',
+            fontSize: configData.terminal?.fontSize || 14,
+            fontFamily: configData.terminal?.fontFamily || 'Consolas',
+            copyOnSelect: configData.terminal?.copyOnSelect ?? false,
+            bell: configData.terminal?.bell ?? false,
+            cursorBlink: configData.terminal?.cursorBlink ?? true
+          },
+          security: {
+            passwordEncryption: configData.security?.passwordEncryption ?? false,
+            encryptPasswords: configData.security?.encryptPasswords ?? false,
+            sessionTimeout: configData.security?.sessionTimeout ?? 30,
+            confirmDangerousCommands: configData.security?.confirmDangerousCommands ?? true
+          }
+        };
+      } else {
+        appConfig = configData as MainAppConfig;
+      }
     } else {
       appConfig = getDefaultConfig();
       saveConfig();
@@ -574,11 +614,12 @@ const loadConfig = () => {
 
 const getDefaultConfig = (): MainAppConfig => ({
   ai: {
-    provider: 'openai',
-    baseUrl: 'https://api.openai.com/v1',
+    provider: 'custom',
+    baseUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
     apiKey: '',
-    model: 'gpt-3.5-turbo',
-    maxTokens: 2000,
+    model: '',
+    customModel: 'glm-4.6',
+    maxTokens: 8000,
     temperature: 0.7
   },
   general: {
