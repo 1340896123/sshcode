@@ -2,55 +2,13 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
-
-// Type definitions
-interface SSHConnectionConfig {
-  id: string;
-  name: string;
-  host: string;
-  port: number;
-  username: string;
-  authType: 'password' | 'key';
-  password?: string;
-  privateKey?: string;
-  keyContent?: string;
-}
-
-interface AIConfig {
-  provider: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  maxTokens?: number;
-  temperature?: number;
-}
-
-interface AppConfig {
-  ai: AIConfig;
-  general: {
-    language: string;
-    theme: string;
-    autoSaveSessions: boolean;
-    checkUpdates: boolean;
-  };
-  terminal: {
-    font: string;
-    fontSize: number;
-    bell: boolean;
-    cursorBlink: boolean;
-  };
-  security: {
-    encryptPasswords: boolean;
-    sessionTimeout: number;
-    confirmDangerousCommands: boolean;
-  };
-}
+import type { SSHConnectionConfig, MainAppConfig } from './src/types/index.js';
 
 let mainWindow: BrowserWindow | null = null;
 const sshConnections: Record<string, any> = {};
 const sshConnectionConfigs: Record<string, SSHConnectionConfig> = {};
 const sshShells: Record<string, any> = {};
-let appConfig: AppConfig;
+let appConfig: MainAppConfig;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -183,7 +141,7 @@ ipcMain.handle('ssh-connect', async (event, connectionConfig) => {
   const { Client } = require('ssh2');
   const conn = new Client();
 
-  return new Promise((resolve, _reject) => {
+  return new Promise((resolve, reject) => {
     const connectConfig: any = {
       host: connectionConfig.host,
       port: connectionConfig.port || 22,
@@ -278,7 +236,7 @@ ipcMain.handle('ssh-execute', async (event, connectionId, command) => {
     return { success: false, error: 'SSH连接不存在' };
   }
 
-  return new Promise((resolve, _reject) => {
+  return new Promise((resolve, reject) => {
     // 设置终端环境变量
     const execOptions = {
       env: {
@@ -326,7 +284,7 @@ ipcMain.handle('ssh-create-shell', async (event, connectionId, options = {}) => 
   }
 
   try {
-    return new Promise((resolve, _reject) => {
+    return new Promise((resolve, reject) => {
       const shellOptions = {
         rows: options.rows || 24,
         cols: options.cols || 80,
@@ -596,7 +554,7 @@ const loadConfig = () => {
     const configPath = getConfigPath();
     if (fs.existsSync(configPath)) {
       const fileContents = fs.readFileSync(configPath, 'utf8');
-      appConfig = yaml.load(fileContents) as AppConfig;
+      appConfig = yaml.load(fileContents) as MainAppConfig;
     } else {
       appConfig = getDefaultConfig();
       saveConfig();
@@ -607,7 +565,7 @@ const loadConfig = () => {
   }
 };
 
-const getDefaultConfig = () => ({
+const getDefaultConfig = (): MainAppConfig => ({
   ai: {
     provider: 'openai',
     baseUrl: 'https://api.openai.com/v1',

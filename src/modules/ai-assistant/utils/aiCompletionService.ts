@@ -3,33 +3,13 @@
  * Provides intelligent command suggestions using AI APIs
  */
 
-import type { AIConfig, TestResult, CommandSuggestion } from '../types/index.js';
-
-export interface CompletionContext {
-  currentDirectory?: string;
-  recentCommands?: string[];
-  connectionId?: string;
-}
-
-export interface CacheEntry {
-  suggestions: CommandSuggestion[];
-  timestamp: number;
-}
-
-export interface CacheStats {
-  totalEntries: number;
-  validEntries: number;
-  cacheSize: number;
-}
-
-export interface AppConfiguration {
-  aiCompletion?: {
-    apiKey?: string;
-    baseUrl?: string;
-    model?: string;
-    customModel?: string;
-  };
-}
+import type { AIConfig, TestResult, CommandSuggestion } from '@/types/index.js';
+import type {
+  CompletionContext,
+  CacheEntry,
+  CacheStats,
+  AppConfiguration
+} from '@/types/ai.js';
 
 class AICompletionService {
   private config: AppConfiguration | null = null;

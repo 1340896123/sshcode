@@ -6,13 +6,7 @@
 import { executeCommand } from '../../terminal/utils/simpleCommandExecutor.js';
 import { emitEvent, EventTypes } from '@/utils/eventSystem.js';
 import { useAIStore } from '../stores/ai.js';
-
-// 类型定义
-export interface CommandOptions {
-  timeout?: number;
-  silent?: boolean;
-  toolCallId?: string;
-}
+import type { CommandOptions } from '@/types/ai.js';
 
 /**
  * 执行命令并等待结果（对外接口）

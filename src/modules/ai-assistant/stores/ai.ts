@@ -5,44 +5,16 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import type {
+  ToolCallStatus,
+  ConfigStatus,
+  TerminalInput,
+  ToolCallStats,
+  RetryInfo
+} from '@/types/ai.js';
 
-// 类型定义
-export interface ToolCall {
-  id: string;
-  command: string;
-  connectionId: string;
-  status: 'executing' | 'completed' | 'error' | 'timeout';
-  startTime: number;
-  endTime?: number;
-  result?: string;
-  error?: string;
-  executionTime: number;
-  realtimeOutput?: string;
-}
-
-export interface ConfigStatus {
-  isConfigured: boolean;
-  message: string;
-}
-
-export interface TerminalInput {
-  text: string;
-  connectionId: string | null;
-  isVisible: boolean;
-}
-
-export interface ToolCallStats {
-  total: number;
-  successful: number;
-  failed: number;
-  successRate: number;
-  avgExecutionTime: number;
-}
-
-export interface RetryInfo {
-  command: string;
-  connectionId: string;
-}
+// Re-export ToolCallStatus as ToolCall for compatibility
+export type ToolCall = ToolCallStatus;
 
 export const useAIStore = defineStore('ai', () => {
   // 状态

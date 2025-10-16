@@ -2,31 +2,7 @@
  * AI助手相关常量配置
  */
 
-// 类型定义
-export interface QuickAction {
-  id: string;
-  command: string;
-  label: string;
-  title: string;
-  icon: string;
-}
-
-export interface ThemeConfig {
-  background: string;
-  surface: string;
-  primary: string;
-  secondary: string;
-  text: string;
-  textSecondary: string;
-  border: string;
-}
-
-export interface SecurityConfig {
-  ALLOWED_COMMANDS: string[];
-  BLOCKED_COMMANDS: string[];
-  MAX_COMMAND_LENGTH: number;
-  DANGEROUS_PATTERNS: RegExp[];
-}
+import type { QuickAction, ThemeConfig, SecurityConfig } from '@/types/index.js';
 
 // 快捷操作配置
 export const QUICK_ACTIONS: QuickAction[] = [

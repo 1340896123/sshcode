@@ -7,10 +7,15 @@ import type {
   Message,
   Action,
   ToolCallHistoryItem,
-  AIChatEmits
+  AIChatEmits,
+  ToolCallStatus,
+  ToolCallStats
 } from '@/types/index.js';
 import { onEvent, offEvent, EventTypes } from '@/utils/eventSystem.js';
-import { useAIStore, type ToolCall, type ToolCallStats } from '../stores/ai.js';
+import { useAIStore, type ToolCall } from '../stores/ai.js';
+
+// Alias for compatibility
+type ToolCall = ToolCallStatus;
 
 export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatEmits>['emit']) {
   // 状态管理

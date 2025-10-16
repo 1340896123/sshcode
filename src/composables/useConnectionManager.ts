@@ -1,6 +1,6 @@
 import { ref, reactive, type Ref } from 'vue';
 import { useSSHConnectionPool } from './useSSHConnectionPool.js';
-import type { SessionData, Connection, SystemInfo, NetworkHistory } from '@/types';
+import type { SessionData, Connection, SystemInfo, NetworkHistory } from '@/types/index.js';
 import { formatBytes } from '@/utils/formatters.js';
 
 interface ConnectionManagerEmits {
