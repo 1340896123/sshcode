@@ -200,7 +200,7 @@
       </div>
       <div v-if="message.content" class="system-body">
         <!-- eslint-disable-next-line vue/no- -->
-        <div class="system-text" ="formattedContent"></div>
+        <div class="system-text" v-html="formattedContent"></div>
       </div>
     </div>
   </div>

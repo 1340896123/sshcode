@@ -135,7 +135,7 @@
               </div>
               <div class="message-content assistant-content">
                 <!-- eslint-disable-next-line vue/no- -->
-                <div class="message-text" ="renderMarkdown(message.content)"></div>
+                <div class="message-text" v-html="renderMarkdown(message.content)"></div>
                 <div class="message-time">{{ formatTime(message.timestamp) }}</div>
 
                 <!-- AI消息的操作按钮 -->
@@ -172,7 +172,7 @@
             >
               <div class="system-content">
                 <!-- eslint-disable-next-line vue/no- -->
-                <div class="system-text" ="renderMarkdown(message.content)"></div>
+                <div class="system-text" v-html="renderMarkdown(message.content)"></div>
                 <div class="system-time">{{ formatTime(message.timestamp) }}</div>
               </div>
             </div>
