@@ -204,14 +204,12 @@ class SimpleEventManager {
    */
   waitFor(eventType, timeout = 30000) {
     return new Promise((resolve, reject) => {
-      let timeoutId;
-
       const cleanup = this.once(eventType, (data, eventData) => {
-        clearTimeout(timeoutId);
+        global.clearTimeout(timeoutId);
         resolve({ data, eventData });
       });
 
-      timeoutId = setTimeout(() => {
+      const timeoutId = global.setTimeout(() => {
         cleanup();
         reject(new Error(`等待事件 ${eventType} 超时 (${timeout}ms)`));
       }, timeout);

@@ -551,16 +551,20 @@ const getDefaultConfig = () => ({
     general: {
         language: 'zh-CN',
         theme: 'dark',
+        autoSave: true,
         autoSaveSessions: true,
         checkUpdates: true
     },
     terminal: {
         font: 'Consolas',
         fontSize: 14,
+        fontFamily: 'Consolas',
+        copyOnSelect: false,
         bell: false,
         cursorBlink: true
     },
     security: {
+        passwordEncryption: false,
         encryptPasswords: false,
         sessionTimeout: 30,
         confirmDangerousCommands: true

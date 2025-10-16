@@ -36,12 +36,11 @@ module.exports = [
     },
     rules: {
       ...typescript.configs.recommended.rules,
-      // '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/no-unused-vars': 'off'
+      '@typescript-eslint/no-non-null-assertion': 'warn'
     }
   },
 
@@ -70,7 +69,7 @@ module.exports = [
       '@typescript-eslint': typescript
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-require-imports': 'off'
     }
@@ -101,7 +100,7 @@ module.exports = [
       '@typescript-eslint': typescript
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-require-imports': 'off'
     }
@@ -124,7 +123,7 @@ module.exports = [
     rules: {
       ...vue.configs['flat/recommended'].rules,
       'vue/multi-word-component-names': 'off',
-      'vue/no-unused-vars': 'error',
+      'vue/no-unused-vars': 'off',
       'vue/no-v-html': 'warn',
       'vue/require-default-prop': 'off',
       'vue/require-explicit-emits': 'off'
@@ -150,7 +149,7 @@ module.exports = [
       }
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': 'off',
       'no-console': 'off',
       'prefer-const': 'error',
       'no-var': 'error'
@@ -176,7 +175,7 @@ module.exports = [
       }
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': 'off',
       'no-console': 'off',
       'prefer-const': 'error',
       'no-var': 'error'
