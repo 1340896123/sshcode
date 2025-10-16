@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 export function useElectronAPI() {
-  const [isElectron, setIsElectron] = useState(false);
+  const isElectron = ref(false);
 
-  useEffect(() => {
+  onMounted(() => {
     // 检查是否在Electron环境中运行
     const checkElectron = () => {
       return typeof window !== 'undefined' && window.process && window.process.type;
     };
 
-    setIsElectron(checkElectron());
-  }, []);
+    isElectron.value = !!checkElectron();
+  });
 
   return {
     isElectron
@@ -19,20 +19,20 @@ export function useElectronAPI() {
 }
 
 export function useSessions() {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const sessions = ref([]);
+  const loading = ref(false);
 
   const loadSessions = async () => {
     if (!window.electronAPI) return;
 
-    setLoading(true);
+    loading.value = true;
     try {
       const sessionList = await window.electronAPI.getSessions();
-      setSessions(sessionList || []);
+      sessions.value = sessionList || [];
     } catch (error) {
       console.error('加载连接失败:', error);
     } finally {
-      setLoading(false);
+      loading.value = false;
     }
   };
 
@@ -62,9 +62,9 @@ export function useSessions() {
     }
   };
 
-  useEffect(() => {
+  onMounted(() => {
     loadSessions();
-  }, []);
+  });
 
   return {
     sessions,
@@ -76,7 +76,7 @@ export function useSessions() {
 }
 
 export function useSSHConnection() {
-  const [connections, setConnections] = useState(new Map());
+  const connections = ref(new Map());
 
   const connect = async sessionData => {
     if (!window.electronAPI) return null;
@@ -84,7 +84,7 @@ export function useSSHConnection() {
     try {
       const connection = await window.electronAPI.sshConnect(sessionData);
       if (connection.success) {
-        setConnections(prev => new Map(prev).set(sessionData.id, connection));
+        connections.value = new Map(connections.value).set(sessionData.id, connection);
         return connection;
       }
       throw new Error(connection.error || '连接失败');
@@ -99,11 +99,9 @@ export function useSSHConnection() {
 
     try {
       await window.electronAPI.sshDisconnect(sessionId);
-      setConnections(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(sessionId);
-        return newMap;
-      });
+      const newMap = new Map(connections.value);
+      newMap.delete(sessionId);
+      connections.value = newMap;
       return true;
     } catch (error) {
       console.error('断开连接失败:', error);
@@ -123,7 +121,7 @@ export function useSSHConnection() {
   };
 
   const isConnected = sessionId => {
-    return connections.has(sessionId);
+    return connections.value.has(sessionId);
   };
 
   return {

@@ -8,12 +8,12 @@ import { useAIStore } from '../../ai-assistant/stores/ai.js';
 import { useTerminalStore } from '../stores/terminal.js';
 
 class SimpleCommandExecutor {
-  constructor() {
-    this.pendingCommands = new Map();
-    this.commandHistory = [];
-    this.maxHistorySize = 50;
-    this.defaultTimeout = 60000; // 60秒超时
+  private pendingCommands = new Map();
+  private commandHistory: any[] = [];
+  private maxHistorySize = 50;
+  private defaultTimeout = 60000; // 60秒超时
 
+  constructor() {
     // 监听终端输出事件
     this.setupEventListeners();
   }
@@ -21,7 +21,7 @@ class SimpleCommandExecutor {
   /**
    * 设置事件监听器
    */
-  setupEventListeners() {
+  setupEventListeners(): void {
     // 监听终端输出，用于检测命令完成
     onEvent(
       EventTypes.TERMINAL_OUTPUT,
@@ -37,7 +37,7 @@ class SimpleCommandExecutor {
   /**
    * 执行命令（对外接口）
    */
-  async executeCommand(command, connectionId, options = {}) {
+  async executeCommand(command: string, connectionId: string, options: { commandId?: string; timeout?: number } = {}): Promise<string> {
     const commandId = options.commandId || this.generateCommandId();
     const timeout = options.timeout || this.defaultTimeout;
 
@@ -117,7 +117,7 @@ class SimpleCommandExecutor {
   /**
    * 处理终端输出
    */
-  handleTerminalOutput(data) {
+  handleTerminalOutput(data: { connectionId: string; output: any }): void {
     const { connectionId, output } = data;
 
     // 查找该连接的待执行命令
@@ -229,7 +229,6 @@ class SimpleCommandExecutor {
     if (aiStore) {
       aiStore.timeoutToolCall({
         id: commandId,
-        command,
         executionTime,
         timeoutDuration: this.defaultTimeout
       });
@@ -248,8 +247,7 @@ class SimpleCommandExecutor {
       aiStore.startToolCall({
         id: commandId,
         command,
-        connectionId,
-        timestamp: Date.now()
+        connectionId
       });
     }
 
@@ -266,9 +264,8 @@ class SimpleCommandExecutor {
     // 发送事件
     emitEvent(EventTypes.AI_COMMAND_START, {
       commandId,
-      command,
       connectionId
-    });
+    }, {});
   }
 
   /**
@@ -280,7 +277,6 @@ class SimpleCommandExecutor {
     if (aiStore) {
       aiStore.completeToolCall({
         id: commandId,
-        command,
         result,
         executionTime
       });
@@ -307,10 +303,9 @@ class SimpleCommandExecutor {
     // 发送事件
     emitEvent(EventTypes.AI_COMMAND_COMPLETE, {
       commandId,
-      command,
       result,
       executionTime
-    });
+    }, {});
   }
 
   /**
@@ -328,9 +323,7 @@ class SimpleCommandExecutor {
     if (aiStore) {
       aiStore.errorToolCall({
         id: commandId,
-        command,
-        error: error.message,
-        executionTime: 0
+        error: error.message
       });
     }
 
@@ -354,9 +347,8 @@ class SimpleCommandExecutor {
     // 发送事件
     emitEvent(EventTypes.AI_COMMAND_ERROR, {
       commandId,
-      command,
       error: error.message
-    });
+    }, {});
   }
 
   /**

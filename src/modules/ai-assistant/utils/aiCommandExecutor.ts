@@ -57,7 +57,7 @@ export async function executeAICommand(
       connectionId,
       error: error.message,
       timestamp: Date.now()
-    });
+    }, {});
 
     throw error;
   }
@@ -77,7 +77,7 @@ export function handleAITerminalData(connectionId: string, data: string): void {
     connectionId,
     output: data,
     timestamp: Date.now()
-  });
+  }, {});
 }
 
 /**

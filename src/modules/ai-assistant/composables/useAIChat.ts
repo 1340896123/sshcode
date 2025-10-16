@@ -20,12 +20,9 @@ import type {
   TerminalOutputEventData
 } from '@/types/events.js';
 import { onEvent, offEvent, EventTypes } from '@/utils/eventSystem.js';
-import { useAIStore, type ToolCall } from '../stores/ai.js';
+import { useAIStore } from '../stores/ai.js';
 
-// Alias for compatibility
-type ToolCall = ToolCallStatus;
-
-export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatEmits>['emit']) {
+export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
   // 状态管理
   const messages: Ref<Message[]> = ref([]);
   const userInput: Ref<string> = ref('');
@@ -134,9 +131,19 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
 
     try {
       // 直接调用AI API，不再通过消息队列
+      // Convert Message[] to AIMessage[] format
+      const convertedMessages = messages.value
+        .filter(msg => msg.role !== 'system')
+        .map(msg => ({
+          id: msg.id.toString(),
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp.getTime()
+        }));
+
       const response = await callAIAPI(
         message,
-        messages.value.filter(msg => msg.role !== 'system'),
+        convertedMessages,
         props.connection
       );
 
@@ -153,14 +160,14 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
           'assistant',
           '⚠️ **AI服务未配置**\n\n请先设置AI服务配置才能使用AI助手功能。\n\n点击右上角设置按钮进行配置。'
         );
-        emitEvent('show-notification', '请先配置AI服务设置', 'error');
-        emitEvent('show-settings');
+        emit('show-notification', '请先配置AI服务设置', 'error');
+        emit('show-settings');
       } else {
         addMessage(
           'assistant',
           `❌ **AI服务错误**\n\n${(error as Error).message}\n\n请检查网络连接和AI服务配置，或稍后重试。`
         );
-        emitEvent('show-notification', 'AI服务调用失败', 'error');
+        emit('show-notification', 'AI服务调用失败', 'error');
       }
     } finally {
       isProcessing.value = false;
@@ -231,13 +238,13 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
    */
   const executeAction = (action: Action): void => {
     if (action.type === 'command' && action.command) {
-      emitEvent('execute-command', action.command);
+      emit('execute-command', action.command);
       addMessage('assistant', `正在执行命令: \`${action.command}\``);
     } else if (action.type === 'prompt' && action.prompt) {
       userInput.value = action.prompt;
       nextTick(() => {
         // 聚焦输入框由父组件处理
-        emitEvent('focus-input');
+        emit('focus-input');
       });
     }
   };
@@ -257,7 +264,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
       aiStore.clearToolCalls();
     }
 
-    emitEvent('show-notification', '对话已清空', 'success');
+    emit('show-notification', '对话已清空', 'success');
   };
 
   /**
@@ -289,7 +296,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   const retryToolCall = (toolCallId: string): void => {
     const toolCall = toolCallHistory.value.find(tc => tc.id === toolCallId);
     if (toolCall && toolCall.command) {
-      emitEvent('execute-command', toolCall.command);
+      emit('execute-command', toolCall.command);
       addMessage('assistant', `🔄 重试执行命令: \`${toolCall.command}\``);
     }
   };
@@ -299,7 +306,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
    */
   const clearToolCallHistory = (): void => {
     toolCallHistory.value = [];
-    emitEvent('show-notification', '工具调用历史已清空', 'success');
+    emit('show-notification', '工具调用历史已清空', 'success');
   };
 
   /**
@@ -310,7 +317,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
       userInput.value = text.trim();
       nextTick(() => {
         // 聚焦输入框由父组件处理
-        emitEvent('focus-input');
+        emit('focus-input');
       });
     }
   };
@@ -341,6 +348,11 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
 
     const toolCall: ToolCallHistoryItem = {
       id: data.commandId,
+      type: 'function',
+      function: {
+        name: 'execute_command',
+        arguments: JSON.stringify({ command: data.command })
+      },
       command: data.command,
       status: 'executing',
       startTime: Date.now(),
@@ -488,8 +500,8 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   };
 
   const handleConfigRequired = (data: ConfigRequiredEventData): void => {
-    emitEvent('show-settings');
-    emitEvent('show-notification', data.message || '请先配置AI服务设置', 'error');
+    emit('show-settings');
+    emit('show-notification', data.message || '请先配置AI服务设置', 'error');
   };
 
   const handleTerminalOutput = (data: TerminalOutputEventData): void => {

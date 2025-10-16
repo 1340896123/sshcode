@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { computed } from 'vue';
 import { useCSSVariables } from './useTheme';
 
 // Helper function to get CSS variable value
@@ -13,7 +13,7 @@ const getVariable = name => {
  * Hook for generating component styles based on CSS variables
  */
 export const useComponentStyles = (componentType, props = {}) => {
-  return useMemo(() => {
+  return computed(() => {
     const styles = {
       // Common spacing values
       space: {
@@ -55,7 +55,7 @@ export const useComponentStyles = (componentType, props = {}) => {
       default:
         return styles;
     }
-  }, [componentType, props]);
+  });
 };
 
 const getButtonStyles = (

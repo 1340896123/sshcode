@@ -103,6 +103,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
 
         const connectionParams = {
           id: connection.id,
+          name: connection.name,
           host: connection.host,
           port: connection.port,
           username: connection.username,
@@ -139,10 +140,10 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
           try {
             await createPersistentConnection(connection.id, connectionParams);
             console.log('🔗 [CONNECTION-MANAGER] 持久连接池创建成功');
-          } catch (poolError: Error) {
+          } catch (poolError) {
             console.warn(
               '⚠️ [CONNECTION-MANAGER] 持久连接池创建失败，使用普通模式:',
-              poolError.message
+              (poolError as Error).message
             );
           }
 
@@ -193,18 +194,18 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
 
         emit('show-notification', 'ElectronAPI不可用，请在Electron环境中运行应用', 'error');
       }
-    } catch (error: Error) {
+    } catch (error) {
       console.error('💥 [CONNECTION-MANAGER] 连接异常:', error);
       connection.status = 'failed';
-      connection.errorMessage = error.message;
+      connection.errorMessage = (error as Error).message;
 
       addTerminalOutput(connection, {
         type: 'error',
-        content: `连接异常: ${error.message}`,
+        content: `连接异常: ${(error as Error).message}`,
         timestamp: new Date()
       });
 
-      emit('show-notification', `连接异常: ${error.message}`, 'error');
+      emit('show-notification', `连接异常: ${(error as Error).message}`, 'error');
     }
 
     console.log('🏁 [CONNECTION-MANAGER] 连接尝试完成，最终状态:', connection.status);
@@ -232,8 +233,8 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
     if (window.electronAPI) {
       try {
         await window.electronAPI.sshDisconnect(connectionId);
-      } catch (error: Error) {
-        console.log('取消连接时清理资源:', error.message);
+      } catch (error) {
+        console.log('取消连接时清理资源:', (error as Error).message);
       }
     }
   };
@@ -269,8 +270,8 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
       try {
         await closePersistentConnection(connectionId);
         console.log('🔌 [CONNECTION-MANAGER] 持久连接已关闭:', connectionId);
-      } catch (poolError: Error) {
-        console.warn('⚠️ [CONNECTION-MANAGER] 关闭持久连接失败:', poolError.message);
+      } catch (poolError) {
+        console.warn('⚠️ [CONNECTION-MANAGER] 关闭持久连接失败:', (poolError as Error).message);
       }
 
       if (window.electronAPI) {
@@ -290,8 +291,8 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
 
       // 停止系统监控
       stopSystemMonitoring(connectionId);
-    } catch (error: Error) {
-      emit('show-notification', `断开连接失败: ${error.message}`, 'error');
+    } catch (error) {
+      emit('show-notification', `断开连接失败: ${(error as Error).message}`, 'error');
     }
   };
 
@@ -300,8 +301,8 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
     // 先关闭现有的持久连接
     try {
       await closePersistentConnection(connection.id);
-    } catch (error: Error) {
-      console.warn('⚠️ [CONNECTION-MANAGER] 重新连接时关闭持久连接失败:', error.message);
+    } catch (error) {
+      console.warn('⚠️ [CONNECTION-MANAGER] 重新连接时关闭持久连接失败:', (error as Error).message);
     }
 
     await establishConnection(connection);
@@ -320,8 +321,8 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
     // 确保连接池也被清理
     try {
       await closePersistentConnection(connectionId);
-    } catch (error: Error) {
-      console.warn('⚠️ [CONNECTION-MANAGER] 关闭连接时清理连接池失败:', error.message);
+    } catch (error) {
+      console.warn('⚠️ [CONNECTION-MANAGER] 关闭连接时清理连接池失败:', (error as Error).message);
     }
 
     // 移除连接
@@ -374,7 +375,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
         // 发送心跳命令检查连接状态
         await window.electronAPI.sshExecute(connection.id, 'echo "heartbeat"');
       }
-    } catch (error: Error) {
+    } catch (error) {
       connection.status = 'disconnected';
       addTerminalOutput(connection, {
         type: 'warning',
@@ -437,7 +438,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
           return;
         }
       }
-    } catch (error: Error) {
+    } catch (error) {
       console.error('💥 [CONNECTION-MANAGER] 获取系统信息失败:', error);
       // 设置默认值，避免界面显示异常
       connection.systemInfo = {
@@ -497,7 +498,8 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
       memory: Math.round(systemData.memory || 0),
       disk: Math.round(systemData.disk || 0),
       networkDown: networkDownRate,
-      networkUp: networkUpRate
+      networkUp: networkUpRate,
+      lastUpdate: new Date()
     };
   };
 

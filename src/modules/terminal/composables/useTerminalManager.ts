@@ -1,4 +1,5 @@
 import { ref, nextTick } from 'vue';
+import type { APIResponse } from '@/types/ai.js';
 
 export function useTerminalManager(activeConnections, activeTabId, emit, ansiConvert) {
   const autocompleteRefs = ref([]);
@@ -234,8 +235,8 @@ export function useTerminalManager(activeConnections, activeTabId, emit, ansiCon
 
       // 聚焦回输入框
       nextTick(() => {
-        const inputElement = document.querySelector(`[ref="input-${connection.id}"]`);
-        if (inputElement) {
+        const inputElement = document.querySelector(`[ref="input-${connection.id}"]`) as HTMLElement;
+        if (inputElement && inputElement.focus) {
           inputElement.focus();
         }
       });

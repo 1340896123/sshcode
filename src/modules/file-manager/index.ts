@@ -7,8 +7,4 @@
 // 组件
 export { default as FileManager } from './components/FileManager.vue';
 
-// 工具函数
-export * from './utils/index.js';
-
-// 类型定义
-export * from './types/index.js';
+// 工具函数和类型定义将在需要时添加

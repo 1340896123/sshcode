@@ -66,6 +66,9 @@ npm run format:check   # Check code formatting with Prettier
 - **useAIChat.ts**: AI service composable with command execution capabilities
 - **aiCommandExecutor.ts**: Command execution with AI assistance and context management
 - **aiCompletionService.ts**: AI-powered command completion and suggestions
+- **constants/index.ts**: AI module constants and configuration exports
+- **styles/index.ts**: AI module SCSS imports and style management
+- **utils/index.ts**: AI module utility functions and service exports
 
 #### File Management
 - **FileManager.vue**: SFTP-based file browser with drag-drop support
@@ -84,7 +87,8 @@ npm run format:check   # Check code formatting with Prettier
 - **Location**: `config/app.yml` (YAML format) created automatically on first run
 - **Categories**: AI provider settings, general preferences, terminal configuration, security options
 - **Runtime**: Loaded into memory on startup, updates persisted immediately
-- **Type Safety**: Full TypeScript interface definitions in src/types/
+- **Type Safety**: Full TypeScript interface definitions in src/types/ including `AppConfig` for renderer and `MainAppConfig` for main process
+- **Extended Config**: Main process supports additional settings like `autoSaveSessions`, `checkUpdates`, and `encryptPasswords`
 
 ### Key Technical Details
 
@@ -101,10 +105,12 @@ npm run format:check   # Check code formatting with Prettier
 - **Build Process**: main.ts compiled to main.js, renderer processed by Vite
 
 #### Vue Component Architecture
-- **Modular Structure**: Organized by feature (terminal, ai-assistant, file-manager)
-- **Composables Pattern**: Reusable logic with useConnectionManager, useAIChat, etc.
+- **Modular Structure**: Organized by feature (terminal, ai-assistant, file-manager) with index.ts barrel exports
+- **Composables Pattern**: Reusable logic with useConnectionManager, useAIChat, useComponentStyles, etc.
 - **Reactive State**: Connection state management with real-time updates
-- **Event System**: Cross-component communication via event emitters and IPC
+- **Event System**: Cross-component communication via lightweight event system (src/utils/eventSystem.ts)
+- **Styling System**: Dynamic component styling with useComponentStyles hook supporting theme-aware CSS variables
+- **Type Safety**: Comprehensive TypeScript interfaces for all components, props, and events
 
 #### Development Tooling
 - **ESLint**: Flat config with TypeScript, Vue, and Prettier integration
@@ -126,6 +132,9 @@ npm run format:check   # Check code formatting with Prettier
 - **Error Handling**: Comprehensive error mapping with user-friendly messages and logging
 - **Resource Management**: Automatic cleanup of timers, connections, and file watchers on component unmount
 - **Type System**: All IPC communications are fully typed for type safety across main/renderer boundary
+- **Event System**: Uses mitt-based lightweight event system with priority handling, history tracking, and component lifecycle management
+- **Styling Architecture**: CSS variable-driven theming with useComponentStyles hook for consistent, theme-aware component styling
+- **Module Organization**: Feature-based modules with barrel exports (index.ts) for clean import paths and better code organization
 
 ## Development Workflow
 

@@ -43,16 +43,16 @@ export const Priority = {
 
 // 轻量级事件管理器
 class SimpleEventManager {
-  constructor() {
-    this.eventHistory = [];
-    this.maxHistorySize = 100;
-    this.listeningComponents = new Set();
-  }
+  private eventHistory: any[] = [];
+  private maxHistorySize = 100;
+  private listeningComponents = new Set<string>();
+
+  constructor() {}
 
   /**
    * 发送事件
    */
-  emit(eventType, data, options = {}) {
+  emit(eventType: string, data: any, options: { priority?: number } = {}): string {
     const eventData = {
       type: eventType,
       data,
@@ -79,7 +79,7 @@ class SimpleEventManager {
   /**
    * 监听事件
    */
-  on(eventType, handler, componentId = null) {
+  on(eventType: string, handler: (data: any, eventData: any) => void, componentId?: string | null): () => void {
     if (componentId) {
       this.listeningComponents.add(componentId);
     }
@@ -115,7 +115,7 @@ class SimpleEventManager {
   /**
    * 一次性监听事件
    */
-  once(eventType, handler, componentId = null) {
+  once(eventType: string, handler: (data: any, eventData: any) => void, componentId?: string | null): void {
     if (componentId) {
       this.listeningComponents.add(componentId);
     }
@@ -141,20 +141,29 @@ class SimpleEventManager {
       }
     };
 
-    emitter.once(eventType, wrappedHandler);
+    // mitt doesn't have once method, so we implement it manually
+    const onceHandler = eventData => {
+      emitter.off(eventType, onceHandler);
+      wrappedHandler(eventData);
+    };
+    emitter.on(eventType, onceHandler);
   }
 
   /**
    * 取消监听事件
    */
-  off(eventType, handler) {
-    emitter.off(eventType, handler);
+  off(eventType: string, handler: (data: any, eventData: any) => void): void {
+    // Find and remove the wrapped handler
+    const wrappedHandler = (eventData) => {
+      handler(eventData.data, eventData);
+    };
+    emitter.off(eventType, wrappedHandler);
   }
 
   /**
    * 清除所有监听器
    */
-  clear() {
+  clear(): void {
     emitter.all.clear();
     this.listeningComponents.clear();
     console.log('🧹 [EVENT] 已清除所有事件监听器');
@@ -163,7 +172,7 @@ class SimpleEventManager {
   /**
    * 添加到事件历史
    */
-  addToHistory(eventData) {
+  addToHistory(eventData: any): void {
     this.eventHistory.push(eventData);
 
     // 限制历史记录大小
@@ -175,7 +184,7 @@ class SimpleEventManager {
   /**
    * 获取事件历史
    */
-  getHistory(eventType = null, limit = 50) {
+  getHistory(eventType?: string | null, limit = 50): any[] {
     let history = this.eventHistory;
 
     if (eventType) {
@@ -188,30 +197,41 @@ class SimpleEventManager {
   /**
    * 获取活跃的监听组件
    */
-  getActiveComponents() {
+  getActiveComponents(): string[] {
     return Array.from(this.listeningComponents);
   }
 
   /**
    * 生成事件ID
    */
-  generateEventId() {
+  generateEventId(): string {
     return `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
    * 等待特定事件
    */
-  waitFor(eventType, timeout = 30000) {
+  waitFor(eventType: string, timeout = 30000): Promise<{ data: any; eventData: any }> {
     return new Promise((resolve, reject) => {
-      const cleanup = this.once(eventType, (data, eventData) => {
-        global.clearTimeout(timeoutId);
-        resolve({ data, eventData });
-      });
+      let isResolved = false;
+
+      const wrappedHandler = (eventData: any) => {
+        if (!isResolved) {
+          isResolved = true;
+          global.clearTimeout(timeoutId);
+          emitter.off(eventType, wrappedHandler);
+          resolve({ data: eventData.data, eventData });
+        }
+      };
+
+      emitter.on(eventType, wrappedHandler);
 
       const timeoutId = global.setTimeout(() => {
-        cleanup();
-        reject(new Error(`等待事件 ${eventType} 超时 (${timeout}ms)`));
+        if (!isResolved) {
+          isResolved = true;
+          emitter.off(eventType, wrappedHandler);
+          reject(new Error(`等待事件 ${eventType} 超时 (${timeout}ms)`));
+        }
       }, timeout);
     });
   }
@@ -219,7 +239,7 @@ class SimpleEventManager {
   /**
    * 批量发送事件
    */
-  emitBatch(events) {
+  emitBatch(events: { type: string; data: any; options?: any }[]): { type: string; eventId?: string; error?: string; success: boolean }[] {
     const results = [];
 
     events.forEach(({ type, data, options }) => {
@@ -259,7 +279,7 @@ export const clearAllEvents = () => globalEventManager.clear();
 export default globalEventManager;
 
 // Vue插件安装函数
-export function installEventSystem(app) {
+export function installEventSystem(app: any) {
   app.config.globalProperties.$events = globalEventManager;
   app.provide('eventManager', globalEventManager);
 

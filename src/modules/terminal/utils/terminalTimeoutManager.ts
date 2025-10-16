@@ -4,13 +4,13 @@
  */
 
 export class TerminalTimeoutManager {
-  constructor() {
-    this.connections = new Map(); // 存储连接的超时信息
-    this.warningTimers = new Map(); // 存储警告定时器
-    this.timeoutTimers = new Map(); // 存储超时定时器
-    this.defaultIdleTimeout = 600000; // 默认10分钟超时 (毫秒)
-    this.defaultWarningTime = 30000; // 默认30秒警告 (毫秒)
-  }
+  private connections: Map<string, any> = new Map(); // 存储连接的超时信息
+  private warningTimers: Map<string, NodeJS.Timeout> = new Map(); // 存储警告定时器
+  private timeoutTimers: Map<string, NodeJS.Timeout> = new Map(); // 存储超时定时器
+  private defaultIdleTimeout = 600000; // 默认10分钟超时 (毫秒)
+  private defaultWarningTime = 30000; // 默认30秒警告 (毫秒)
+
+  constructor() {}
 
   /**
    * 初始化连接的超时监控
@@ -19,7 +19,12 @@ export class TerminalTimeoutManager {
    * @param {Function} onWarning - 警告回调
    * @param {Function} onTimeout - 超时回调
    */
-  initConnection(connectionId, config = {}, onWarning, onTimeout) {
+  initConnection(
+    connectionId: string,
+    config: { idleTimeout?: number; timeoutWarning?: number } = {},
+    onWarning?: (id: string, data: any) => void,
+    onTimeout?: (id: string, data: any) => void
+  ): void {
     console.log(`⏰ [Timeout Manager] 初始化连接超时监控:`, {
       connectionId,
       idleTimeout: config.idleTimeout || this.defaultIdleTimeout,
@@ -50,7 +55,7 @@ export class TerminalTimeoutManager {
    * 更新连接的活动状态
    * @param {string} connectionId - 连接ID
    */
-  updateActivity(connectionId) {
+  updateActivity(connectionId: string): void {
     const connection = this.connections.get(connectionId);
     if (!connection || !connection.isActive) return;
 
@@ -73,7 +78,7 @@ export class TerminalTimeoutManager {
    * 设置定时器
    * @param {string} connectionId - 连接ID
    */
-  setupTimers(connectionId) {
+  setupTimers(connectionId: string): void {
     const connection = this.connections.get(connectionId);
     if (!connection) return;
 
@@ -115,7 +120,7 @@ export class TerminalTimeoutManager {
    * 重置定时器
    * @param {string} connectionId - 连接ID
    */
-  resetTimers(connectionId) {
+  resetTimers(connectionId: string): void {
     // 清除现有定时器
     this.clearTimers(connectionId);
 
@@ -127,7 +132,7 @@ export class TerminalTimeoutManager {
    * 清除特定连接的定时器
    * @param {string} connectionId - 连接ID
    */
-  clearTimers(connectionId) {
+  clearTimers(connectionId: string): void {
     // 清除警告定时器
     if (this.warningTimers.has(connectionId)) {
       clearTimeout(this.warningTimers.get(connectionId));
@@ -145,7 +150,7 @@ export class TerminalTimeoutManager {
    * 暂停连接的超时监控
    * @param {string} connectionId - 连接ID
    */
-  pauseConnection(connectionId) {
+  pauseConnection(connectionId: string): void {
     const connection = this.connections.get(connectionId);
     if (!connection) return;
 
@@ -159,7 +164,7 @@ export class TerminalTimeoutManager {
    * 恢复连接的超时监控
    * @param {string} connectionId - 连接ID
    */
-  resumeConnection(connectionId) {
+  resumeConnection(connectionId: string): void {
     const connection = this.connections.get(connectionId);
     if (!connection) return;
 
@@ -174,7 +179,7 @@ export class TerminalTimeoutManager {
    * 完全清理连接
    * @param {string} connectionId - 连接ID
    */
-  clearConnection(connectionId) {
+  clearConnection(connectionId: string): void {
     console.log(`🗑️ [Timeout Manager] 清理连接超时监控:`, connectionId);
 
     this.clearTimers(connectionId);
@@ -186,7 +191,7 @@ export class TerminalTimeoutManager {
    * @param {string} connectionId - 连接ID
    * @returns {Object} 连接状态信息
    */
-  getConnectionStatus(connectionId) {
+  getConnectionStatus(connectionId: string): any | null {
     const connection = this.connections.get(connectionId);
     if (!connection) return null;
 
@@ -209,7 +214,7 @@ export class TerminalTimeoutManager {
    * 获取所有连接状态
    * @returns {Array} 所有连接的状态信息
    */
-  getAllConnectionsStatus() {
+  getAllConnectionsStatus(): any[] {
     return Array.from(this.connections.keys()).map(id => this.getConnectionStatus(id));
   }
 
@@ -218,7 +223,7 @@ export class TerminalTimeoutManager {
    * @param {string} connectionId - 连接ID
    * @param {Object} newConfig - 新配置
    */
-  updateConnectionConfig(connectionId, newConfig) {
+  updateConnectionConfig(connectionId: string, newConfig: any): void {
     const connection = this.connections.get(connectionId);
     if (!connection) return;
 
@@ -243,7 +248,7 @@ export class TerminalTimeoutManager {
   /**
    * 清理所有连接
    */
-  clearAllConnections() {
+  clearAllConnections(): void {
     console.log(`🗑️ [Timeout Manager] 清理所有连接超时监控`);
 
     // 清除所有定时器
@@ -280,7 +285,7 @@ export const pauseTerminalTimeout = connectionId => {
 };
 
 export const resumeTerminalTimeout = connectionId => {
-  return terminalTimeoutManager.resumeTerminalTimeout(connectionId);
+  return terminalTimeoutManager.resumeConnection(connectionId);
 };
 
 export const clearTerminalTimeout = connectionId => {

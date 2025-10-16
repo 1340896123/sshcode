@@ -50,10 +50,11 @@ export interface SessionData {
 // Unified Connection interface (extends SSHConnection with additional properties)
 export interface Connection extends SSHConnection {
   keyPath?: string;
+  keyContent?: string;
   connectStep?: number;
   errorMessage?: string | null;
   connectedAt?: Date | null;
-  terminalOutput?: string[];
+  terminalOutput?: import('./terminal.js').TerminalOutputLine[];
   currentCommand?: string;
   showAutocomplete?: boolean;
   lastActivity?: Date;

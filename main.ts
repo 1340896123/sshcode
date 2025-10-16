@@ -4,10 +4,10 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import type {
   SSHConnectionConfig,
-  MainAppConfig,
   SSH2ConnectConfig,
   SFTPConnectConfig
-} from './src/types/index.js';
+} from './src/types/ssh.js';
+import type { MainAppConfig } from './src/types/config.js';
 import type { Client } from 'ssh2';
 import type { ClientChannel } from 'ssh2';
 

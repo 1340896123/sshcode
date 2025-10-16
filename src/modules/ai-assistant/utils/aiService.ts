@@ -12,7 +12,8 @@ import type {
   Connection,
   ParsedResponse,
   ValidationResult,
-  TestResult
+  TestResult,
+  APIResponse
 } from '@/types/index.js';
 
 // AI Service specific types
@@ -45,6 +46,7 @@ export interface AIResponseChoice {
     tool_calls?: ToolCall[];
     finish_reason?: string;
   };
+  finish_reason?: string;
 }
 
 export interface ToolResult {
@@ -60,8 +62,15 @@ export async function getAIConfig(): Promise<AIConfig> {
     // 尝试从electron API获取配置
     if (window.electronAPI?.getConfig) {
       const config = await window.electronAPI.getConfig();
+
+      // 优先检查 aiChat 配置（YAML 中的结构）
       if (config.aiChat && isConfigValid(config.aiChat)) {
         return config.aiChat;
+      }
+
+      // 兼容旧的 ai 配置结构
+      if (config.ai && isConfigValid(config.ai)) {
+        return config.ai;
       }
     }
 
@@ -115,7 +124,7 @@ function triggerConfigSetup(): void {
   emitEvent(EventTypes.AI_CONFIG_REQUIRED, {
     message: '请先配置AI服务设置才能使用AI助手功能',
     timestamp: Date.now()
-  });
+  }, {});
 }
 
 /**
@@ -188,7 +197,7 @@ function buildTools(
 /**
  * 清理消息历史
  */
-function cleanHistoryMessages(historyMessages: AIMessage[]): AIMessage[] {
+function cleanHistoryMessages(historyMessages: AIMessage[]): Array<{ role: string; content: string }> {
   return historyMessages
     .filter(msg => msg && msg.role && msg.content) // 过滤无效消息
     .filter(msg => msg.role !== 'system') // 确保没有系统消息在历史中
@@ -381,10 +390,10 @@ function buildSystemPrompt(connection: Connection): string {
  * 构建包含工具结果的消息
  */
 function buildMessagesWithToolResults(
-  currentMessages: AIMessage[],
+  currentMessages: Array<{ role: string; content: string; tool_calls?: ToolCall[] }>,
   toolCalls: ToolCall[],
   toolResults: ToolResult[]
-): AIMessage[] {
+): Array<{ role: string; content: string | null; tool_calls?: ToolCall[]; tool_call_id?: string }> {
   return [
     ...currentMessages,
     {
@@ -456,10 +465,9 @@ async function handleToolCalls(
           // 发送工具调用开始事件，让UI显示正在执行
           emitEvent(EventTypes.AI_COMMAND_START, {
             commandId: toolCall.id,
-            command: args.command,
             connectionId: connection.id,
             timestamp: Date.now()
-          });
+          }, {});
 
           // 使用Pinia store记录工具调用开始
           const aiStore = useAIStore();
@@ -474,18 +482,16 @@ async function handleToolCalls(
           // 使用Pinia store记录工具调用完成
           aiStore.completeToolCall({
             id: toolCall.id,
-            command: args.command,
             result: result
           });
 
           // 发送工具调用完成事件，让UI显示结果
           emitEvent(EventTypes.AI_COMMAND_COMPLETE, {
             commandId: toolCall.id,
-            command: args.command,
             connectionId: connection.id,
             result: result,
             timestamp: Date.now()
-          });
+          }, {});
 
           toolResults.push({
             tool_call_id: toolCall.id,
@@ -498,18 +504,16 @@ async function handleToolCalls(
           const aiStore = useAIStore();
           aiStore.errorToolCall({
             id: toolCall.id,
-            command: args.command,
             error: error.message
           });
 
           // 发送工具调用错误事件，让UI显示错误
           emitEvent(EventTypes.AI_COMMAND_ERROR, {
             commandId: toolCall.id,
-            command: args.command,
             connectionId: connection.id,
             error: error.message,
             timestamp: Date.now()
-          });
+          }, {});
 
           toolResults.push({
             tool_call_id: toolCall.id,

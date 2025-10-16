@@ -5,6 +5,7 @@
 export interface APIResponse<T = unknown> {
   success: boolean;
   data?: T;
+  output?: T;  // Add output property for compatibility
   error?: string;
   message?: string;
 }

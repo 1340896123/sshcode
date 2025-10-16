@@ -1,26 +1,30 @@
-import { useState, useEffect } from 'react';
+import { ref, onMounted, computed } from 'vue';
 
 /**
  * Theme hook for managing CSS variables and theme state
  */
 export const useTheme = () => {
-  const [theme, setTheme] = useState('dark');
+  const theme = ref('dark');
 
-  useEffect(() => {
+  onMounted(() => {
     // Apply theme class to document root
-    document.documentElement.className = theme === 'light' ? 'theme-light' : 'theme-dark';
-  }, [theme]);
+    document.documentElement.className = theme.value === 'light' ? 'theme-light' : 'theme-dark';
+  });
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    theme.value = theme.value === 'dark' ? 'light' : 'dark';
+    document.documentElement.className = theme.value === 'light' ? 'theme-light' : 'theme-dark';
   };
 
   return {
     theme,
-    setTheme,
+    setTheme: (value) => {
+      theme.value = value;
+      document.documentElement.className = theme.value === 'light' ? 'theme-light' : 'theme-dark';
+    },
     toggleTheme,
-    isDark: theme === 'dark',
-    isLight: theme === 'light'
+    isDark: computed(() => theme.value === 'dark'),
+    isLight: computed(() => theme.value === 'light')
   };
 };
 

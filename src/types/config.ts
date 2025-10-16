@@ -6,6 +6,12 @@ import type { AIConfig } from './ai.js';
 
 export interface AppConfig {
   ai: AIConfig;
+  aiChat: {
+    enabled: boolean;
+    maxTokens: number;
+    temperature: number;
+    model: string;
+  };
   general: {
     theme: 'light' | 'dark';
     language: string;

@@ -98,6 +98,7 @@ export interface Action {
 
 export interface ToolCallHistoryItem extends ToolCall {
   command: string;
+  connectionId: string;
   status: 'executing' | 'completed' | 'error' | 'timeout';
   startTime: number;
   endTime?: number;
@@ -171,11 +172,41 @@ export interface CacheStats {
 }
 
 export interface AppConfiguration {
+  ai?: {
+    provider?: string;
+    baseUrl: string;
+    apiKey: string;
+    model?: string;
+    customModel?: string;
+    maxTokens?: number;
+    temperature?: number;
+  };
+  aiChat?: {
+    enabled: boolean;
+    maxTokens: number;
+    temperature: number;
+    model: string;
+  };
   aiCompletion?: {
     apiKey?: string;
     baseUrl?: string;
     model?: string;
     customModel?: string;
+  };
+  general?: {
+    theme: 'light' | 'dark';
+    language: string;
+    autoSave: boolean;
+  };
+  terminal?: {
+    fontSize: number;
+    fontFamily: string;
+    copyOnSelect: boolean;
+  };
+  security?: {
+    passwordEncryption: boolean;
+    sessionTimeout: number;
+    confirmDangerousCommands: boolean;
   };
 }
 
@@ -184,6 +215,42 @@ export interface CommandOptions {
   timeout?: number;
   silent?: boolean;
   toolCallId?: string;
+}
+
+// API Response types
+export interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  output?: T;  // Add output property for compatibility
+  error?: string;
+  message?: string;
+}
+
+export interface AIResponseChoice {
+  message?: {
+    role: string;
+    content?: string;
+    tool_calls?: ToolCall[];
+  };
+  delta?: {
+    role?: string;
+    content?: string;
+    tool_calls?: ToolCall[];
+  };
+  finish_reason?: string;  // Add finish_reason property
+  index?: number;
+}
+
+export interface AIResponse {
+  choices: AIResponseChoice[];
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+  model?: string;
+  id?: string;
+  created?: number;
 }
 
 // Re-export SSHConnection for convenience

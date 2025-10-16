@@ -50,7 +50,7 @@
 </template>
 
 <script>
-import { formatBytes, formatDuration } from '@/utils/formatters.js';
+import { formatBytes as formatBytesUtil, formatDuration } from '@/utils/formatters.js';
 
 export default {
   name: 'ConnectionStatusBar',
@@ -76,6 +76,10 @@ export default {
       const diff = now - connectedAt;
       const seconds = Math.floor(diff / 1000);
       return formatDuration(seconds);
+    },
+
+    formatBytes(bytes) {
+      return formatBytesUtil(bytes);
     }
   }
 };

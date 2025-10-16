@@ -50,7 +50,7 @@ export const useAIStore = defineStore('ai', () => {
   }) => {
     const { id, command, connectionId, timestamp = Date.now() } = toolCallData;
 
-    const toolCall = {
+    const toolCall: ToolCall = {
       id,
       command,
       connectionId,
@@ -66,7 +66,11 @@ export const useAIStore = defineStore('ai', () => {
     toolCallHistory.value.push(toolCall);
   };
 
-  const completeToolCall = toolCallData => {
+  const completeToolCall = (toolCallData: {
+    id: string;
+    result: string;
+    executionTime?: number;
+  }) => {
     const { id, result, executionTime } = toolCallData;
     const toolCall = toolCalls.value.get(id);
 
@@ -82,7 +86,11 @@ export const useAIStore = defineStore('ai', () => {
     }
   };
 
-  const errorToolCall = toolCallData => {
+  const errorToolCall = (toolCallData: {
+    id: string;
+    error: string;
+    executionTime?: number;
+  }) => {
     const { id, error, executionTime } = toolCallData;
     const toolCall = toolCalls.value.get(id);
 
@@ -98,7 +106,11 @@ export const useAIStore = defineStore('ai', () => {
     }
   };
 
-  const timeoutToolCall = toolCallData => {
+  const timeoutToolCall = (toolCallData: {
+    id: string;
+    executionTime: number;
+    timeoutDuration: number;
+  }) => {
     const { id, executionTime, timeoutDuration } = toolCallData;
     const toolCall = toolCalls.value.get(id);
 
@@ -114,7 +126,7 @@ export const useAIStore = defineStore('ai', () => {
     }
   };
 
-  const removeToolCall = id => {
+  const removeToolCall = (id: string) => {
     toolCalls.value.delete(id);
     if (activeToolCall.value?.id === id) {
       activeToolCall.value = null;
@@ -146,7 +158,7 @@ export const useAIStore = defineStore('ai', () => {
   };
 
   // 终端输入相关方法
-  const setTerminalInput = (text, connectionId = null) => {
+  const setTerminalInput = (text: string, connectionId: string | null = null) => {
     terminalInput.value = {
       text,
       connectionId,
@@ -192,7 +204,7 @@ export const useAIStore = defineStore('ai', () => {
   });
 
   // 重试工具调用
-  const retryToolCall = id => {
+  const retryToolCall = (id: string): RetryInfo | null => {
     const toolCall = toolCalls.value.get(id) || toolCallHistory.value.find(tc => tc.id === id);
     if (toolCall && toolCall.command) {
       // 这里返回重试信息，让组件处理实际的重试逻辑
@@ -205,7 +217,7 @@ export const useAIStore = defineStore('ai', () => {
   };
 
   // 获取实时的工具调用输出
-  const getRealtimeOutput = id => {
+  const getRealtimeOutput = (id: string): string => {
     const toolCall = toolCalls.value.get(id);
     if (toolCall && toolCall.status === 'executing') {
       return toolCall.realtimeOutput || '';
@@ -214,7 +226,7 @@ export const useAIStore = defineStore('ai', () => {
   };
 
   // 更新实时输出
-  const updateRealtimeOutput = (id, output) => {
+  const updateRealtimeOutput = (id: string, output: string): void => {
     const toolCall = toolCalls.value.get(id);
     if (toolCall) {
       toolCall.realtimeOutput = output;
