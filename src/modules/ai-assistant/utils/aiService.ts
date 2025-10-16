@@ -59,18 +59,11 @@ export interface ToolResult {
  */
 export async function getAIConfig(): Promise<AIConfig> {
   try {
-    // 尝试从electron API获取配置
+    // 从electron API获取配置
     if (window.electronAPI?.getConfig) {
       const config = await window.electronAPI.getConfig();
-
-      // 优先检查 aiChat 配置（YAML 中的结构）
       if (config.aiChat && isConfigValid(config.aiChat)) {
         return config.aiChat;
-      }
-
-      // 兼容旧的 ai 配置结构
-      if (config.ai && isConfigValid(config.ai)) {
-        return config.ai;
       }
     }
 
