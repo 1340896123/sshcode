@@ -1,5 +1,5 @@
-"use strict";
+'use strict';
 /**
  * Event system related types
  */
-Object.defineProperty(exports, "__esModule", { value: true });
+Object.defineProperty(exports, '__esModule', { value: true });
