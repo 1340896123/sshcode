@@ -379,6 +379,11 @@ export default {
   flex: 1;
   overflow: hidden;
   position: relative;
+
+  // AI面板特殊处理，允许内容正常滚动
+  .ai-panel & {
+    overflow: visible;
+  }
 }
 
 // 终端样式 (在新的三面板布局中)
