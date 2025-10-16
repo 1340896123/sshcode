@@ -10,104 +10,128 @@ This is an Electron-based SSH remote connection application with Vue 3 frontend,
 
 ```bash
 # Development
-npm run debug          # Start Vite dev server with Electron in debug mode
+npm run debug          # Start Vite dev server with Electron in debug mode (recommended for development)
 npm run start          # Build and start Electron (production mode)
 
 # Building
 npm run build          # Build frontend with Vite
-npm run build-electron # Build and create Electron installer
+npm run build-main     # Compile TypeScript to JavaScript for main process
+npm run build-electron # Build main process + frontend and create Electron installer
 npm run dist           # Same as build-electron
 
-# Testing (if available)
-# No specific test commands found in package.json
+# Code Quality
+npm run type-check     # TypeScript type checking without emitting files
+npm run lint           # Run ESLint with auto-fix
+npm run lint:check     # Run ESLint without auto-fix
+npm run format         # Format code with Prettier
+npm run format:check   # Check code formatting with Prettier
 ```
 
 ## Architecture Overview
 
-### Main Process (main.js)
+### Main Process (main.ts → main.js)
 - **Entry point**: Electron main process handling SSH connections, file operations, and IPC communication
 - **SSH Management**: Maintains connection pools (`sshConnections`, `sshShells`) and configuration storage
 - **Key Features**:
-  - SSH connection establishment with password/key authentication
-  - SFTP file operations (upload, download, directory listing)
-  - Shell session management with interactive terminal
-  - Configuration management (YAML-based)
+  - SSH connection establishment with password/key authentication using ssh2 library
+  - SFTP file operations (upload, download, directory listing) via ssh2-sftp-client
+  - Shell session management with interactive terminal and PTY allocation
+  - Configuration management (YAML-based) with js-yaml
   - File watching and dialog handling
+- **Module System**: TypeScript compiled to CommonJS (tsconfig.main.json)
 
-### Renderer Process (Vue 3)
-- **Framework**: Vue 3 with Composition API
+### Renderer Process (Vue 3 + TypeScript)
+- **Framework**: Vue 3 with Composition API and TypeScript
 - **State Management**: Pinia stores for AI and terminal state
-- **Styling**: SCSS with global variables
-- **Build Tool**: Vite with custom configuration
+- **Styling**: SCSS with global variables and path aliases
+- **Build Tool**: Vite 7.x with custom configuration
+- **Module System**: ES modules with bundler resolution
 
 ### Key Architectural Components
 
 #### Connection Management System
-- **useConnectionManager.js**: Core composable managing SSH connection lifecycle
-- **useSSHConnectionPool.js**: Persistent connection pooling with batch command execution
+- **useConnectionManager.ts**: Core composable managing SSH connection lifecycle with reactive state
+- **useSSHConnectionPool.ts**: Persistent connection pooling with batch command execution for system monitoring
 - **Connection States**: connecting, connected, failed, disconnected, cancelled
-- **Monitoring**: Health checks and system resource monitoring
+- **Monitoring**: Health checks every 30 seconds and real-time system resource monitoring
 
 #### Terminal System
-- **XTerminal.vue**: xterm.js-based terminal emulator
-- **useTerminalManager.js**: Terminal session and I/O management
+- **XTerminal.vue**: xterm.js-based terminal emulator with full xterm-256color support
+- **TerminalInput.vue**: Command input with autocomplete and history
+- **Shell Integration**: Separate shell streams per connection via IPC with proper PTY allocation
 - **Features**: Interactive shell, command history, autocomplete support
 
 #### AI Integration
-- **AIAssistant.vue**: Main AI chat interface
-- **useAIChat.js**: AI service integration with command execution
-- **aiService.js**: OpenAI-compatible API client
-- **aiCommandExecutor.js**: Command execution with AI assistance
+- **AIAssistant.vue**: Main AI chat interface with OpenAI-compatible API integration
+- **useAIChat.ts**: AI service composable with command execution capabilities
+- **aiCommandExecutor.ts**: Command execution with AI assistance and context management
+- **aiCompletionService.ts**: AI-powered command completion and suggestions
 
 #### File Management
-- **FileManager.vue**: SFTP-based file browser
+- **FileManager.vue**: SFTP-based file browser with drag-drop support
 - **Features**: Upload/download via drag-drop, file watching, directory navigation
+- **File Operations**: Full CRUD operations with progress tracking and error handling
 
-### Data Flow
+### Data Flow Architecture
 
-1. **Connection Establishment**: Vue frontend → IPC → main.js → SSH2 library
-2. **Terminal I/O**: xterm.js → IPC → SSH shell stream → main.js → frontend
-3. **File Operations**: FileManager → IPC → SFTP client → main.js → frontend
+1. **Connection Establishment**: Vue frontend → IPC → main.ts → SSH2 library → connection pool
+2. **Terminal I/O**: xterm.js → IPC → SSH shell stream → main.ts → frontend (real-time)
+3. **File Operations**: FileManager → IPC → SFTP client → main.ts → frontend
 4. **AI Commands**: Chat interface → aiService → command execution → result display
+5. **System Monitoring**: Connection pool → batch commands → processed metrics → UI updates
 
 ### Configuration System
-- **Location**: `config/app.yml` (YAML format)
+- **Location**: `config/app.yml` (YAML format) created automatically on first run
 - **Categories**: AI provider settings, general preferences, terminal configuration, security options
-- **Runtime**: Loaded into memory, updates persisted immediately
+- **Runtime**: Loaded into memory on startup, updates persisted immediately
+- **Type Safety**: Full TypeScript interface definitions in src/types/
 
 ### Key Technical Details
 
 #### SSH Connection Architecture
-- Uses `ssh2` library for connections and shell sessions
-- `ssh2-sftp-client` for file operations
-- Connection pooling for efficient resource usage
-- Separate shell streams per connection for interactive terminals
+- **Primary Libraries**: `ssh2` for connections/shell sessions, `ssh2-sftp-client` for file operations
+- **Connection Pooling**: Persistent connections with automatic cleanup and health monitoring
+- **Authentication**: Support for password and private key authentication with proper error handling
+- **PTY Allocation**: Full terminal emulation with proper environment variable setup
 
-#### Vue Component Structure
-- Tab-based interface with ThreePanelLayout
-- Reactive connection state management
-- Event system for cross-component communication
-- Composables for reusable logic (connections, AI, terminals)
+#### TypeScript Configuration
+- **Dual Setup**: Separate configs for main process (CommonJS) and renderer (ES modules)
+- **Path Aliases**: `@/` mapped to `src/` for clean imports
+- **Type Safety**: Comprehensive type definitions for all IPC communications and SSH operations
+- **Build Process**: main.ts compiled to main.js, renderer processed by Vite
+
+#### Vue Component Architecture
+- **Modular Structure**: Organized by feature (terminal, ai-assistant, file-manager)
+- **Composables Pattern**: Reusable logic with useConnectionManager, useAIChat, etc.
+- **Reactive State**: Connection state management with real-time updates
+- **Event System**: Cross-component communication via event emitters and IPC
+
+#### Development Tooling
+- **ESLint**: Flat config with TypeScript, Vue, and Prettier integration
+- **Type Checking**: Project-wide type checking with vue-tsc
+- **Build System**: Vite for frontend, TypeScript compiler for main process
+- **Hot Reload**: Full development server with Electron integration
 
 #### Security Considerations
-- Password encryption optional (configurable)
-- Session timeout management
-- Dangerous command confirmation
-- No credential storage in plaintext by default
+- **Context Isolation**: Secure IPC communication via preload script
+- **Credential Handling**: Optional password encryption, no plaintext storage by default
+- **Session Management**: Configurable timeouts and dangerous command confirmation
+- **File Access**: Sandboxed file operations through SFTP protocol
 
 ## Important Implementation Notes
 
 - **Environment**: Must run in Electron context for `window.electronAPI` access
-- **Connection Lifecycle**: Connections persist in main process pools during app lifetime
-- **Terminal Emulation**: Full xterm-256color support with proper PTY allocation
-- **File Watching**: Local file change monitoring for sync operations
-- **Error Handling**: Comprehensive error mapping with user-friendly messages
-- **Resource Management**: Automatic cleanup of timers, connections, and file watchers
+- **Connection Lifecycle**: Connections persist in main process pools during app lifetime with automatic cleanup
+- **Terminal Output**: Limited to 1000 lines history (500 after truncation) for performance
+- **Error Handling**: Comprehensive error mapping with user-friendly messages and logging
+- **Resource Management**: Automatic cleanup of timers, connections, and file watchers on component unmount
+- **Type System**: All IPC communications are fully typed for type safety across main/renderer boundary
 
-## Development Tips
+## Development Workflow
 
-- Use `npm run debug` for development with hot reload
-- SSH connections require valid credentials - test environments should have accessible SSH servers
-- AI functionality requires API key configuration in settings
-- File operations depend on proper SFTP permissions on target servers
-- Terminal output history is limited to 1000 lines (500 after truncation)
+1. **Development**: Use `npm run debug` for hot reload and development tools
+2. **Type Safety**: Run `npm run type-check` to verify TypeScript types before commits
+3. **Code Quality**: Use `npm run lint` and `npm run format` to maintain code standards
+4. **Building**: Use `npm run build-electron` to create distributable packages
+5. **SSH Testing**: Ensure test environments have accessible SSH servers for connection testing
+6. **AI Features**: Configure API keys in application settings for AI functionality
