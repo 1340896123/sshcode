@@ -109,14 +109,14 @@
           >
             <!-- 用户消息 -->
             <div v-if="message.role === 'user'" class="user-message">
+              <div class="message-content user-content">
+                <div class="message-text">{{ message.content }}</div>
+                <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+              </div>
               <div class="message-avatar user-avatar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
                 </svg>
-              </div>
-              <div class="message-content user-content">
-                <div class="message-text">{{ message.content }}</div>
-                <div class="message-time">{{ formatTime(message.timestamp) }}</div>
               </div>
             </div>
 
