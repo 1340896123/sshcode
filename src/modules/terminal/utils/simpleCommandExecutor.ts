@@ -264,6 +264,7 @@ class SimpleCommandExecutor {
     // 发送事件
     emitEvent(EventTypes.AI_COMMAND_START, {
       commandId,
+      command,
       connectionId
     }, {});
   }
@@ -303,6 +304,7 @@ class SimpleCommandExecutor {
     // 发送事件
     emitEvent(EventTypes.AI_COMMAND_COMPLETE, {
       commandId,
+      command,
       result,
       executionTime
     }, {});
@@ -347,6 +349,7 @@ class SimpleCommandExecutor {
     // 发送事件
     emitEvent(EventTypes.AI_COMMAND_ERROR, {
       commandId,
+      command,
       error: error.message
     }, {});
   }

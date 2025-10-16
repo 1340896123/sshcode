@@ -372,8 +372,21 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
       executionTime: 0
     };
 
+    console.log(`🔍 [AI-CHAT] 即将添加到历史记录的工具调用:`, {
+      id: toolCall.id,
+      command: toolCall.command,
+      status: toolCall.status,
+      function: toolCall.function
+    });
+
     toolCallHistory.value.push(toolCall);
     activeToolCall.value = toolCall;
+
+    console.log(`📝 [AI-CHAT] 工具调用历史状态 (添加后):`, toolCallHistory.value.map(tc => ({
+      id: tc.id,
+      command: tc.command,
+      status: tc.status
+    })));
 
     // 检查是否已经存在相同的工具开始消息，避免重复
     const existingToolStartMessage = messages.value.find(
@@ -410,6 +423,12 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
     const actualCommand = data.command || toolCall?.command;
 
     console.log(`🔧 [AI-CHAT] 实际命令: ${actualCommand}, 来自历史: ${toolCall?.command}`);
+    console.log(`🔍 [AI-CHAT] ToolCallHistory状态:`, toolCallHistory.value.map(tc => ({
+      id: tc.id,
+      command: tc.command,
+      status: tc.status,
+      result: tc.result?.substring(0, 50) + '...'
+    })));
 
     // 更新工具调用历史
     if (toolCall) {
