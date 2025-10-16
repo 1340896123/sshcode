@@ -198,6 +198,7 @@
         <span class="system-title">{{ messageText }}</span>
       </div>
       <div v-if="message.content" class="system-body">
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <div class="system-text" v-html="formattedContent"></div>
       </div>
     </div>

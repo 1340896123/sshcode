@@ -1,6 +1,7 @@
 import { ref, reactive, type Ref } from 'vue';
 import { useSSHConnectionPool } from './useSSHConnectionPool.js';
 import type { SessionData, Connection, SystemInfo, NetworkHistory } from '@/types/index.js';
+import type { TerminalOutputLine, SystemDataFromPool } from '@/types/terminal.js';
 import { formatBytes } from '@/utils/formatters.js';
 
 interface ConnectionManagerEmits {
@@ -138,7 +139,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
           try {
             await createPersistentConnection(connection.id, connectionParams);
             console.log('🔗 [CONNECTION-MANAGER] 持久连接池创建成功');
-          } catch (poolError: any) {
+          } catch (poolError: Error) {
             console.warn(
               '⚠️ [CONNECTION-MANAGER] 持久连接池创建失败，使用普通模式:',
               poolError.message
@@ -192,7 +193,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
 
         emit('show-notification', 'ElectronAPI不可用，请在Electron环境中运行应用', 'error');
       }
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('💥 [CONNECTION-MANAGER] 连接异常:', error);
       connection.status = 'failed';
       connection.errorMessage = error.message;
@@ -231,14 +232,14 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
     if (window.electronAPI) {
       try {
         await window.electronAPI.sshDisconnect(connectionId);
-      } catch (error: any) {
+      } catch (error: Error) {
         console.log('取消连接时清理资源:', error.message);
       }
     }
   };
 
   // 添加终端输出
-  const addTerminalOutput = (connection: Connection, line: any): void => {
+  const addTerminalOutput = (connection: Connection, line: TerminalOutputLine): void => {
     connection.terminalOutput.push(line);
 
     // 限制输出历史记录
@@ -268,7 +269,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
       try {
         await closePersistentConnection(connectionId);
         console.log('🔌 [CONNECTION-MANAGER] 持久连接已关闭:', connectionId);
-      } catch (poolError: any) {
+      } catch (poolError: Error) {
         console.warn('⚠️ [CONNECTION-MANAGER] 关闭持久连接失败:', poolError.message);
       }
 
@@ -289,7 +290,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
 
       // 停止系统监控
       stopSystemMonitoring(connectionId);
-    } catch (error: any) {
+    } catch (error: Error) {
       emit('show-notification', `断开连接失败: ${error.message}`, 'error');
     }
   };
@@ -299,7 +300,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
     // 先关闭现有的持久连接
     try {
       await closePersistentConnection(connection.id);
-    } catch (error: any) {
+    } catch (error: Error) {
       console.warn('⚠️ [CONNECTION-MANAGER] 重新连接时关闭持久连接失败:', error.message);
     }
 
@@ -319,7 +320,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
     // 确保连接池也被清理
     try {
       await closePersistentConnection(connectionId);
-    } catch (error: any) {
+    } catch (error: Error) {
       console.warn('⚠️ [CONNECTION-MANAGER] 关闭连接时清理连接池失败:', error.message);
     }
 
@@ -373,7 +374,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
         // 发送心跳命令检查连接状态
         await window.electronAPI.sshExecute(connection.id, 'echo "heartbeat"');
       }
-    } catch (error: any) {
+    } catch (error: Error) {
       connection.status = 'disconnected';
       addTerminalOutput(connection, {
         type: 'warning',
@@ -436,7 +437,7 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
           return;
         }
       }
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('💥 [CONNECTION-MANAGER] 获取系统信息失败:', error);
       // 设置默认值，避免界面显示异常
       connection.systemInfo = {
@@ -451,7 +452,10 @@ export function useConnectionManager(emit: ConnectionManagerEmits) {
   };
 
   // 处理从连接池获取的系统数据
-  const processSystemData = (connection: Connection, systemData: any): SystemInfo => {
+  const processSystemData = (
+    connection: Connection,
+    systemData: SystemDataFromPool
+  ): SystemInfo => {
     // 初始化网络历史记录
     if (!connection.networkHistory) {
       connection.networkHistory = {

@@ -11,6 +11,14 @@ import type {
   ToolCallStatus,
   ToolCallStats
 } from '@/types/index.js';
+import type {
+  AIResponseEventData,
+  CommandStartEventData,
+  CommandCompleteEventData,
+  CommandErrorEventData,
+  ConfigRequiredEventData,
+  TerminalOutputEventData
+} from '@/types/events.js';
 import { onEvent, offEvent, EventTypes } from '@/utils/eventSystem.js';
 import { useAIStore, type ToolCall } from '../stores/ai.js';
 
@@ -25,7 +33,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   const isConnected: Ref<boolean> = ref(true);
   const messageIdCounter: Ref<number> = ref(0);
   const lastMessageId: Ref<string | null> = ref(null); // 防止重复发送
-  const pendingToolCalls: Ref<Map<string, any>> = ref(new Map()); // 存储待处理的工具调用
+  const pendingToolCalls: Ref<Map<string, ToolCallHistoryItem>> = ref(new Map()); // 存储待处理的工具调用
   const toolCallHistory: Ref<ToolCallHistoryItem[]> = ref([]); // 工具调用历史记录
   const activeToolCall: Ref<ToolCallHistoryItem | null> = ref(null); // 当前活跃的工具调用
   const realtimeOutputs: Ref<Map<string, string>> = ref(new Map()); // 存储实时输出数据
@@ -46,7 +54,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     // 监听AI响应
     const cleanupAIResponse = onEvent(
       EventTypes.AI_RESPONSE,
-      (data: any) => {
+      (data: AIResponseEventData) => {
         handleAIResponse(data);
       },
       componentId
@@ -56,7 +64,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     // 监听命令执行事件
     const cleanupCommandStart = onEvent(
       EventTypes.AI_COMMAND_START,
-      (data: any) => {
+      (data: CommandStartEventData) => {
         handleCommandStart(data);
       },
       componentId
@@ -65,7 +73,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
 
     const cleanupCommandComplete = onEvent(
       EventTypes.AI_COMMAND_COMPLETE,
-      (data: any) => {
+      (data: CommandCompleteEventData) => {
         handleCommandComplete(data);
       },
       componentId
@@ -74,7 +82,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
 
     const cleanupCommandError = onEvent(
       EventTypes.AI_COMMAND_ERROR,
-      (data: any) => {
+      (data: CommandErrorEventData) => {
         handleCommandError(data);
       },
       componentId
@@ -84,7 +92,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     // 监听配置需求事件
     const cleanupConfigRequired = onEvent(
       EventTypes.AI_CONFIG_REQUIRED,
-      (data: any) => {
+      (data: ConfigRequiredEventData) => {
         handleConfigRequired(data);
       },
       componentId
@@ -94,7 +102,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     // 监听终端输出（用于实时更新）
     const cleanupTerminalOutput = onEvent(
       EventTypes.TERMINAL_OUTPUT,
-      (data: any) => {
+      (data: TerminalOutputEventData) => {
         handleTerminalOutput(data);
       },
       componentId
@@ -199,7 +207,11 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   /**
    * 添加系统消息（工具调用提示）
    */
-  const addSystemMessage = (content: string, type: string = 'info', metadata: any = null): void => {
+  const addSystemMessage = (
+    content: string,
+    type: string = 'info',
+    metadata: Record<string, unknown> = null
+  ): void => {
     const message: Message = {
       id: ++messageIdCounter.value,
       role: 'system',
@@ -320,11 +332,11 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
   /**
    * 事件处理器
    */
-  const handleAIResponse = (data: any): void => {
+  const handleAIResponse = (data: AIResponseEventData): void => {
     // AI响应现在直接在sendMessage中处理，这里可以处理其他情况
   };
 
-  const handleCommandStart = (data: any): void => {
+  const handleCommandStart = (data: CommandStartEventData): void => {
     console.log(`🚀 [AI-CHAT] 收到命令开始事件:`, data);
 
     const toolCall: ToolCallHistoryItem = {
@@ -361,7 +373,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     });
   };
 
-  const handleCommandComplete = (data: any): void => {
+  const handleCommandComplete = (data: CommandCompleteEventData): void => {
     console.log(`✅ [AI-CHAT] 收到命令完成事件:`, {
       commandId: data.commandId,
       command: data.command
@@ -420,7 +432,7 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     );
   };
 
-  const handleCommandError = (data: any): void => {
+  const handleCommandError = (data: CommandErrorEventData): void => {
     console.error(`❌ [AI-CHAT] 收到命令错误事件:`, {
       commandId: data.commandId,
       command: data.command,
@@ -475,12 +487,12 @@ export function useAIChat(props: UseAIChatProps, emitEvent: SetupContext<AIChatE
     );
   };
 
-  const handleConfigRequired = (data: any): void => {
+  const handleConfigRequired = (data: ConfigRequiredEventData): void => {
     emitEvent('show-settings');
     emitEvent('show-notification', data.message || '请先配置AI服务设置', 'error');
   };
 
-  const handleTerminalOutput = (data: any): void => {
+  const handleTerminalOutput = (data: TerminalOutputEventData): void => {
     // 这个处理逻辑已经移到了simpleCommandExecutor中
     // 这里可以处理UI相关的实时输出更新
     if (data.commandId) {

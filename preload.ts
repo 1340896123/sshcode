@@ -6,6 +6,13 @@ import type {
   AppConfig,
   APIResponse
 } from './src/types/index.js';
+import type {
+  ShellOptions,
+  FileChangedEventData,
+  TerminalDataEventData,
+  TerminalCloseEventData,
+  TerminalErrorEventData
+} from './src/types/terminal.js';
 
 // Expose secure API to renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -26,7 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sshDisconnect: (connectionId: string) => ipcRenderer.invoke('ssh-disconnect', connectionId),
 
   // SSH Shell sessions
-  sshCreateShell: (connectionId: string, options?: any) =>
+  sshCreateShell: (connectionId: string, options?: ShellOptions) =>
     ipcRenderer.invoke('ssh-create-shell', connectionId, options),
   sshShellWrite: (connectionId: string, data: string) =>
     ipcRenderer.invoke('ssh-shell-write', connectionId, data),
@@ -57,13 +64,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readSSHKey: (keyPath: string) => ipcRenderer.invoke('readSSHKey', keyPath),
 
   // Event listeners
-  onFileChanged: (callback: (event: any, data: any) => void) =>
-    ipcRenderer.on('fileChanged', callback),
-  onTerminalData: (callback: (event: any, data: any) => void) =>
-    ipcRenderer.on('terminal-data', callback),
-  onTerminalClose: (callback: (event: any, data: any) => void) =>
-    ipcRenderer.on('terminal-close', callback),
-  onTerminalError: (callback: (event: any, data: any) => void) =>
-    ipcRenderer.on('terminal-error', callback),
+  onFileChanged: (
+    callback: (event: Electron.IpcRendererEvent, data: FileChangedEventData) => void
+  ) => ipcRenderer.on('fileChanged', callback),
+  onTerminalData: (
+    callback: (event: Electron.IpcRendererEvent, data: TerminalDataEventData) => void
+  ) => ipcRenderer.on('terminal-data', callback),
+  onTerminalClose: (
+    callback: (event: Electron.IpcRendererEvent, data: TerminalCloseEventData) => void
+  ) => ipcRenderer.on('terminal-close', callback),
+  onTerminalError: (
+    callback: (event: Electron.IpcRendererEvent, data: TerminalErrorEventData) => void
+  ) => ipcRenderer.on('terminal-error', callback),
   removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel)
 } as ElectronAPI);

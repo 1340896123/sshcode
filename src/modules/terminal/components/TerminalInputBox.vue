@@ -66,6 +66,7 @@
             {{ getSuggestionIcon(suggestion) }}
           </span>
           <div class="suggestion-text">
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <span class="command" v-html="highlightMatch(suggestion.command)"></span>
             <span class="description" v-if="suggestion.description">{{
               suggestion.description

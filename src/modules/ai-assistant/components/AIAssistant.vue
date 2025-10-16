@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-v-html -->
 <template>
   <div class="ai-assistant">
     <!-- 背景装饰 -->
@@ -133,6 +134,7 @@
                 <span>🤖</span>
               </div>
               <div class="message-content assistant-content">
+                <!-- eslint-disable-next-line vue/no-v-html -->
                 <div class="message-text" v-html="renderMarkdown(message.content)"></div>
                 <div class="message-time">{{ formatTime(message.timestamp) }}</div>
 
@@ -169,6 +171,7 @@
               class="system-message"
             >
               <div class="system-content">
+                <!-- eslint-disable-next-line vue/no-v-html -->
                 <div class="system-text" v-html="renderMarkdown(message.content)"></div>
                 <div class="system-time">{{ formatTime(message.timestamp) }}</div>
               </div>

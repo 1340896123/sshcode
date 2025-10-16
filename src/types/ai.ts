@@ -18,7 +18,7 @@ export interface ToolCall {
     name: string;
     arguments: string;
   };
-  result?: any;
+  result?: unknown;
 }
 
 export interface AIConfig {
@@ -48,7 +48,7 @@ export interface ValidationResult {
 
 export interface TestResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   message?: string;
   suggestions?: CommandSuggestion[];
@@ -83,7 +83,7 @@ export interface Message {
   timestamp: Date;
   actions?: ParsedResponse['actions'];
   type?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   isCollapsible?: boolean;
   defaultCollapsed?: boolean;
 }

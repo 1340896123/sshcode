@@ -46,8 +46,8 @@ class AICompletionService {
 
     // Check cache first
     if (this.cache.has(cacheKey)) {
-      const cached = this.cache.get(cacheKey)!;
-      if (Date.now() - cached.timestamp < this.cacheTimeout) {
+      const cached = this.cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
         return cached.suggestions;
       }
     }
@@ -165,13 +165,20 @@ ${historyInfo}
       // Try to parse as JSON first
       if (content.trim().startsWith('[')) {
         const suggestions = JSON.parse(content);
-        return suggestions.map((s: any) => ({
-          command: s.command,
-          description: s.description,
-          confidence: s.confidence || 0.7,
-          type: 'ai' as const,
-          category: s.category || 'general'
-        }));
+        return suggestions.map(
+          (s: {
+            command: string;
+            description: string;
+            confidence?: number;
+            category?: string;
+          }) => ({
+            command: s.command,
+            description: s.description,
+            confidence: s.confidence || 0.7,
+            type: 'ai' as const,
+            category: s.category || 'general'
+          })
+        );
       }
 
       // Parse text response

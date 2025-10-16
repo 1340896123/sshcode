@@ -42,7 +42,12 @@ export const useAIStore = defineStore('ai', () => {
   });
 
   // 工具调用相关方法
-  const startToolCall = (toolCallData: any) => {
+  const startToolCall = (toolCallData: {
+    id: string;
+    command: string;
+    connectionId: string;
+    timestamp?: number;
+  }) => {
     const { id, command, connectionId, timestamp = Date.now() } = toolCallData;
 
     const toolCall = {

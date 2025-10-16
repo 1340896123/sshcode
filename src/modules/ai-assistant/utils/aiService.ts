@@ -15,6 +15,43 @@ import type {
   TestResult
 } from '@/types/index.js';
 
+// AI Service specific types
+export interface AIRequestData {
+  model: string;
+  messages: Array<{
+    role: string;
+    content: string;
+    tool_calls?: ToolCall[];
+  }>;
+  tools?: Array<{
+    type: string;
+    function: {
+      name: string;
+      description: string;
+      parameters: {
+        type: string;
+        properties: { command: { type: string; description: string } };
+        required: string[];
+      };
+    };
+  }>;
+  max_tokens?: number;
+  temperature?: number;
+}
+
+export interface AIResponseChoice {
+  message: {
+    content?: string;
+    tool_calls?: ToolCall[];
+    finish_reason?: string;
+  };
+}
+
+export interface ToolResult {
+  tool_call_id: string;
+  result: string;
+}
+
 /**
  * 获取AI配置
  */
@@ -53,7 +90,7 @@ export async function getAIConfig(): Promise<AIConfig> {
 /**
  * 检查配置是否有效
  */
-function isConfigValid(config: any): boolean {
+function isConfigValid(config: AIConfig): boolean {
   return (
     config &&
     config.baseUrl &&
@@ -112,7 +149,21 @@ async function getOSInfo(connection: Connection): Promise<string> {
 /**
  * 构建工具定义
  */
-function buildTools(connection: Connection, osInfo: string): any[] {
+function buildTools(
+  connection: Connection,
+  osInfo: string
+): Array<{
+  type: string;
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: string;
+      properties: { command: { type: string; description: string } };
+      required: string[];
+    };
+  };
+}> {
   return [
     {
       type: 'function',
@@ -137,7 +188,7 @@ function buildTools(connection: Connection, osInfo: string): any[] {
 /**
  * 清理消息历史
  */
-function cleanHistoryMessages(historyMessages: any[]): any[] {
+function cleanHistoryMessages(historyMessages: AIMessage[]): AIMessage[] {
   return historyMessages
     .filter(msg => msg && msg.role && msg.content) // 过滤无效消息
     .filter(msg => msg.role !== 'system') // 确保没有系统消息在历史中
@@ -155,9 +206,20 @@ function buildRequestData(
   config: AIConfig,
   connection: Connection,
   message: string,
-  historyMessages: any[],
-  tools: any[]
-): any {
+  historyMessages: AIMessage[],
+  tools: Array<{
+    type: string;
+    function: {
+      name: string;
+      description: string;
+      parameters: {
+        type: string;
+        properties: { command: { type: string; description: string } };
+        required: string[];
+      };
+    };
+  }>
+): AIRequestData {
   const cleanedHistoryMessages = cleanHistoryMessages(historyMessages);
 
   return {
@@ -182,7 +244,10 @@ function buildRequestData(
 /**
  * 发送API请求
  */
-async function sendAPIRequest(config: AIConfig, requestData: any): Promise<any> {
+async function sendAPIRequest(
+  config: AIConfig,
+  requestData: AIRequestData
+): Promise<{ choices: AIResponseChoice[] }> {
   const response = await fetch(config.baseUrl + '/chat/completions', {
     method: 'POST',
     headers: {
@@ -210,8 +275,8 @@ async function sendAPIRequest(config: AIConfig, requestData: any): Promise<any> 
  * 统一处理AI响应
  */
 async function processAIResponse(
-  choice: any,
-  requestData: any,
+  choice: AIResponseChoice,
+  requestData: AIRequestData,
   config: AIConfig,
   connection: Connection
 ): Promise<ParsedResponse> {
@@ -244,7 +309,7 @@ async function processAIResponse(
  */
 export async function callAIAPI(
   message: string,
-  historyMessages: any[],
+  historyMessages: AIMessage[],
   connection: Connection
 ): Promise<ParsedResponse> {
   try {
@@ -316,10 +381,10 @@ function buildSystemPrompt(connection: Connection): string {
  * 构建包含工具结果的消息
  */
 function buildMessagesWithToolResults(
-  currentMessages: any[],
+  currentMessages: AIMessage[],
   toolCalls: ToolCall[],
-  toolResults: any[]
-): any[] {
+  toolResults: ToolResult[]
+): AIMessage[] {
   return [
     ...currentMessages,
     {
@@ -338,7 +403,7 @@ function buildMessagesWithToolResults(
 /**
  * 处理工具调用结果
  */
-function processToolCallResult(choice: any): ParsedResponse {
+function processToolCallResult(choice: AIResponseChoice): ParsedResponse {
   // 检查AI响应的完整性
   if (!choice.message) {
     console.error('AI响应中没有message字段');
@@ -370,7 +435,7 @@ function processToolCallResult(choice: any): ParsedResponse {
  */
 async function handleToolCalls(
   toolCalls: ToolCall[],
-  requestData: any,
+  requestData: AIRequestData,
   config: AIConfig,
   connection: Connection
 ): Promise<ParsedResponse> {
@@ -386,7 +451,7 @@ async function handleToolCalls(
     for (const toolCall of toolCalls) {
       if (toolCall.function.name === 'execute_command') {
         try {
-          const args = JSON.parse(toolCall.function.arguments);
+          const args: { command: string } = JSON.parse(toolCall.function.arguments);
 
           // 发送工具调用开始事件，让UI显示正在执行
           emitEvent(EventTypes.AI_COMMAND_START, {
@@ -570,7 +635,7 @@ export function parseAIResponse(content: string): ParsedResponse {
 /**
  * 验证AI配置
  */
-export function validateAIConfig(config: any): ValidationResult {
+export function validateAIConfig(config: AIConfig): ValidationResult {
   if (!config) {
     return { valid: false, error: '配置不能为空' };
   }
