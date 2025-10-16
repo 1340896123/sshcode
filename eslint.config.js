@@ -1,4 +1,3 @@
-const js = require('@eslint/js');
 const typescript = require('@typescript-eslint/eslint-plugin');
 const typescriptParser = require('@typescript-eslint/parser');
 const vue = require('eslint-plugin-vue');
@@ -6,8 +5,6 @@ const prettier = require('eslint-config-prettier');
 const prettierPlugin = require('eslint-plugin-prettier');
 
 module.exports = [
-  // Base JavaScript rules
-  js.configs.recommended,
 
   // TypeScript files with project checking (excluding vite.config.ts)
   {
@@ -127,58 +124,6 @@ module.exports = [
       'vue/no-v-html': 'warn',
       'vue/require-default-prop': 'off',
       'vue/require-explicit-emits': 'off'
-    }
-  },
-
-  // JavaScript files configuration
-  {
-    files: ['**/*.js'],
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        require: 'readonly',
-        exports: 'readonly',
-        module: 'readonly',
-        global: 'readonly'
-      }
-    },
-    rules: {
-      'no-unused-vars': 'off',
-      'no-console': 'off',
-      'prefer-const': 'error',
-      'no-var': 'error'
-    }
-  },
-
-  // Main process Electron files
-  {
-    files: ['main.js', 'preload.js'],
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'commonjs',
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        require: 'readonly',
-        exports: 'readonly',
-        module: 'readonly',
-        global: 'readonly'
-      }
-    },
-    rules: {
-      'no-unused-vars': 'off',
-      'no-console': 'off',
-      'prefer-const': 'error',
-      'no-var': 'error'
     }
   },
 
