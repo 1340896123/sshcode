@@ -1,0 +1,15 @@
+{
+  "testConnections": [
+    {
+      "name": "Test SSH Server",
+      "host": "localhost",
+      "port": 22,
+      "username": "testuser"
+    }
+  ],
+  "testSettings": {
+    "timeout": 30000,
+    "retries": 2,
+    "headless": false
+  }
+}
