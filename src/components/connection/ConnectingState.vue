@@ -18,11 +18,7 @@
         </div>
       </div>
       <div class="cancel-button-container">
-        <button 
-          class="cancel-button" 
-          @click="handleCancel"
-          :disabled="isCancelling"
-        >
+        <button class="cancel-button" @click="handleCancel" :disabled="isCancelling">
           <span v-if="!isCancelling" class="cancel-icon">✕</span>
           <span v-else class="cancel-spinner"></span>
           {{ isCancelling ? '取消中...' : '取消连接' }}
@@ -33,7 +29,7 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref } from 'vue';
 
 export default {
   name: 'ConnectingState',
@@ -45,28 +41,28 @@ export default {
   },
   emits: ['cancel-connection'],
   setup(props, { emit }) {
-    const isCancelling = ref(false)
+    const isCancelling = ref(false);
 
     const handleCancel = async () => {
-      if (isCancelling.value) return
-      
-      isCancelling.value = true
+      if (isCancelling.value) return;
+
+      isCancelling.value = true;
       try {
-        emit('cancel-connection', props.connection.id)
+        emit('cancel-connection', props.connection.id);
       } finally {
         // 延迟重置状态，给用户反馈时间
         setTimeout(() => {
-          isCancelling.value = false
-        }, 1000)
+          isCancelling.value = false;
+        }, 1000);
       }
-    }
+    };
 
     return {
       isCancelling,
       handleCancel
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -181,7 +177,11 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

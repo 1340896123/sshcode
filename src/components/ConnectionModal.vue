@@ -22,30 +22,56 @@
                   v-for="session in sessions"
                   :key="session.id"
                   class="session-card"
-                  :class="{ 'test-success': getTestResult(session.id)?.success, 'test-failed': getTestResult(session.id)?.success === false }"
+                  :class="{
+                    'test-success': getTestResult(session.id)?.success,
+                    'test-failed': getTestResult(session.id)?.success === false
+                  }"
                 >
                   <!-- 连接状态指示器 -->
-                  <div v-if="getTestResult(session.id)" class="connection-status" :class="getTestResult(session.id).success ? 'status-success' : 'status-failed'">
-                    <span class="status-icon">{{ getTestResult(session.id).success ? '✓' : '✗' }}</span>
-                    <span class="status-text">{{ getTestResult(session.id).success ? '上次测试成功' : '上次测试失败' }}</span>
+                  <div
+                    v-if="getTestResult(session.id)"
+                    class="connection-status"
+                    :class="getTestResult(session.id).success ? 'status-success' : 'status-failed'"
+                  >
+                    <span class="status-icon">{{
+                      getTestResult(session.id).success ? '✓' : '✗'
+                    }}</span>
+                    <span class="status-text">{{
+                      getTestResult(session.id).success ? '上次测试成功' : '上次测试失败'
+                    }}</span>
                   </div>
 
                   <div class="session-info">
                     <h3>{{ session.name }}</h3>
-                    <p class="session-host">{{ session.username }}@{{ session.host }}:{{ session.port || 22 }}</p>
+                    <p class="session-host">
+                      {{ session.username }}@{{ session.host }}:{{ session.port || 22 }}
+                    </p>
                     <p class="session-description">{{ session.description || '无描述' }}</p>
                   </div>
                   <div class="session-actions">
-                    <button class="action-btn test-btn" @click="testConnection(session)" title="测试连接" :disabled="isTestingConnection">
+                    <button
+                      class="action-btn test-btn"
+                      @click="testConnection(session)"
+                      title="测试连接"
+                      :disabled="isTestingConnection"
+                    >
                       {{ isTestingConnection ? '⏳' : '🔧' }}
                     </button>
-                    <button class="action-btn connect-btn" @click="connectSession(session)" title="连接">
+                    <button
+                      class="action-btn connect-btn"
+                      @click="connectSession(session)"
+                      title="连接"
+                    >
                       🔗
                     </button>
                     <button class="action-btn edit-btn" @click="editSession(session)" title="编辑">
                       ✏️
                     </button>
-                    <button class="action-btn delete-btn" @click="deleteSession(session.id)" title="删除">
+                    <button
+                      class="action-btn delete-btn"
+                      @click="deleteSession(session.id)"
+                      title="删除"
+                    >
                       🗑️
                     </button>
                   </div>
@@ -80,12 +106,15 @@
                     placeholder="输入连接名称"
                     @blur="validateField('name')"
                   />
-                  <div v-if="!formData.name.trim()" class="field-error">
-                    连接名称不能为空
-                  </div>
+                  <div v-if="!formData.name.trim()" class="field-error">连接名称不能为空</div>
                 </div>
 
-                <div class="form-group" :class="{ 'has-error': !formData.host.trim() || !isValidHost(formData.host.trim()) }">
+                <div
+                  class="form-group"
+                  :class="{
+                    'has-error': !formData.host.trim() || !isValidHost(formData.host.trim())
+                  }"
+                >
                   <label for="sessionHost">主机地址 *</label>
                   <input
                     id="sessionHost"
@@ -95,9 +124,7 @@
                     placeholder="example.com 或 IP 地址"
                     @blur="validateField('host')"
                   />
-                  <div v-if="!formData.host.trim()" class="field-error">
-                    主机地址不能为空
-                  </div>
+                  <div v-if="!formData.host.trim()" class="field-error">主机地址不能为空</div>
                   <div v-else-if="!isValidHost(formData.host.trim())" class="field-error">
                     主机地址格式不正确
                   </div>
@@ -126,9 +153,7 @@
                       placeholder="用户名"
                       @blur="validateField('username')"
                     />
-                    <div v-if="!formData.username.trim()" class="field-error">
-                      用户名不能为空
-                    </div>
+                    <div v-if="!formData.username.trim()" class="field-error">用户名不能为空</div>
                   </div>
                 </div>
 
@@ -144,11 +169,7 @@
 
                 <div class="form-group">
                   <label for="authType">认证方式</label>
-                  <select
-                    id="authType"
-                    v-model="formData.authType"
-                    class="auth-select"
-                  >
+                  <select id="authType" v-model="formData.authType" class="auth-select">
                     <option value="password">密码认证</option>
                     <option value="key">密钥认证</option>
                   </select>
@@ -174,11 +195,13 @@
                       placeholder="~/.ssh/id_rsa"
                       @blur="validateKeyFile"
                     />
-                    <button type="button" class="browse-btn" @click="browseKeyFile">
-                      浏览
-                    </button>
+                    <button type="button" class="browse-btn" @click="browseKeyFile">浏览</button>
                   </div>
-                  <div v-if="keyValidationMessage" class="key-validation-message" :class="keyValidationType">
+                  <div
+                    v-if="keyValidationMessage"
+                    class="key-validation-message"
+                    :class="keyValidationType"
+                  >
                     {{ keyValidationMessage }}
                   </div>
                 </div>
@@ -196,17 +219,12 @@
           <div class="modal-footer">
             <!-- 连接列表页面的按钮 -->
             <div v-if="!isCreatingNew && !isEditing" class="footer-actions">
-              <button class="primary-btn" @click="createNewSession">
-                新建连接
-              </button>
+              <button class="primary-btn" @click="createNewSession">新建连接</button>
               <button class="secondary-btn" @click="closeModal">关闭</button>
             </div>
 
             <!-- 表单页面的按钮 -->
             <div v-else class="footer-actions">
-              <button class="test-connection-btn" @click="testCurrentConnection" :disabled="!isFormValid || isTestingConnection">
-                {{ isTestingConnection ? '测试中...' : '测试连接' }}
-              </button>
               <button class="primary-btn" @click="saveSession" :disabled="!isFormValid">
                 {{ isEditing ? '保存修改' : '创建连接' }}
               </button>
@@ -220,27 +238,27 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
 
 export default {
-  name: "SessionModal",
+  name: 'SessionModal',
   props: {
     isOpen: {
       type: Boolean,
-      default: false,
-    },
+      default: false
+    }
   },
-  emits: ["close", "show-notification", "session-connected"],
+  emits: ['close', 'show-notification', 'session-connected'],
   setup(props, { emit }) {
     // 状态管理
-    const sessions = ref([])
-    const isCreatingNew = ref(false)
-    const isEditing = ref(false)
-    const currentEditId = ref(null)
-    const isTestingConnection = ref(false)
-    const connectionTestResults = ref(new Map())
-    const keyValidationMessage = ref('')
-    const keyValidationType = ref('')
+    const sessions = ref([]);
+    const isCreatingNew = ref(false);
+    const isEditing = ref(false);
+    const currentEditId = ref(null);
+    const isTestingConnection = ref(false);
+    const connectionTestResults = ref(new Map());
+    const keyValidationMessage = ref('');
+    const keyValidationType = ref('');
 
     // 表单数据
     const formData = reactive({
@@ -253,7 +271,7 @@ export default {
       password: '',
       keyPath: '',
       keyContent: ''
-    })
+    });
 
     // 重置表单数据
     const resetForm = () => {
@@ -267,138 +285,139 @@ export default {
         password: '',
         keyPath: '',
         keyContent: ''
-      })
-    }
+      });
+    };
 
     // 表单验证
     const isFormValid = computed(() => {
       // 基本字段验证
       if (!formData.name.trim() || formData.name.trim().length < 2) {
-        return false
+        return false;
       }
 
       if (!formData.host.trim() || !isValidHost(formData.host.trim())) {
-        return false
+        return false;
       }
 
       if (!formData.username.trim() || formData.username.trim().length < 1) {
-        return false
+        return false;
       }
 
       if (formData.port && (formData.port < 1 || formData.port > 65535)) {
-        return false
+        return false;
       }
 
       // 认证信息验证
       if (formData.authType === 'password') {
-        return formData.password.trim().length >= 1
+        return formData.password.trim().length >= 1;
       } else if (formData.authType === 'key') {
-        return formData.keyPath.trim() && formData.keyContent.trim()
+        return formData.keyPath.trim() && formData.keyContent.trim();
       }
 
-      return false
-    })
+      return false;
+    });
 
     // 验证主机地址格式
-    const isValidHost = (host) => {
+    const isValidHost = host => {
       // IPv4地址验证
-      const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
+      const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
       if (ipv4Regex.test(host)) {
-        const parts = host.split('.')
-        return parts.every(part => parseInt(part) >= 0 && parseInt(part) <= 255)
+        const parts = host.split('.');
+        return parts.every(part => parseInt(part) >= 0 && parseInt(part) <= 255);
       }
 
       // 域名验证
-      const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/
+      const domainRegex =
+        /^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
 
       // localhost验证
       if (host === 'localhost') {
-        return true
+        return true;
       }
 
-      return domainRegex.test(host) || host.includes('.') || /^[a-zA-Z0-9\-]+$/.test(host)
-    }
+      return domainRegex.test(host) || host.includes('.') || /^[a-zA-Z0-9\-]+$/.test(host);
+    };
 
     // 字段验证
-    const validateField = (fieldName) => {
+    const validateField = fieldName => {
       // 触发计算属性重新计算
       switch (fieldName) {
         case 'name':
-          return formData.name.trim().length >= 2
+          return formData.name.trim().length >= 2;
         case 'host':
-          return formData.host.trim() && isValidHost(formData.host.trim())
+          return formData.host.trim() && isValidHost(formData.host.trim());
         case 'username':
-          return formData.username.trim().length >= 1
+          return formData.username.trim().length >= 1;
         case 'password':
-          return formData.authType === 'password' ? formData.password.trim().length >= 1 : true
+          return formData.authType === 'password' ? formData.password.trim().length >= 1 : true;
         case 'keyPath':
-          return formData.authType === 'key' ? formData.keyPath.trim() : true
+          return formData.authType === 'key' ? formData.keyPath.trim() : true;
         default:
-          return true
+          return true;
       }
-    }
+    };
 
     // 获取验证错误信息
     const validationErrors = computed(() => {
-      const errors = []
+      const errors = [];
 
       if (!formData.name.trim()) {
-        errors.push('连接名称不能为空')
+        errors.push('连接名称不能为空');
       } else if (formData.name.trim().length < 2) {
-        errors.push('连接名称至少需要2个字符')
+        errors.push('连接名称至少需要2个字符');
       }
 
       if (!formData.host.trim()) {
-        errors.push('主机地址不能为空')
+        errors.push('主机地址不能为空');
       } else if (!isValidHost(formData.host.trim())) {
-        errors.push('主机地址格式不正确')
+        errors.push('主机地址格式不正确');
       }
 
       if (!formData.username.trim()) {
-        errors.push('用户名不能为空')
+        errors.push('用户名不能为空');
       }
 
       if (formData.port && (formData.port < 1 || formData.port > 65535)) {
-        errors.push('端口号必须在1-65535之间')
+        errors.push('端口号必须在1-65535之间');
       }
 
       if (formData.authType === 'password' && !formData.password.trim()) {
-        errors.push('密码不能为空')
+        errors.push('密码不能为空');
       }
 
       if (formData.authType === 'key') {
         if (!formData.keyPath.trim()) {
-          errors.push('密钥文件路径不能为空')
+          errors.push('密钥文件路径不能为空');
         } else if (!formData.keyContent.trim()) {
-          errors.push('无法读取密钥文件内容')
+          errors.push('无法读取密钥文件内容');
         }
       }
 
-      return errors
-    })
+      return errors;
+    });
 
     // 加载连接列表
     const loadSessions = async () => {
       try {
         if (window.electronAPI) {
-          sessions.value = await window.electronAPI.getSessions()
+          sessions.value = await window.electronAPI.getSessions();
         }
       } catch (error) {
-        console.error('加载连接失败:', error)
-        emit('show-notification', '加载连接列表失败', 'error')
+        console.error('加载连接失败:', error);
+        emit('show-notification', '加载连接列表失败', 'error');
       }
-    }
+    };
 
     // 创建新连接
     const createNewSession = () => {
-      resetForm()
-      isCreatingNew.value = true
-      isEditing.value = false
-      currentEditId.value = null
-    }
+      resetForm();
+      isCreatingNew.value = true;
+      isEditing.value = false;
+      currentEditId.value = null;
+    };
 
     // 编辑连接
-    const editSession = (session) => {
+    const editSession = session => {
       Object.assign(formData, {
         name: session.name,
         host: session.host,
@@ -409,18 +428,18 @@ export default {
         password: session.password || '',
         keyPath: session.keyPath || '',
         keyContent: session.keyContent || ''
-      })
-      isCreatingNew.value = true
-      isEditing.value = true
-      currentEditId.value = session.id
-    }
+      });
+      isCreatingNew.value = true;
+      isEditing.value = true;
+      currentEditId.value = session.id;
+    };
 
     // 保存连接
     const saveSession = async () => {
       try {
         if (!isFormValid.value) {
-          emit('show-notification', '请填写所有必填字段', 'warning')
-          return
+          emit('show-notification', '请填写所有必填字段', 'warning');
+          return;
         }
 
         const sessionData = {
@@ -434,53 +453,52 @@ export default {
           password: formData.authType === 'password' ? formData.password : '',
           keyPath: formData.authType === 'key' ? formData.keyPath : '',
           keyContent: formData.authType === 'key' ? formData.keyContent : '',
-          createdAt: isEditing.value ?
-            sessions.value.find(s => s.id === currentEditId.value)?.createdAt :
-            new Date().toISOString(),
+          createdAt: isEditing.value
+            ? sessions.value.find(s => s.id === currentEditId.value)?.createdAt
+            : new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        }
+        };
 
         if (window.electronAPI) {
-          const result = await window.electronAPI.saveSession(sessionData)
+          const result = await window.electronAPI.saveSession(sessionData);
           if (result.success) {
-            emit('show-notification',
-              isEditing.value ? '连接更新成功' : '连接创建成功', 'success')
-            await loadSessions()
-            cancelForm()
+            emit('show-notification', isEditing.value ? '连接更新成功' : '连接创建成功', 'success');
+            await loadSessions();
+            cancelForm();
           } else {
-            emit('show-notification', `保存失败: ${result.error}`, 'error')
+            emit('show-notification', `保存失败: ${result.error}`, 'error');
           }
         }
       } catch (error) {
-        console.error('保存连接失败:', error)
-        emit('show-notification', '保存连接失败', 'error')
+        console.error('保存连接失败:', error);
+        emit('show-notification', '保存连接失败', 'error');
       }
-    }
+    };
 
     // 删除连接
-    const deleteSession = async (sessionId) => {
+    const deleteSession = async sessionId => {
       if (!confirm('确定要删除这个连接吗？')) {
-        return
+        return;
       }
 
       try {
         if (window.electronAPI) {
-          const result = await window.electronAPI.deleteSession(sessionId)
+          const result = await window.electronAPI.deleteSession(sessionId);
           if (result.success) {
-            emit('show-notification', '连接删除成功', 'success')
-            await loadSessions()
+            emit('show-notification', '连接删除成功', 'success');
+            await loadSessions();
           } else {
-            emit('show-notification', `删除失败: ${result.error}`, 'error')
+            emit('show-notification', `删除失败: ${result.error}`, 'error');
           }
         }
       } catch (error) {
-        console.error('删除连接失败:', error)
-        emit('show-notification', '删除连接失败', 'error')
+        console.error('删除连接失败:', error);
+        emit('show-notification', '删除连接失败', 'error');
       }
-    }
+    };
 
     // 连接连接
-    const connectSession = async (session) => {
+    const connectSession = async session => {
       console.log('🚀 [CONNECTION-MODAL] 用户点击连接按钮:', {
         id: session.id,
         name: session.name,
@@ -490,131 +508,135 @@ export default {
       });
 
       try {
-        emit('show-notification', '正在连接SSH服务器...', 'info')
+        emit('show-notification', '正在连接SSH服务器...', 'info');
 
         console.log('📤 [CONNECTION-MODAL] 发送session-connected事件到TabManager');
 
         // 直接触发 session-connected 事件，让 TabManager 处理连接过程
-        emit('session-connected', { ...session, id: session.id })
+        emit('session-connected', { ...session, id: session.id });
 
         console.log('🔒 [CONNECTION-MODAL] 关闭连接模态框');
-        closeModal()
+        closeModal();
       } catch (error) {
-        console.error('❌ [CONNECTION-MODAL] SSH连接失败:', error)
-        emit('show-notification', 'SSH连接失败', 'error')
+        console.error('❌ [CONNECTION-MODAL] SSH连接失败:', error);
+        emit('show-notification', 'SSH连接失败', 'error');
       }
-    }
+    };
 
     // 验证密钥文件
     const validateKeyFile = async () => {
       if (!formData.keyPath.trim()) {
-        keyValidationMessage.value = ''
-        return
+        keyValidationMessage.value = '';
+        return;
       }
 
       try {
-        keyValidationMessage.value = '正在验证密钥文件...'
-        keyValidationType.value = 'info'
+        keyValidationMessage.value = '正在验证密钥文件...';
+        keyValidationType.value = 'info';
 
         if (window.electronAPI) {
-          const result = await window.electronAPI.readSSHKey(formData.keyPath)
+          const result = await window.electronAPI.readSSHKey(formData.keyPath);
           if (result.success) {
-            formData.keyContent = result.keyContent
+            formData.keyContent = result.keyContent;
 
             // 验证密钥格式
-            const keyType = detectKeyType(result.keyContent)
+            const keyType = detectKeyType(result.keyContent);
             if (keyType) {
-              keyValidationMessage.value = `✓ 有效密钥文件 (${keyType})`
-              keyValidationType.value = 'success'
+              keyValidationMessage.value = `✓ 有效密钥文件 (${keyType})`;
+              keyValidationType.value = 'success';
             } else {
-              keyValidationMessage.value = '⚠️ 未知密钥格式，可能不支持'
-              keyValidationType.value = 'warning'
+              keyValidationMessage.value = '⚠️ 未知密钥格式，可能不支持';
+              keyValidationType.value = 'warning';
             }
           } else {
-            keyValidationMessage.value = `✗ ${result.error}`
-            keyValidationType.value = 'error'
+            keyValidationMessage.value = `✗ ${result.error}`;
+            keyValidationType.value = 'error';
           }
         }
       } catch (error) {
-        keyValidationMessage.value = `✗ 验证失败: ${error.message}`
-        keyValidationType.value = 'error'
+        keyValidationMessage.value = `✗ 验证失败: ${error.message}`;
+        keyValidationType.value = 'error';
       }
-    }
+    };
 
     // 检测密钥类型
-    const detectKeyType = (keyContent) => {
-      const trimmedKey = keyContent.trim()
+    const detectKeyType = keyContent => {
+      const trimmedKey = keyContent.trim();
 
       // RSA 私钥
-      if (trimmedKey.includes('-----BEGIN RSA PRIVATE KEY-----') ||
-          trimmedKey.includes('-----BEGIN PRIVATE KEY-----')) {
-        return 'RSA'
+      if (
+        trimmedKey.includes('-----BEGIN RSA PRIVATE KEY-----') ||
+        trimmedKey.includes('-----BEGIN PRIVATE KEY-----')
+      ) {
+        return 'RSA';
       }
 
       // OpenSSH 格式
       if (trimmedKey.startsWith('-----BEGIN OPENSSH PRIVATE KEY-----')) {
-        return 'OpenSSH'
+        return 'OpenSSH';
       }
 
       // DSA 私钥
       if (trimmedKey.includes('-----BEGIN DSA PRIVATE KEY-----')) {
-        return 'DSA'
+        return 'DSA';
       }
 
       // ECDSA 私钥
       if (trimmedKey.includes('-----BEGIN EC PRIVATE KEY-----')) {
-        return 'ECDSA'
+        return 'ECDSA';
       }
 
       // ED25519 私钥
-      if (trimmedKey.includes('-----BEGIN OPENSSH PRIVATE KEY-----') &&
-          trimmedKey.includes('ssh-ed25519')) {
-        return 'ED25519'
+      if (
+        trimmedKey.includes('-----BEGIN OPENSSH PRIVATE KEY-----') &&
+        trimmedKey.includes('ssh-ed25519')
+      ) {
+        return 'ED25519';
       }
 
-      return null
-    }
+      return null;
+    };
 
     // 浏览密钥文件
     const browseKeyFile = async () => {
       try {
         if (window.electronAPI) {
-          const result = await window.electronAPI.readSSHKey(formData.keyPath || '~/.ssh/id_rsa')
+          const result = await window.electronAPI.readSSHKey(formData.keyPath || '~/.ssh/id_rsa');
           if (result.success) {
-            formData.keyContent = result.keyContent
-            emit('show-notification', '密钥文件读取成功', 'success')
+            formData.keyContent = result.keyContent;
+            emit('show-notification', '密钥文件读取成功', 'success');
 
             // 自动验证密钥
-            await validateKeyFile()
+            await validateKeyFile();
           } else {
-            keyValidationMessage.value = `✗ ${result.error}`
-            keyValidationType.value = 'error'
-            emit('show-notification', `读取密钥文件失败: ${result.error}`, 'error')
+            keyValidationMessage.value = `✗ ${result.error}`;
+            keyValidationType.value = 'error';
+            emit('show-notification', `读取密钥文件失败: ${result.error}`, 'error');
           }
         }
       } catch (error) {
-        keyValidationMessage.value = `✗ 验证失败: ${error.message}`
-        keyValidationType.value = 'error'
-        console.error('读取密钥文件失败:', error)
-        emit('show-notification', '读取密钥文件失败', 'error')
+        keyValidationMessage.value = `✗ 验证失败: ${error.message}`;
+        keyValidationType.value = 'error';
+        console.error('读取密钥文件失败:', error);
+        emit('show-notification', '读取密钥文件失败', 'error');
       }
-    }
+    };
 
     // 取消表单
     const cancelForm = () => {
-      resetForm()
-      isCreatingNew.value = false
-      isEditing.value = false
-      currentEditId.value = null
-    }
+      resetForm();
+      isCreatingNew.value = false;
+      isEditing.value = false;
+      currentEditId.value = null;
+    };
 
     // 测试连接
-    const testConnection = async (session) => {
-      isTestingConnection.value = true
-      const testId = `${session.id}-${Date.now()}`
+    const testConnection = async session => {
+      isTestingConnection.value = true;
+      const testId = `${session.id}-${Date.now()}`;
 
       try {
-        emit('show-notification', '正在测试连接...', 'info')
+        emit('show-notification', '正在测试连接...', 'info');
 
         if (window.electronAPI) {
           const result = await window.electronAPI.sshConnect({
@@ -623,135 +645,93 @@ export default {
             authType: session.authType || 'password',
             keyContent: session.authType === 'key' ? session.keyContent : undefined,
             password: session.authType === 'password' ? session.password : undefined
-          })
+          });
 
           // 更新测试结果
           connectionTestResults.value.set(session.id, {
             success: result.success,
             message: result.success ? '连接测试成功' : result.error,
             timestamp: new Date().toISOString()
-          })
+          });
 
           if (result.success) {
-            emit('show-notification', `${session.name} 连接测试成功`, 'success')
+            emit('show-notification', `${session.name} 连接测试成功`, 'success');
             // 立即断开测试连接
-            await window.electronAPI.sshDisconnect(testId)
+            await window.electronAPI.sshDisconnect(testId);
           } else {
-            emit('show-notification', `连接测试失败: ${result.error}`, 'error')
+            emit('show-notification', `连接测试失败: ${result.error}`, 'error');
           }
         }
       } catch (error) {
-        console.error('连接测试失败:', error)
+        console.error('连接测试失败:', error);
         connectionTestResults.value.set(session.id, {
           success: false,
           message: error.message,
           timestamp: new Date().toISOString()
-        })
-        emit('show-notification', '连接测试失败', 'error')
+        });
+        emit('show-notification', '连接测试失败', 'error');
       } finally {
-        isTestingConnection.value = false
+        isTestingConnection.value = false;
       }
-    }
-
-    // 测试当前表单中的连接配置
-    const testCurrentConnection = async () => {
-      if (!isFormValid.value) {
-        emit('show-notification', '请先完善表单信息', 'warning')
-        return
-      }
-
-      isTestingConnection.value = true
-
-      try {
-        emit('show-notification', '正在测试连接...', 'info')
-
-        const testSession = {
-          id: 'current-test',
-          name: formData.name.trim(),
-          host: formData.host.trim(),
-          port: formData.port || 22,
-          username: formData.username.trim(),
-          authType: formData.authType,
-          password: formData.authType === 'password' ? formData.password : '',
-          keyPath: formData.authType === 'key' ? formData.keyPath : '',
-          keyContent: formData.authType === 'key' ? formData.keyContent : ''
-        }
-
-        if (window.electronAPI) {
-          const result = await window.electronAPI.sshConnect({
-            ...testSession,
-            authType: testSession.authType || 'password',
-            keyContent: testSession.authType === 'key' ? testSession.keyContent : undefined,
-            password: testSession.authType === 'password' ? testSession.password : undefined
-          })
-
-          if (result.success) {
-            emit('show-notification', '连接测试成功！配置有效', 'success')
-            // 立即断开测试连接
-            await window.electronAPI.sshDisconnect('current-test')
-          } else {
-            emit('show-notification', `连接测试失败: ${result.error}`, 'error')
-          }
-        }
-      } catch (error) {
-        console.error('连接测试失败:', error)
-        emit('show-notification', '连接测试失败', 'error')
-      } finally {
-        isTestingConnection.value = false
-      }
-    }
+    };
 
     // 获取连接的连接测试结果
-    const getTestResult = (sessionId) => {
-      return connectionTestResults.value.get(sessionId)
-    }
+    const getTestResult = sessionId => {
+      return connectionTestResults.value.get(sessionId);
+    };
 
     // 清除过期的测试结果（超过5分钟）
     const clearOldTestResults = () => {
-      const now = new Date()
-      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
       for (const [sessionId, result] of connectionTestResults.value.entries()) {
         if (new Date(result.timestamp) < fiveMinutesAgo) {
-          connectionTestResults.value.delete(sessionId)
+          connectionTestResults.value.delete(sessionId);
         }
       }
-    }
+    };
 
     // 关闭模态框
     const closeModal = () => {
-      cancelForm()
-      emit('close')
-    }
+      cancelForm();
+      emit('close');
+    };
 
     // 监听密钥路径变化，自动读取密钥内容
-    watch(() => formData.keyPath, (newPath) => {
-      if (newPath && formData.authType === 'key') {
-        browseKeyFile()
+    watch(
+      () => formData.keyPath,
+      newPath => {
+        if (newPath && formData.authType === 'key') {
+          browseKeyFile();
+        }
       }
-    })
+    );
 
     // 监听模态框打开状态
-    watch(() => props.isOpen, (isOpen) => {
-      if (isOpen) {
-        loadSessions()
+    watch(
+      () => props.isOpen,
+      isOpen => {
+        if (isOpen) {
+          loadSessions();
+        }
       }
-    })
+    );
 
     // 组件挂载时加载连接
     onMounted(() => {
       if (props.isOpen) {
-        loadSessions()
+        loadSessions();
       }
 
       // 定期清理过期的测试结果
-      const cleanupInterval = setInterval(clearOldTestResults, 60000) // 每分钟清理一次
+      const cleanupInterval = setInterval(clearOldTestResults, 60000); // 每分钟清理一次
 
       // 组件卸载时清除定时器
       onUnmounted(() => {
-        clearInterval(cleanupInterval)
-      })
-    })
+        clearInterval(cleanupInterval);
+      });
+    });
 
     return {
       sessions,
@@ -771,15 +751,14 @@ export default {
       deleteSession,
       connectSession,
       testConnection,
-      testCurrentConnection,
       getTestResult,
       validateKeyFile,
       browseKeyFile,
       cancelForm,
       closeModal
-    }
-  },
-}
+    };
+  }
+};
 </script>
 
 <style lang="scss" scoped>
@@ -1087,7 +1066,9 @@ export default {
   position: relative;
 
   &.has-error {
-    input, select, textarea {
+    input,
+    select,
+    textarea {
       border-color: color(error);
       box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
 
@@ -1120,7 +1101,7 @@ export default {
   gap: spacing(xs);
 
   &::before {
-    content: "⚠️";
+    content: '⚠️';
     font-size: 10px;
   }
 }
@@ -1169,7 +1150,7 @@ export default {
     color: color(text-primary);
   }
 
-  input[type="radio"] {
+  input[type='radio'] {
     accent-color: color(primary);
   }
 }

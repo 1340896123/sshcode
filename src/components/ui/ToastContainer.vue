@@ -15,19 +15,14 @@
           <div class="toast-message">
             {{ toast.message }}
           </div>
-          <div 
-            v-if="toast.duration && toast.duration > 0"
-            class="toast-progress"
-          >
-            <div 
+          <div v-if="toast.duration && toast.duration > 0" class="toast-progress">
+            <div
               class="toast-progress-bar"
               :style="{ animationDuration: `${toast.duration}ms` }"
             ></div>
           </div>
         </div>
-        <button class="toast-close" @click.stop="removeToast(toast.id)">
-          ×
-        </button>
+        <button class="toast-close" @click.stop="removeToast(toast.id)">×</button>
       </div>
     </transition-group>
   </div>
@@ -44,26 +39,26 @@ export default {
   },
   emits: ['remove'],
   setup(props, { emit }) {
-    const removeToast = (id) => {
-      emit('remove', id)
-    }
+    const removeToast = id => {
+      emit('remove', id);
+    };
 
-    const getToastIcon = (type) => {
+    const getToastIcon = type => {
       const icons = {
         success: '✅',
         error: '❌',
         warning: '⚠️',
         info: 'ℹ️'
-      }
-      return icons[type] || icons.info
-    }
+      };
+      return icons[type] || icons.info;
+    };
 
     return {
       removeToast,
       getToastIcon
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -76,7 +71,7 @@ export default {
   flex-direction: column;
   gap: 8px;
   max-width: 400px;
-  
+
   /* 响应式调整 */
   @media (max-width: 768px) {
     top: 70px;

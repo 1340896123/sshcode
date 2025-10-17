@@ -4,9 +4,7 @@
       <div class="disconnected-icon">🔌</div>
       <h3>连接已断开</h3>
       <p>SSH连接已安全断开</p>
-      <button class="reconnect-btn" @click="$emit('reconnect')">
-        🔗 重新连接
-      </button>
+      <button class="reconnect-btn" @click="$emit('reconnect')">🔗 重新连接</button>
     </div>
   </div>
 </template>
@@ -21,7 +19,7 @@ export default {
     }
   },
   emits: ['reconnect']
-}
+};
 </script>
 
 <style lang="scss" scoped>

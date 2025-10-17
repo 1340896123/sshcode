@@ -4,367 +4,172 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Electron-based SSH remote connection application that integrates file management, terminal operations, AI assistant functionality, and automatic timeout management. The application is built with Vue 3, Vite, and a comprehensive SCSS-based component library.
+This is an Electron-based SSH remote connection application with Vue 3 frontend, providing file management, terminal access, and AI assistant capabilities. The application supports multiple SSH connections with tabbed interface, real-time system monitoring, and integrated AI chat functionality.
 
 ## Development Commands
 
-### Core Development
-- `npm run build` - Build the application for production using Vite
-- `npm start` - Build and start the Electron app (production mode)
-- `npm run debug` - Start Electron with Vite dev server and DevTools (port 9222)
-- `npm run build-electron` - Build and create distributable Electron app
-- `npm run dist` - Build and package for distribution
+```bash
+# Development
+npm run debug          # Start Vite dev server with Electron in debug mode (recommended for development)
+npm run start          # Build and start Electron (production mode)
 
-### Development Workflow
-For development with hot reload:
-1. Run `npm run debug` to start both Vite dev server (port 3000) and Electron with debugging
-2. The debug command uses concurrently to run both processes automatically
-3. Chrome DevTools will be available for debugging the renderer process
+# Building
+npm run build          # Build frontend with Vite
+npm run build-main     # Compile TypeScript to JavaScript for main process
+npm run build-electron # Build main process + frontend and create Electron installer
+npm run dist           # Same as build-electron
 
-**Note**: There is no `npm run dev` script in package.json - use `npm run debug` for development
-
-### Testing
-- Test configuration available via @playwright/test
-- Playwright configuration in `playwright.config.js`
-- Test files in `tests/` directory with `*.spec.js` pattern
-- Development server for testing runs on port 3003
-- Use `npx playwright test` to run tests
+# Code Quality
+npm run type-check     # TypeScript type checking without emitting files
+npm run lint           # Run ESLint with auto-fix
+npm run lint:check     # Run ESLint without auto-fix
+npm run format         # Format code with Prettier
+npm run format:check   # Check code formatting with Prettier
+```
 
 ## Architecture Overview
 
-### Main Process (main.js)
-The Electron main process handles:
-- Window management and lifecycle
-- SSH connection management using ssh2 library
-- SFTP file operations via ssh2-sftp-client
-- IPC communication with renderer process
-- Configuration management (YAML-based)
-- File system operations and dialogs
-- AI API integration testing
+### Main Process (main.ts → main.js)
+- **Entry point**: Electron main process handling SSH connections, file operations, and IPC communication
+- **SSH Management**: Maintains connection pools (`sshConnections`, `sshShells`) and configuration storage
+- **Key Features**:
+  - SSH connection establishment with password/key authentication using ssh2 library
+  - SFTP file operations (upload, download, directory listing) via ssh2-sftp-client
+  - Shell session management with interactive terminal and PTY allocation
+  - Configuration management (YAML-based) with js-yaml
+  - File watching and dialog handling
+- **Module System**: TypeScript compiled to CommonJS (tsconfig.main.json)
 
-### Renderer Process Architecture
-The Vue 3 frontend follows a modular component architecture:
+### Renderer Process (Vue 3 + TypeScript)
+- **Framework**: Vue 3 with Composition API and TypeScript
+- **State Management**: Pinia stores for AI and terminal state
+- **Styling**: SCSS with global variables and path aliases
+- **Build Tool**: Vite 7.x with custom configuration
+- **Module System**: ES modules with bundler resolution
 
-**Key Directories:**
-- `src/components/` - Vue components organized by functionality
-- `src/composables/` - Shared composables (useAIChat, useConnectionManager, etc.)
-- `src/hooks/` - Custom Vue 3 composition API hooks
-- `src/constants/` - Application constants (AI constants)
-- `src/utils/` - Utility functions (aiService)
-- `src/styles/` - SCSS styling utilities and design tokens
+### Key Architectural Components
 
-**Core Application Structure:**
-- `src/App.vue` - Root component with layout, global state, and Electron API setup
-- `src/main.js` - Vue 3 application entry point
-- `index.html` - Main HTML file with Vue app mount point
+#### Connection Management System
+- **useConnectionManager.ts**: Core composable managing SSH connection lifecycle with reactive state
+- **useSSHConnectionPool.ts**: Persistent connection pooling with batch command execution for system monitoring
+- **Connection States**: connecting, connected, failed, disconnected, cancelled
+- **Monitoring**: Health checks every 30 seconds and real-time system resource monitoring
 
-**Component Organization:**
-- `Header.vue` - Application header with navigation and settings access
-- `TabManager.vue` - SSH session tab management and connection lifecycle
-- `ConnectionModal.vue` - SSH connection creation and management
-- `SettingsModal.vue` - Application settings interface with AI configuration
-- `ToastContainer.vue` - Global notification system
+#### Terminal System
+- **XTerminal.vue**: xterm.js-based terminal emulator with full xterm-256color support
+- **TerminalInput.vue**: Command input with autocomplete and history
+- **Shell Integration**: Separate shell streams per connection via IPC with proper PTY allocation
+- **Features**: Interactive shell, command history, autocomplete support
 
-**Feature Components:**
-- `AIAssistant.vue` - AI chat interface with tool call integration
-- `FileManager.vue` - SFTP file browser and operations
-- `XTerminal.vue` - Advanced terminal with xterm.js integration and timeout management
-- `TerminalAutocomplete.vue` - Terminal command autocomplete functionality
-- `ContextMenu.vue` - Right-click context menus
-- `ThreePanelLayout.vue` - Main application layout with three panels
-- `ConnectionStatusBar.vue` - SSH connection status indicator
-- `WelcomeScreen.vue` - Initial screen for new users
+#### AI Integration
+- **AIAssistant.vue**: Main AI chat interface with OpenAI-compatible API integration
+- **useAIChat.ts**: AI service composable with command execution capabilities
+- **aiCommandExecutor.ts**: Command execution with AI assistance and context management
+- **aiCompletionService.ts**: AI-powered command completion and suggestions
+- **constants/index.ts**: AI module constants and configuration exports
+- **styles/index.ts**: AI module SCSS imports and style management
+- **utils/index.ts**: AI module utility functions and service exports
 
-### State Management
-- Vue 3 Composition API with `reactive` and `ref`
-- Custom hooks in `src/hooks/` for Electron API abstraction
-- Component state managed through props and events
-- Global toast notification system
+#### File Management
+- **FileManager.vue**: SFTP-based file browser with drag-drop support
+- **Features**: Upload/download via drag-drop, file watching, directory navigation
+- **File Operations**: Full CRUD operations with progress tracking and error handling
 
-### Data Storage
-- SSH sessions: `data/sessions.json` (JSON format)
-- Application config: `config/app.yml` (YAML format)
-- Both files auto-created on first run
+### Data Flow Architecture
 
-### Key Technologies
-- **Electron 27** - Desktop app framework
-- **Vue 3** - UI framework with Composition API
-- **Vite 7** - Build tool and dev server
-- **SSH2** - SSH client library
-- **ssh2-sftp-client** - SFTP file operations
-- **xterm.js** - Terminal emulator with addons (fit, web-links)
-- **SCSS** - Styling with design tokens and global variables
-- **js-yaml** - YAML configuration parsing
-- **axios** - HTTP client for AI API calls
-- **@playwright/test** - End-to-end testing framework
-- **concurrently** - Run multiple npm scripts simultaneously
-- **wait-on** - Wait for resources to become available
+1. **Connection Establishment**: Vue frontend → IPC → main.ts → SSH2 library → connection pool
+2. **Terminal I/O**: xterm.js → IPC → SSH shell stream → main.ts → frontend (real-time)
+3. **File Operations**: FileManager → IPC → SFTP client → main.ts → frontend
+4. **AI Commands**: Chat interface → aiService → command execution → result display
+5. **System Monitoring**: Connection pool → batch commands → processed metrics → UI updates
 
-## Design System
+### Configuration System
+- **Location**: `config/app.yml` (YAML format) created automatically on first run
+- **Categories**: AI provider settings, general preferences, terminal configuration, security options
+- **Runtime**: Loaded into memory on startup, updates persisted immediately
+- **Type Safety**: Full TypeScript interface definitions in src/types/ including `AppConfig` for renderer and `MainAppConfig` for main process
+- **Extended Config**: Main process supports additional settings like `autoSaveSessions`, `checkUpdates`, and `encryptPasswords`
 
-### SCSS Architecture
-The application uses a comprehensive design token system defined in `src/styles/variables.scss`:
+### Key Technical Details
 
-**Color System:**
-- Semantic color tokens (primary, secondary, success, warning, error)
-- Neutral grayscale scale
-- Theme-specific colors (bg-primary, text-primary, etc.)
-- Helper function: `color($key)`
+#### SSH Connection Architecture
+- **Primary Libraries**: `ssh2` for connections/shell sessions, `ssh2-sftp-client` for file operations
+- **Connection Pooling**: Persistent connections with automatic cleanup and health monitoring
+- **Authentication**: Support for password and private key authentication with proper error handling
+- **PTY Allocation**: Full terminal emulation with proper environment variable setup
 
-**Spacing & Typography:**
-- Consistent spacing scale (xs, sm, md, lg, xl, xxl, xxxl)
-- Typography scale with font families, sizes, weights, line heights
-- Helper functions: `spacing($key)`, `font-size($key)`, etc.
+#### TypeScript Configuration
+- **Dual Setup**: Separate configs for main process (CommonJS) and renderer (ES modules)
+- **Path Aliases**: `@/` mapped to `src/` for clean imports
+- **Type Safety**: Comprehensive type definitions for all IPC communications and SSH operations
+- **Build Process**: main.ts compiled to main.js, renderer processed by Vite
 
-**Component Patterns:**
-- Mixins for common patterns (`@mixin flex-center`, `@mixin button-base`)
-- Consistent border radius, shadows, and transitions
-- Custom scrollbar styling
+#### Vue Component Architecture
+- **Modular Structure**: Organized by feature (terminal, ai-assistant, file-manager) with index.ts barrel exports
+- **Composables Pattern**: Reusable logic with useConnectionManager, useAIChat, useComponentStyles, etc.
+- **Reactive State**: Connection state management with real-time updates
+- **Event System**: Cross-component communication via lightweight event system (src/utils/eventSystem.ts)
+- **Styling System**: Dynamic component styling with useComponentStyles hook supporting theme-aware CSS variables
+- **Type Safety**: Comprehensive TypeScript interfaces for all components, props, and events
 
-### Component Patterns
-- Vue 3 Composition API with `<script setup>` syntax preferred
-- Reactive state management with `reactive()` and `ref()`
-- Event-driven communication between components
-- Consistent prop interfaces and validation
+#### Development Tooling
+- **ESLint**: Flat config with TypeScript, Vue, and Prettier integration
+- **Type Checking**: Project-wide type checking with vue-tsc
+- **Build System**: Vite for frontend, TypeScript compiler for main process
+- **Hot Reload**: Full development server with Electron integration
 
-## IPC Communication
+#### Security Considerations
+- **Context Isolation**: Secure IPC communication via preload script
+- **Credential Handling**: Optional password encryption, no plaintext storage by default
+- **Session Management**: Configurable timeouts and dangerous command confirmation
+- **File Access**: Sandboxed file operations through SFTP protocol
 
-The app uses a structured IPC pattern:
-```javascript
-// Renderer process (setup in App.vue)
-window.electronAPI.methodName(params)
+## Important Implementation Notes
 
-// Main process
-ipcMain.handle('method-name', async (event, params) => {
-  // implementation
-})
-```
+- **Environment**: Must run in Electron context for `window.electronAPI` access
+- **Connection Lifecycle**: Connections persist in main process pools during app lifetime with automatic cleanup
+- **Terminal Output**: Limited to 1000 lines history (500 after truncation) for performance
+- **Error Handling**: Comprehensive error mapping with user-friendly messages and logging
+- **Resource Management**: Automatic cleanup of timers, connections, and file watchers on component unmount
+- **Type System**: All IPC communications are fully typed for type safety across main/renderer boundary
+- **Event System**: Uses mitt-based lightweight event system with priority handling, history tracking, and component lifecycle management
+- **Styling Architecture**: CSS variable-driven theming with useComponentStyles hook for consistent, theme-aware component styling
+- **Module Organization**: Feature-based modules with barrel exports (index.ts) for clean import paths and better code organization
 
-### Available IPC Methods
-- **Session Management:** `saveSession`, `getSessions`, `deleteSession`
-- **SSH Operations:** `sshConnect`, `sshExecute`, `sshDisconnect`
-- **SSH Shell Sessions:** `ssh-create-shell`, `ssh-shell-write`, `ssh-shell-resize`, `ssh-shell-close`
-- **File Operations:** `getFileList`, `uploadFile`, `downloadFile`, `downloadAndOpenFile`, `selectAndUploadFile`, `uploadDroppedFile`
-- **SSH Key Management:** `readSSHKey`
-- **File Watching:** `startFileWatcher`, `stopFileWatcher`
-- **Configuration:** `getConfig`, `saveConfig`
-- **AI Integration:** `testAIConnection`
+## Development Workflow
 
-### Event Communication (Main to Renderer)
-- `terminal-data` - Real-time terminal output from SSH shell sessions
-- `terminal-close` - Terminal session closed notification
-- `terminal-error` - Terminal session error notification
-- `fileChanged` - File change notification from file watchers
+1. **Development**: Use `npm run debug` for hot reload and development tools
+2. **Type Safety**: Run `npm run type-check` to verify TypeScript types before commits
+3. **Code Quality**: Use `npm run lint` and `npm run format` to maintain code standards
+4. **Building**: Use `npm run build-electron` to create distributable packages
+5. **SSH Testing**: Ensure test environments have accessible SSH servers for connection testing
+6. **AI Features**: Configure API keys in application settings for AI functionality
 
-## Configuration Files
+## Module Structure
 
-### Application Config (config/app.yml)
-The application uses a comprehensive YAML configuration with multiple sections:
+### Feature-Based Modules
+The codebase is organized into feature-based modules under `src/modules/`:
 
-```yaml
-# General application settings
-general:
-  language: zh-CN
-  theme: dark
-  zoom: 1
-  autoSaveSessions: true
-  reconnectOnStart: false
-  connectionTimeout: 30
-  enableNotifications: true
-  soundEnabled: true
+- **ai-assistant/**: Complete AI integration module with chat interface, command execution, and completion services
+  - `components/`: Vue components for AI chat and tool execution
+  - `composables/`: Reactive AI chat management
+  - `stores/`: Pinia store for AI state
+  - `utils/`: AI services, command execution, and completion
+  - `constants/`: AI module configuration and constants
+  - `styles/`: SCSS imports for AI components
 
-# Terminal configuration
-terminal:
-  font: Consolas
-  fontSize: 14
-  lineHeight: 1.2
-  bell: false
-  cursorBlink: true
-  cursorStyle: block
-  scrollback: 1000
-  copyShortcut: ctrl-c
-  pasteShortcut: ctrl-v
+- **terminal/**: Terminal emulation and SSH shell management
+  - `components/`: XTerm-based terminal emulator and input components
+  - `composables/`: Terminal session and connection management
+  - `utils/`: Command execution utilities and timeout management
 
-# Security settings
-security:
-  encryptPasswords: false
-  sessionTimeout: 30
-  confirmDangerousCommands: true
+- **file-manager/**: SFTP-based file operations and browser
+  - `components/`: File browser with drag-drop support and icon components
 
-# AI Chat configuration
-aiChat:
-  provider: custom
-  apiKey: ""
-  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
-  model: ""
-  customModel: glm-4.6
-  maxTokens: 8000
-  temperature: 0.7
-  systemPromptEnabled: false
-  systemPrompt: 你是一个专业的编程助手，请帮助用户解决编程问题。
-  saveHistory: true
-  historyRetentionDays: 30
+Each module exports its functionality through an `index.ts` barrel export for clean import paths.
 
-# AI Completion configuration
-aiCompletion:
-  provider: custom
-  apiKey: ""
-  baseUrl: https://open.bigmodel.cn/api/coding/paas/v4
-  model: ""
-  customModel: glm-4.5
-  autoTrigger: true
-  triggerDelay: 500
-  maxSuggestions: 5
-  acceptOnTab: true
-```
-
-The config also supports a provider pool system for managing multiple AI providers and switching between them.
-
-### SSH Sessions (data/sessions.json)
-Stores SSH connection configurations with support for:
-- Multiple authentication methods (password/key)
-- Connection grouping
-- Custom session names and descriptions
-
-## Security Considerations
-
-- SSH credentials stored in plaintext (noted for improvement)
-- AI API keys handled through YAML configuration
-- File operations sandboxed through Electron
-- Configuration includes security settings like command confirmation
-
-## Development Patterns
-
-### Adding New Components
-1. Create component in `src/components/` or appropriate subdirectory
-2. Follow Vue 3 Composition API patterns
-3. Use SCSS with design token system
-4. Implement proper event emission and prop validation
-
-### Adding New IPC Handlers
-1. Add handler in `main.js` following existing patterns
-2. Add corresponding method to `window.electronAPI` in `App.vue` (lines 133-152)
-3. Add corresponding method to `preload.js` under `contextBridge.exposeInMainWorld`
-4. Create custom hook in `useElectronAPI.js` if needed
-
-### Shell Session Management
-The application includes advanced SSH shell session management:
-- **Shell Creation**: `ssh-create-shell` for interactive terminal sessions
-- **Shell Communication**: `ssh-shell-write` for sending commands to active shells
-- **Shell Resizing**: `ssh-shell-resize` for dynamic terminal dimensions
-- **Shell Cleanup**: `ssh-shell-close` for proper session termination
-- **Real-time Data**: Bidirectional communication for terminal I/O
-- **Session Pooling**: Multiple concurrent shell sessions per connection
-
-### Key Composables
-- `useAIChat.js` - AI chat functionality and message handling
-- `useConnectionManager.js` - SSH connection lifecycle management
-- `useTerminalManager.js` - Terminal operations and command execution
-- `usePanelManager.js` - UI panel state management
-- `useContextMenu.js` - Context menu functionality
-- `useMessageFormatter.js` - AI message formatting and display
-- `useChatExport.js` - Chat history export functionality
-
-### AI Integration Architecture
-- AI service abstraction in `src/utils/aiService.js`
-- Provider switching and configuration management
-- Real-time chat interface with command execution
-- Safety measures for dangerous command detection
-- Support for multiple AI providers (OpenAI, Anthropic, custom APIs)
-
-### Styling Guidelines
-- Use design tokens from `variables.scss`
-- Follow existing component patterns
-- Implement responsive design principles
-- Maintain dark/light theme support through CSS variables
-
-## Testing
-
-### Playwright Configuration
-- Test framework: @playwright/test
-- Configuration in `playwright.config.js`
-- Test files in `tests/` directory with `*.spec.js` pattern
-- Development server runs on port 3003 for testing
-- Supports Chromium, Firefox, and WebKit browsers
-
-## Common Development Tasks
-
-### Modifying SSH Functionality
-- Main process SSH logic in `main.js` (lines 121-211)
-- Connection state managed through Vue components
-- File operations handled through SFTP client
-
-### AI Integration
-- AI API testing handled in main process
-- Configuration through settings modal
-- Support for multiple AI providers through configurable endpoints
-
-### Vite Configuration
-The application uses Vite 7 as the build tool with the following configuration:
-- **Vue plugin** with SCSS preprocessing support
-- **Path aliases**: `@/` maps to `src/` directory
-- **SCSS variables**: Global SCSS variables automatically imported from `@/styles/variables.scss`
-- **Development server**: Runs on port 3000 with auto-open
-- **Build optimization**: Code splitting for vendor libraries (Vue)
-- **Asset management**: Assets directory and chunk size optimization
-
-### Vite Setup Details
-```javascript
-// vite.config.js highlights
-export default defineConfig({
-  plugins: [vue()],
-  root: '.',
-  base: './',
-  server: { port: 3000, open: true },
-  resolve: { alias: { '@': resolve(__dirname, 'src') } },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@use "@/styles/variables.scss" as *;`
-      }
-    }
-  }
-})
-```
-
-## File Organization Best Practices
-
-- Keep components focused and single-purpose
-- Use the established SCSS design system
-- Follow Vue 3 Composition API patterns
-- Maintain separation between UI and business logic
-- Use provided Electron API abstractions
-
-## Build and Distribution
-
-### Build Process
-The application supports multiple build configurations:
-- **Development builds** with hot reload via Vite dev server
-- **Production builds** via Vite optimization
-- **Electron distribution packages** via electron-builder
-
-### Distribution Configuration
-```json
-"build": {
-  "appId": "com.example.ssh-remote-app",
-  "productName": "SSH Remote App",
-  "directories": { "output": "dist" },
-  "files": ["**/*", "!node_modules/**/*", "preload.js"],
-  "win": { "target": "nsis" },
-  "mac": { "target": "dmg" },
-  "linux": { "target": "AppImage" }
-}
-```
-
-### Available Distribution Formats
-- **Windows**: NSIS installer
-- **macOS**: DMG disk image
-- **Linux**: AppImage portable format
-
-## Preload Script
-
-The application uses `preload.js` to securely expose APIs to the renderer process:
-- IPC communication bridge between main and renderer processes
-- Electron APIs exposed through `window.electronAPI` via `contextBridge.exposeInMainWorld`
-- Security layer preventing direct Node.js access from renderer
-- Event listeners for terminal data and file change notifications
+### Component Architecture
+- **Modular Components**: Feature-organized with clear separation of concerns
+- **Composables Pattern**: Reusable reactive logic (useConnectionManager, useAIChat, useComponentStyles, etc.)
+- **Event System**: Cross-component communication via `src/utils/eventSystem.ts` using mitt event emitter
+- **Styling System**: Dynamic component styling with `useComponentStyles` hook supporting CSS variables

@@ -32,10 +32,7 @@
       />
 
       <!-- 连接状态栏 -->
-      <ConnectionStatusBar
-        v-if="connection.status === 'connected'"
-        :connection="connection"
-      />
+      <ConnectionStatusBar v-if="connection.status === 'connected'" :connection="connection" />
 
       <!-- 连接中状态 -->
       <ConnectingState
@@ -63,11 +60,11 @@
 </template>
 
 <script>
-import ThreePanelLayout from '../layout/ThreePanelLayout.vue'
-import ConnectionStatusBar from '../connection/ConnectionStatusBar.vue'
-import ConnectingState from '../connection/ConnectingState.vue'
-import ConnectionFailedState from '../connection/ConnectionFailedState.vue'
-import DisconnectedState from '../connection/DisconnectedState.vue'
+import ThreePanelLayout from '../layout/ThreePanelLayout.vue';
+import ConnectionStatusBar from '../connection/ConnectionStatusBar.vue';
+import ConnectingState from '../connection/ConnectingState.vue';
+import ConnectionFailedState from '../connection/ConnectionFailedState.vue';
+import DisconnectedState from '../connection/DisconnectedState.vue';
 
 export default {
   name: 'ConnectionContent',
@@ -129,7 +126,7 @@ export default {
     'start-resize',
     'show-settings'
   ]
-}
+};
 </script>
 
 <style lang="scss" scoped>

@@ -1,14 +1,21 @@
 {
+  "type": "commonjs",
   "name": "ssh-remote-app",
   "version": "1.0.0",
   "description": "SSH远程连接应用，支持文件管理、终端和AI助手",
   "main": "main.js",
   "scripts": {
-    "start": "npm run build && electron .",
-    "debug": "concurrently \"vite\" \"wait-on http://localhost:3000 && electron . --dev --remote-debugging-port=9222\"",
+    "start": "npm run build-main && npm run build && electron .",
+    "debug": "concurrently \"vite\" \"npm run build-main && wait-on http://localhost:3000 && electron . --dev --remote-debugging-port=9222\"",
     "build": "vite build",
-    "build-electron": "npm run build && electron-builder",
-    "dist": "npm run build-electron"
+    "build-main": "tsc -p tsconfig.main.json",
+    "build-electron": "npm run build-main && npm run build && electron-builder",
+    "dist": "npm run build-electron",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .js,.ts,.vue --fix",
+    "lint:check": "eslint . --ext .js,.ts,.vue",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [
     "electron",
@@ -20,11 +27,22 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.56.0",
+    "@eslint/js": "^9.37.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.7.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
     "concurrently": "^9.2.1",
     "electron": "^27.0.0",
     "electron-builder": "^24.6.4",
+    "eslint": "^9.37.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-vue": "^10.5.1",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
     "vite": "^7.1.9",
+    "vue-tsc": "^3.1.1",
     "wait-on": "^9.0.1"
   },
   "dependencies": {
@@ -34,17 +52,14 @@
     "@xterm/xterm": "^5.5.0",
     "ansi-to-html": "^0.7.2",
     "axios": "^1.6.0",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
     "js-yaml": "^4.1.0",
     "markdown-it": "^14.1.0",
-    "marked": "^16.4.0",
+    "mitt": "^3.0.1",
+    "pinia": "^3.0.3",
     "sass": "^1.93.2",
     "ssh2": "^1.14.0",
     "ssh2-sftp-client": "^9.0.0",
-    "vue": "^3.2.36",
-    "xterm": "^5.3.0",
-    "xterm-addon-fit": "^0.8.0"
+    "vue": "^3.2.36"
   },
   "build": {
     "appId": "com.example.ssh-remote-app",

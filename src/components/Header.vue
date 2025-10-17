@@ -7,12 +7,8 @@
       <!-- Logo区域 -->
       <div class="logo">
         <!-- Logo图标 -->
-        <div class="logo-icon">
-          S
-        </div>
-        <h1 class="logo-title">
-          SSH Remote
-        </h1>
+        <div class="logo-icon">S</div>
+        <h1 class="logo-title">SSH Remote</h1>
       </div>
 
       <!-- 连接管理按钮 -->
@@ -48,62 +44,65 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref } from 'vue';
 
 export default {
   name: 'Header',
   emits: ['open-session-modal', 'open-settings-modal'],
   setup() {
-    const sessionBtn = ref(null)
-    const settingsBtn = ref(null)
+    const sessionBtn = ref(null);
+    const settingsBtn = ref(null);
 
-    const onSessionBtnHover = (e) => {
-      const btn = e.target
-      btn.style.background = 'linear-gradient(135deg, #40a9ff, #1890ff)'
-      btn.style.boxShadow = '0 6px 20px rgba(17, 119, 187, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-      btn.style.transform = 'translateY(-2px) translateZ(0)'
-    }
+    const onSessionBtnHover = e => {
+      const btn = e.target;
+      btn.style.background = 'linear-gradient(135deg, #40a9ff, #1890ff)';
+      btn.style.boxShadow =
+        '0 6px 20px rgba(17, 119, 187, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+      btn.style.transform = 'translateY(-2px) translateZ(0)';
+    };
 
-    const onSessionBtnLeave = (e) => {
-      const btn = e.target
-      btn.style.background = 'linear-gradient(135deg, #1890ff, #40a9ff)'
-      btn.style.boxShadow = '0 4px 12px rgba(17, 119, 187, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-      btn.style.transform = 'translateY(0) translateZ(0)'
-    }
+    const onSessionBtnLeave = e => {
+      const btn = e.target;
+      btn.style.background = 'linear-gradient(135deg, #1890ff, #40a9ff)';
+      btn.style.boxShadow =
+        '0 4px 12px rgba(17, 119, 187, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+      btn.style.transform = 'translateY(0) translateZ(0)';
+    };
 
-    const onSessionBtnDown = (e) => {
-      e.target.style.transform = 'scale(0.98) translateZ(0)'
-    }
+    const onSessionBtnDown = e => {
+      e.target.style.transform = 'scale(0.98) translateZ(0)';
+    };
 
-    const onSessionBtnUp = (e) => {
-      e.target.style.transform = 'translateY(-2px) translateZ(0)'
-    }
+    const onSessionBtnUp = e => {
+      e.target.style.transform = 'translateY(-2px) translateZ(0)';
+    };
 
-    const onSettingsBtnHover = (e) => {
-      const btn = e.target
-      btn.style.borderColor = '#40a9ff'
-      btn.style.color = '#ffffff'
-      btn.style.background = '#404040'
-      btn.style.transform = 'translateY(-2px) translateZ(0)'
-      btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-    }
+    const onSettingsBtnHover = e => {
+      const btn = e.target;
+      btn.style.borderColor = '#40a9ff';
+      btn.style.color = '#ffffff';
+      btn.style.background = '#404040';
+      btn.style.transform = 'translateY(-2px) translateZ(0)';
+      btn.style.boxShadow =
+        '0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+    };
 
-    const onSettingsBtnLeave = (e) => {
-      const btn = e.target
-      btn.style.borderColor = '#404040'
-      btn.style.color = '#b3b3b3'
-      btn.style.background = '#404040'
-      btn.style.transform = 'translateY(0) translateZ(0)'
-      btn.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-    }
+    const onSettingsBtnLeave = e => {
+      const btn = e.target;
+      btn.style.borderColor = '#404040';
+      btn.style.color = '#b3b3b3';
+      btn.style.background = '#404040';
+      btn.style.transform = 'translateY(0) translateZ(0)';
+      btn.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)';
+    };
 
-    const onSettingsBtnDown = (e) => {
-      e.target.style.transform = 'scale(0.95) translateZ(0)'
-    }
+    const onSettingsBtnDown = e => {
+      e.target.style.transform = 'scale(0.95) translateZ(0)';
+    };
 
-    const onSettingsBtnUp = (e) => {
-      e.target.style.transform = 'translateY(-2px) translateZ(0)'
-    }
+    const onSettingsBtnUp = e => {
+      e.target.style.transform = 'translateY(-2px) translateZ(0)';
+    };
 
     return {
       sessionBtn,
@@ -116,9 +115,9 @@ export default {
       onSettingsBtnLeave,
       onSettingsBtnDown,
       onSettingsBtnUp
-    }
+    };
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
@@ -131,7 +130,9 @@ export default {
   min-height: 64px;
   background: linear-gradient(180deg, color(bg-secondary) 0%, color(bg-tertiary) 100%);
   border-bottom: 1px solid color(border);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   z-index: z-index(sticky);
   position: relative;
   overflow: hidden;
@@ -143,7 +144,12 @@ export default {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
   pointer-events: none;
 }
 
@@ -198,7 +204,9 @@ export default {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateZ(0);
-  box-shadow: 0 4px 12px rgba(17, 119, 187, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 12px rgba(17, 119, 187, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   overflow: hidden;
   position: relative;
 }
@@ -214,7 +222,6 @@ export default {
   gap: spacing(sm);
 }
 
-
 .settings-btn {
   display: flex;
   align-items: center;
@@ -229,8 +236,9 @@ export default {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateZ(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   position: relative;
 }
-
 </style>

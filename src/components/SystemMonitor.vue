@@ -6,17 +6,14 @@
         {{ connectionStatusText }}
       </div>
     </div>
-    
+
     <div class="monitor-grid" v-if="systemInfo">
       <!-- CPU使用率 -->
       <div class="monitor-item">
         <div class="monitor-label">CPU</div>
         <div class="monitor-value">{{ systemInfo.cpu }}%</div>
         <div class="monitor-bar">
-          <div 
-            class="monitor-fill cpu-fill" 
-            :style="{ width: systemInfo.cpu + '%' }"
-          ></div>
+          <div class="monitor-fill cpu-fill" :style="{ width: systemInfo.cpu + '%' }"></div>
         </div>
       </div>
 
@@ -25,10 +22,7 @@
         <div class="monitor-label">内存</div>
         <div class="monitor-value">{{ systemInfo.memory }}%</div>
         <div class="monitor-bar">
-          <div 
-            class="monitor-fill memory-fill" 
-            :style="{ width: systemInfo.memory + '%' }"
-          ></div>
+          <div class="monitor-fill memory-fill" :style="{ width: systemInfo.memory + '%' }"></div>
         </div>
       </div>
 
@@ -37,10 +31,7 @@
         <div class="monitor-label">磁盘</div>
         <div class="monitor-value">{{ systemInfo.disk }}%</div>
         <div class="monitor-bar">
-          <div 
-            class="monitor-fill disk-fill" 
-            :style="{ width: systemInfo.disk + '%' }"
-          ></div>
+          <div class="monitor-fill disk-fill" :style="{ width: systemInfo.disk + '%' }"></div>
         </div>
       </div>
 
@@ -48,12 +39,8 @@
       <div class="monitor-item">
         <div class="monitor-label">网络</div>
         <div class="monitor-value network-value">
-          <div class="network-down">
-            ↓ {{ formatBytes(systemInfo.networkDown) }}/s
-          </div>
-          <div class="network-up">
-            ↑ {{ formatBytes(systemInfo.networkUp) }}/s
-          </div>
+          <div class="network-down">↓ {{ formatBytes(systemInfo.networkDown) }}/s</div>
+          <div class="network-up">↑ {{ formatBytes(systemInfo.networkUp) }}/s</div>
         </div>
       </div>
 
@@ -107,7 +94,8 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed } from 'vue';
+import { formatBytes, formatTime } from '@/utils/formatters.js';
 
 export default {
   name: 'SystemMonitor',
@@ -122,43 +110,29 @@ export default {
     }
   },
   setup(props) {
-    const systemInfo = computed(() => props.connection?.systemInfo)
-    
+    const systemInfo = computed(() => props.connection?.systemInfo);
+
     const connectionStatusClass = computed(() => {
-      const status = props.connection?.status
+      const status = props.connection?.status;
       return {
         'status-connected': status === 'connected',
         'status-connecting': status === 'connecting',
         'status-disconnected': status === 'disconnected',
         'status-failed': status === 'failed'
-      }
-    })
+      };
+    });
 
     const connectionStatusText = computed(() => {
-      const status = props.connection?.status
+      const status = props.connection?.status;
       const statusMap = {
-        'connected': '已连接',
-        'connecting': '连接中',
-        'disconnected': '已断开',
-        'failed': '连接失败',
-        'cancelled': '已取消'
-      }
-      return statusMap[status] || '未知状态'
-    })
-
-    const formatBytes = (bytes) => {
-      if (bytes === 0) return '0 B'
-      const k = 1024
-      const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-    }
-
-    const formatTime = (timestamp) => {
-      if (!timestamp) return '从未'
-      const date = new Date(timestamp)
-      return date.toLocaleTimeString()
-    }
+        connected: '已连接',
+        connecting: '连接中',
+        disconnected: '已断开',
+        failed: '连接失败',
+        cancelled: '已取消'
+      };
+      return statusMap[status] || '未知状态';
+    });
 
     return {
       systemInfo,
@@ -166,9 +140,9 @@ export default {
       connectionStatusText,
       formatBytes,
       formatTime
-    }
+    };
   }
-}
+};
 </script>
 
 <style scoped>
@@ -210,7 +184,8 @@ export default {
   color: white;
 }
 
-.status-disconnected, .status-failed {
+.status-disconnected,
+.status-failed {
   background: var(--error-color);
   color: white;
 }
