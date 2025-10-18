@@ -151,11 +151,11 @@ export class TerminalStateService {
     bufferContent: string[];
   } | null> {
     try {
-      const state = this.terminalModel.findByTabId(tabId);
+      const state = await this.terminalModel.findByTabId(tabId);
       if (!state) return null;
 
       // Get recent buffer content
-      const bufferContent = this.terminalModel.getBufferContent(tabId, 100);
+      const bufferContent = await this.terminalModel.getBufferContent(tabId, 100);
 
       return {
         cursorPosition: state.cursorPosition,
@@ -177,14 +177,14 @@ export class TerminalStateService {
   /**
    * Get command history for a tab
    */
-  getCommandHistory(tabId: string, limit: number = 50): Array<{
+  async getCommandHistory(tabId: string, limit: number = 50): Promise<Array<{
     command: string;
     timestamp: number;
     exitCode?: number;
     duration?: number;
-  }> {
+  }>> {
     try {
-      const history = this.terminalModel.getCommandHistory(tabId, limit);
+      const history = await this.terminalModel.getCommandHistory(tabId, limit);
       return history.map(h => ({
         command: h.command,
         timestamp: h.timestamp,
@@ -200,14 +200,14 @@ export class TerminalStateService {
   /**
    * Search command history
    */
-  searchHistory(tabId: string, query: string, limit: number = 20): Array<{
+  async searchHistory(tabId: string, query: string, limit: number = 20): Promise<Array<{
     command: string;
     timestamp: number;
     exitCode?: number;
     duration?: number;
-  }> {
+  }>> {
     try {
-      const history = this.terminalModel.searchHistory(tabId, query, limit);
+      const history = await this.terminalModel.searchHistory(tabId, query, limit);
       return history.map(h => ({
         command: h.command,
         timestamp: h.timestamp,
@@ -223,14 +223,14 @@ export class TerminalStateService {
   /**
    * Get terminal statistics
    */
-  getTerminalStats(tabId: string): {
+  async getTerminalStats(tabId: string): Promise<{
     totalCommands: number;
     successRate: number;
     averageDuration: number;
     bufferSize: number;
-  } {
+  }> {
     try {
-      const stats = this.terminalModel.getStats(tabId);
+      const stats = await this.terminalModel.getStats(tabId);
       return {
         totalCommands: stats.totalCommands,
         successRate: stats.successRate,
@@ -253,8 +253,8 @@ export class TerminalStateService {
    */
   async clearTerminalHistory(tabId: string): Promise<void> {
     try {
-      this.terminalModel.clearHistory(tabId);
-      this.terminalModel.clearBuffer(tabId);
+      await this.terminalModel.clearHistory(tabId);
+      await this.terminalModel.clearBuffer(tabId);
 
       // Reset in-memory state
       const state = this.terminalStates.get(tabId);
@@ -269,8 +269,8 @@ export class TerminalStateService {
 
   // Private methods
 
-  private debouncedBufferSave = this.debounce((tabId: string, data: string, type: string) => {
-    this.terminalModel.addBufferEntry(tabId, data, type as any);
+  private debouncedBufferSave = this.debounce(async (tabId: string, data: string, type: string) => {
+    await this.terminalModel.addBufferEntry(tabId, data, type as any);
   }, 1000);
 
   private calculateCommandDuration(tabId: string, command: string): number {

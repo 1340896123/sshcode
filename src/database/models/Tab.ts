@@ -17,14 +17,14 @@ export class TabModel {
       updatedAt: now
     };
 
-    const stmt = this.db.prepare(
+    const stmt = await this.db.prepare(
       `INSERT INTO tabs (
         id, name, connection_id, is_active, is_visible, position,
         last_accessed, created_at, updated_at, window_state
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
 
-    const result = stmt.run(
+    const result = await stmt.run(
       tab.id,
       tab.name,
       tab.connectionId,
@@ -48,8 +48,8 @@ export class TabModel {
    * Get a tab by ID
    */
   public async findById(id: string): Promise<Tab | null> {
-    const stmt = this.db.prepare('SELECT * FROM tabs WHERE id = ?');
-    const row = stmt.get(id) as any;
+    const stmt = await this.db.prepare('SELECT * FROM tabs WHERE id = ?');
+    const row = await stmt.get(id) as any;
 
     if (!row) return null;
 
@@ -59,9 +59,9 @@ export class TabModel {
   /**
    * Get all tabs, ordered by position
    */
-  public findAll(): Tab[] {
-    const stmt = this.db.prepare('SELECT * FROM tabs ORDER BY position');
-    const rows = stmt.all() as any[];
+  public async findAll(): Promise<Tab[]> {
+    const stmt = await this.db.prepare('SELECT * FROM tabs ORDER BY position');
+    const rows = await stmt.all() as any[];
 
     return rows.map(row => this.mapRowToTab(row));
   }
@@ -69,9 +69,9 @@ export class TabModel {
   /**
    * Get all tabs for a connection
    */
-  public findByConnectionId(connectionId: string): Tab[] {
-    const stmt = this.db.prepare('SELECT * FROM tabs WHERE connection_id = ? ORDER BY position');
-    const rows = stmt.all(connectionId) as any[];
+  public async findByConnectionId(connectionId: string): Promise<Tab[]> {
+    const stmt = await this.db.prepare('SELECT * FROM tabs WHERE connection_id = ? ORDER BY position');
+    const rows = await stmt.all(connectionId) as any[];
 
     return rows.map(row => this.mapRowToTab(row));
   }
@@ -79,9 +79,9 @@ export class TabModel {
   /**
    * Get the active tab
    */
-  public findActive(): Tab | null {
-    const stmt = this.db.prepare('SELECT * FROM tabs WHERE is_active = 1 LIMIT 1');
-    const row = stmt.get() as any;
+  public async findActive(): Promise<Tab | null> {
+    const stmt = await this.db.prepare('SELECT * FROM tabs WHERE is_active = 1 LIMIT 1');
+    const row = await stmt.get() as any;
 
     if (!row) return null;
 
@@ -137,11 +137,11 @@ export class TabModel {
     setClause.push('updated_at = ?');
     values.push(updated.updatedAt);
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       UPDATE tabs SET ${setClause.join(', ')} WHERE id = ?
     `);
 
-    stmt.run(...values, id);
+    await stmt.run(...values, id);
 
     return updated;
   }
@@ -149,28 +149,32 @@ export class TabModel {
   /**
    * Update a tab's active status (deactivates all other tabs)
    */
-  public setActive(id: string, isActive: boolean): void {
-    const db = this.db;
-
-    db.transaction(() => {
+  public async setActive(id: string, isActive: boolean): Promise<void> {
+    // Manual transaction implementation
+    await this.db.exec('BEGIN');
+    try {
       // Deactivate all tabs
-      const deactivateStmt = db.prepare('UPDATE tabs SET is_active = 0');
-      deactivateStmt.run();
+      const deactivateStmt = await this.db.prepare('UPDATE tabs SET is_active = 0');
+      await deactivateStmt.run();
 
       // Activate the specified tab
       if (isActive) {
-        const activateStmt = db.prepare('UPDATE tabs SET is_active = 1 WHERE id = ?');
-        activateStmt.run(id);
+        const activateStmt = await this.db.prepare('UPDATE tabs SET is_active = 1 WHERE id = ?');
+        await activateStmt.run(id);
       }
-    })();
+      await this.db.exec('COMMIT');
+    } catch (error) {
+      await this.db.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   /**
    * Delete a tab
    */
-  public delete(id: string): boolean {
-    const stmt = this.db.prepare('DELETE FROM tabs WHERE id = ?');
-    const result = stmt.run(id);
+  public async delete(id: string): Promise<boolean> {
+    const stmt = await this.db.prepare('DELETE FROM tabs WHERE id = ?');
+    const result = await stmt.run(id);
 
     return result.changes > 0;
   }
@@ -178,24 +182,28 @@ export class TabModel {
   /**
    * Update tab positions after reordering
    */
-  public updatePositions(updates: { id: string; position: number }[]): void {
-    const db = this.db;
-
-    db.transaction(() => {
-      const stmt = db.prepare('UPDATE tabs SET position = ? WHERE id = ?');
+  public async updatePositions(updates: { id: string; position: number }[]): Promise<void> {
+    // Manual transaction implementation
+    await this.db.exec('BEGIN');
+    try {
+      const stmt = await this.db.prepare('UPDATE tabs SET position = ? WHERE id = ?');
 
       for (const update of updates) {
-        stmt.run(update.position, update.id);
+        await stmt.run(update.position, update.id);
       }
-    })();
+      await this.db.exec('COMMIT');
+    } catch (error) {
+      await this.db.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   /**
    * Get the highest position number
    */
-  public getMaxPosition(): number {
-    const stmt = this.db.prepare('SELECT MAX(position) as maxPosition FROM tabs');
-    const result = stmt.get() as { maxPosition: number | null };
+  public async getMaxPosition(): Promise<number> {
+    const stmt = await this.db.prepare('SELECT MAX(position) as maxPosition FROM tabs');
+    const result = await stmt.get() as { maxPosition: number | null };
 
     return result.maxPosition ?? 0;
   }
@@ -203,31 +211,35 @@ export class TabModel {
   /**
    * Update the last accessed timestamp for a tab
    */
-  public updateLastAccessed(id: string): void {
-    const stmt = this.db.prepare(`
+  public async updateLastAccessed(id: string): Promise<void> {
+    const stmt = await this.db.prepare(`
       UPDATE tabs SET last_accessed = ?, updated_at = ? WHERE id = ?
     `);
 
     const now = Date.now();
-    stmt.run(now, now, id);
+    await stmt.run(now, now, id);
   }
 
   /**
    * Get statistics about tabs
    */
-  public getStats(): {
+  public async getStats(): Promise<{
     totalTabs: number;
     activeTabs: number;
     visibleTabs: number;
-  } {
-    const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM tabs');
-    const activeStmt = this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_active = 1');
-    const visibleStmt = this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_visible = 1');
+  }> {
+    const totalStmt = await this.db.prepare('SELECT COUNT(*) as count FROM tabs');
+    const activeStmt = await this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_active = 1');
+    const visibleStmt = await this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_visible = 1');
+
+    const total = await totalStmt.get() as { count: number };
+    const active = await activeStmt.get() as { count: number };
+    const visible = await visibleStmt.get() as { count: number };
 
     return {
-      totalTabs: (totalStmt.get() as { count: number }).count,
-      activeTabs: (activeStmt.get() as { count: number }).count,
-      visibleTabs: (visibleStmt.get() as { count: number }).count
+      totalTabs: total.count,
+      activeTabs: active.count,
+      visibleTabs: visible.count
     };
   }
 

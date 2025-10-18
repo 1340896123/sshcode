@@ -31,7 +31,7 @@ export function registerConnectionHandlers(): void {
       };
 
       // Create connection in database
-      const newConnection = connectionModel.create(connectionData);
+      const newConnection = await connectionModel.create(connectionData);
 
       console.log(`Created connection: ${newConnection.name} (${newConnection.id})`);
       return { success: true, connection: newConnection };
@@ -50,7 +50,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:getAll', async () => {
     try {
       const connectionModel = getConnectionModel();
-      const connections = connectionModel.findAll();
+      const connections = await connectionModel.findAll();
 
       return { success: true, connections };
     } catch (error) {
@@ -68,7 +68,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:getById', async (event, connectionId: string) => {
     try {
       const connectionModel = getConnectionModel();
-      const connection = connectionModel.findById(connectionId);
+      const connection = await connectionModel.findById(connectionId);
 
       if (!connection) {
         return { success: false, error: 'Connection not found' };
@@ -90,7 +90,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:getByStatus', async (event, status: string) => {
     try {
       const connectionModel = getConnectionModel();
-      const connections = connectionModel.findByStatus(status as any);
+      const connections = await connectionModel.findByStatus(status as any);
 
       return { success: true, connections };
     } catch (error) {
@@ -108,7 +108,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:getActive', async () => {
     try {
       const connectionModel = getConnectionModel();
-      const connections = connectionModel.findActive();
+      const connections = await connectionModel.findActive();
 
       return { success: true, connections };
     } catch (error) {
@@ -126,7 +126,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:update', async (event, connectionId: string, updates: Partial<Connection>) => {
     try {
       const connectionModel = getConnectionModel();
-      const updatedConnection = connectionModel.update(connectionId, updates);
+      const updatedConnection = await connectionModel.update(connectionId, updates);
 
       if (!updatedConnection) {
         return { success: false, error: 'Connection not found' };
@@ -149,7 +149,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:updateStatus', async (event, connectionId: string, status: string) => {
     try {
       const connectionModel = getConnectionModel();
-      connectionModel.updateStatus(connectionId, status as any);
+      await connectionModel.updateStatus(connectionId, status as any);
 
       console.log(`Updated connection ${connectionId} status to: ${status}`);
       return { success: true };
@@ -173,7 +173,7 @@ export function registerConnectionHandlers(): void {
   ) => {
     try {
       const connectionModel = getConnectionModel();
-      connectionModel.updateBytesTransferred(connectionId, bytesSent, bytesReceived);
+      await connectionModel.updateBytesTransferred(connectionId, bytesSent, bytesReceived);
 
       return { success: true };
     } catch (error) {
@@ -191,7 +191,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:incrementErrorCount', async (event, connectionId: string) => {
     try {
       const connectionModel = getConnectionModel();
-      connectionModel.incrementErrorCount(connectionId);
+      await connectionModel.incrementErrorCount(connectionId);
 
       return { success: true };
     } catch (error) {
@@ -209,7 +209,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:updateHealthStatus', async (event, connectionId: string, healthStatus: string) => {
     try {
       const connectionModel = getConnectionModel();
-      connectionModel.updateHealthStatus(connectionId, healthStatus as any);
+      await connectionModel.updateHealthStatus(connectionId, healthStatus as any);
 
       console.log(`Updated connection ${connectionId} health status to: ${healthStatus}`);
       return { success: true };
@@ -236,7 +236,7 @@ export function registerConnectionHandlers(): void {
   ) => {
     try {
       const connectionModel = getConnectionModel();
-      connectionModel.updatePerformanceMetrics(connectionId, metrics);
+      await connectionModel.updatePerformanceMetrics(connectionId, metrics);
 
       return { success: true };
     } catch (error) {
@@ -254,7 +254,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:resetReconnectAttempts', async (event, connectionId: string) => {
     try {
       const connectionModel = getConnectionModel();
-      connectionModel.resetReconnectAttempts(connectionId);
+      await connectionModel.resetReconnectAttempts(connectionId);
 
       return { success: true };
     } catch (error) {
@@ -272,7 +272,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:incrementReconnectAttempts', async (event, connectionId: string) => {
     try {
       const connectionModel = getConnectionModel();
-      connectionModel.incrementReconnectAttempts(connectionId);
+      await connectionModel.incrementReconnectAttempts(connectionId);
 
       return { success: true };
     } catch (error) {
@@ -292,13 +292,13 @@ export function registerConnectionHandlers(): void {
       const connectionModel = getConnectionModel();
 
       // Check if connection exists
-      const connection = connectionModel.findById(connectionId);
+      const connection = await connectionModel.findById(connectionId);
       if (!connection) {
         return { success: false, error: 'Connection not found' };
       }
 
       // Delete connection from database
-      const success = connectionModel.delete(connectionId);
+      const success = await connectionModel.delete(connectionId);
       if (!success) {
         return { success: false, error: 'Failed to delete connection' };
       }
@@ -320,7 +320,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:getStats', async () => {
     try {
       const connectionModel = getConnectionModel();
-      const stats = connectionModel.getStats();
+      const stats = await connectionModel.getStats();
 
       return { success: true, stats };
     } catch (error) {
@@ -338,7 +338,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:getNeedingHealthCheck', async (event, checkInterval: number) => {
     try {
       const connectionModel = getConnectionModel();
-      const connections = connectionModel.getConnectionsNeedingHealthCheck(checkInterval);
+      const connections = await connectionModel.getConnectionsNeedingHealthCheck(checkInterval);
 
       return { success: true, connections };
     } catch (error) {
@@ -356,7 +356,7 @@ export function registerConnectionHandlers(): void {
   ipcMain.handle('connection:search', async (event, query: string) => {
     try {
       const connectionModel = getConnectionModel();
-      const connections = connectionModel.search(query);
+      const connections = await connectionModel.search(query);
 
       return { success: true, connections };
     } catch (error) {

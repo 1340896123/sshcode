@@ -359,3 +359,123 @@ export interface SessionRestoreOptions {
   restoreAIHistory: boolean;
   restoreFileManagerState: boolean;
 }
+
+// Session isolation types
+export interface SessionIsolation {
+  sessionId: string;
+  tabId: string;
+  connectionId: string;
+  workingDirectory: string;
+  environment: SessionEnvironment;
+  shellState: ShellState;
+  isolationLevel: IsolationLevel;
+  createdAt: number;
+  lastActivity: number;
+}
+
+export interface SessionEnvironment {
+  SESSION_ID: string;
+  TAB_ID: string;
+  HISTFILE: string;
+  PWD: string;
+  SHELL: string;
+  TERM: string;
+  USER: string;
+  HOME: string;
+  PATH: string;
+  customVars: Record<string, string>;
+}
+
+export interface ShellState {
+  ptyId: string;
+  shellProcess: string;
+  isInteractive: boolean;
+  commandHistory: CommandHistoryEntry[];
+  lastCommand?: CommandHistoryEntry;
+  runningCommand: RunningCommand | null;
+}
+
+export interface RunningCommand {
+  command: string;
+  startTime: number;
+  pid: number;
+  ptyId: string;
+  status: CommandStatus;
+}
+
+export type CommandStatus = 'starting' | 'running' | 'completed' | 'failed' | 'killed';
+
+export type IsolationLevel = 'full' | 'shared-shell' | 'minimal';
+
+export interface SessionFactoryConfig {
+  isolationLevel: IsolationLevel;
+  enableWorkingDirectoryTracking: boolean;
+  enableEnvironmentIsolation: boolean;
+  enableCommandHistoryIsolation: boolean;
+  maxSessionsPerConnection: number;
+  sessionTimeout: number;
+  cleanupInterval: number;
+}
+
+export interface SessionPool {
+  sessions: Map<string, IsolatedSession>;
+  activeConnections: Map<string, Set<string>>;
+  maxSessionsPerConnection: number;
+  totalMemoryUsage: number;
+  maxMemoryUsage: number;
+}
+
+export interface IsolatedSession {
+  id: string;
+  connectionId: string;
+  tabId: string;
+  sshConnection: any; // SSH2 Client
+  shellStream: any; // SSH2 ClientChannel
+  workingDirectory: string;
+  environment: SessionEnvironment;
+  terminalState: TerminalState;
+  fileManagerState: FileManagerState;
+  aiAssistantState: AIAssistantState;
+  shellState: ShellState;
+  isolationLevel: IsolationLevel;
+  createdAt: number;
+  lastActivity: number;
+  memoryUsage: number;
+  isActive: boolean;
+  healthStatus: SessionHealthStatus;
+}
+
+export type SessionHealthStatus = 'healthy' | 'unhealthy' | 'disconnected' | 'error';
+
+export interface SessionMetrics {
+  sessionId: string;
+  connectionId: string;
+  memoryUsage: number;
+  terminalLines: number;
+  fileOperations: number;
+  aiMessages: number;
+  lastActivity: number;
+  uptime: number;
+  responseTime: number;
+}
+
+export interface SessionLimitConfig {
+  maxTotalSessions: number;
+  maxSessionsPerConnection: number;
+  maxMemoryPerSession: number;
+  maxTotalMemory: number;
+  enableGracefulDegradation: boolean;
+  warningThreshold: number;
+  criticalThreshold: number;
+}
+
+export interface SessionLimitStatus {
+  currentSessions: number;
+  maxSessions: number;
+  currentMemory: number;
+  maxMemory: number;
+  sessionsPerConnection: Map<string, number>;
+  warningLevel: 'normal' | 'warning' | 'critical';
+  canCreateSession: boolean;
+  suggestedActions: string[];
+}

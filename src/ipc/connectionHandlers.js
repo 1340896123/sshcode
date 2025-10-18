@@ -29,7 +29,7 @@ function registerConnectionHandlers() {
                 lastHealthCheck: Date.now()
             };
             // Create connection in database
-            const newConnection = connectionModel.create(connectionData);
+            const newConnection = await connectionModel.create(connectionData);
             console.log(`Created connection: ${newConnection.name} (${newConnection.id})`);
             return { success: true, connection: newConnection };
         }
@@ -47,7 +47,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:getAll', async () => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const connections = connectionModel.findAll();
+            const connections = await connectionModel.findAll();
             return { success: true, connections };
         }
         catch (error) {
@@ -64,7 +64,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:getById', async (event, connectionId) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const connection = connectionModel.findById(connectionId);
+            const connection = await connectionModel.findById(connectionId);
             if (!connection) {
                 return { success: false, error: 'Connection not found' };
             }
@@ -84,7 +84,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:getByStatus', async (event, status) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const connections = connectionModel.findByStatus(status);
+            const connections = await connectionModel.findByStatus(status);
             return { success: true, connections };
         }
         catch (error) {
@@ -101,7 +101,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:getActive', async () => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const connections = connectionModel.findActive();
+            const connections = await connectionModel.findActive();
             return { success: true, connections };
         }
         catch (error) {
@@ -118,7 +118,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:update', async (event, connectionId, updates) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const updatedConnection = connectionModel.update(connectionId, updates);
+            const updatedConnection = await connectionModel.update(connectionId, updates);
             if (!updatedConnection) {
                 return { success: false, error: 'Connection not found' };
             }
@@ -139,7 +139,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:updateStatus', async (event, connectionId, status) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            connectionModel.updateStatus(connectionId, status);
+            await connectionModel.updateStatus(connectionId, status);
             console.log(`Updated connection ${connectionId} status to: ${status}`);
             return { success: true };
         }
@@ -157,7 +157,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:updateBytesTransferred', async (event, connectionId, bytesSent, bytesReceived) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            connectionModel.updateBytesTransferred(connectionId, bytesSent, bytesReceived);
+            await connectionModel.updateBytesTransferred(connectionId, bytesSent, bytesReceived);
             return { success: true };
         }
         catch (error) {
@@ -174,7 +174,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:incrementErrorCount', async (event, connectionId) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            connectionModel.incrementErrorCount(connectionId);
+            await connectionModel.incrementErrorCount(connectionId);
             return { success: true };
         }
         catch (error) {
@@ -191,7 +191,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:updateHealthStatus', async (event, connectionId, healthStatus) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            connectionModel.updateHealthStatus(connectionId, healthStatus);
+            await connectionModel.updateHealthStatus(connectionId, healthStatus);
             console.log(`Updated connection ${connectionId} health status to: ${healthStatus}`);
             return { success: true };
         }
@@ -209,7 +209,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:updatePerformanceMetrics', async (event, connectionId, metrics) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            connectionModel.updatePerformanceMetrics(connectionId, metrics);
+            await connectionModel.updatePerformanceMetrics(connectionId, metrics);
             return { success: true };
         }
         catch (error) {
@@ -226,7 +226,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:resetReconnectAttempts', async (event, connectionId) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            connectionModel.resetReconnectAttempts(connectionId);
+            await connectionModel.resetReconnectAttempts(connectionId);
             return { success: true };
         }
         catch (error) {
@@ -243,7 +243,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:incrementReconnectAttempts', async (event, connectionId) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            connectionModel.incrementReconnectAttempts(connectionId);
+            await connectionModel.incrementReconnectAttempts(connectionId);
             return { success: true };
         }
         catch (error) {
@@ -261,12 +261,12 @@ function registerConnectionHandlers() {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
             // Check if connection exists
-            const connection = connectionModel.findById(connectionId);
+            const connection = await connectionModel.findById(connectionId);
             if (!connection) {
                 return { success: false, error: 'Connection not found' };
             }
             // Delete connection from database
-            const success = connectionModel.delete(connectionId);
+            const success = await connectionModel.delete(connectionId);
             if (!success) {
                 return { success: false, error: 'Failed to delete connection' };
             }
@@ -287,7 +287,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:getStats', async () => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const stats = connectionModel.getStats();
+            const stats = await connectionModel.getStats();
             return { success: true, stats };
         }
         catch (error) {
@@ -304,7 +304,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:getNeedingHealthCheck', async (event, checkInterval) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const connections = connectionModel.getConnectionsNeedingHealthCheck(checkInterval);
+            const connections = await connectionModel.getConnectionsNeedingHealthCheck(checkInterval);
             return { success: true, connections };
         }
         catch (error) {
@@ -321,7 +321,7 @@ function registerConnectionHandlers() {
     electron_1.ipcMain.handle('connection:search', async (event, query) => {
         try {
             const connectionModel = (0, models_1.getConnectionModel)();
-            const connections = connectionModel.search(query);
+            const connections = await connectionModel.search(query);
             return { success: true, connections };
         }
         catch (error) {

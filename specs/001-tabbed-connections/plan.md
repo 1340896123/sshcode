@@ -1,25 +1,23 @@
 # Implementation Plan: Tabbed Connection Management
 
-**Branch**: `001-tabbed-connections` | **Date**: 2025-10-18 | **Spec**: [`spec.md`](spec.md)
+**Branch**: `001-tabbed-connections` | **Date**: 2025-10-18 | **Spec**: [link](./spec.md)
 **Input**: Feature specification from `/specs/001-tabbed-connections/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-This feature implements tabbed connection management for the SSH remote connection application, allowing users to create and manage multiple independent SSH connections simultaneously. The implementation will support up to 15 concurrent connections with independent terminal sessions, file managers, and AI assistant contexts. Key capabilities include seamless tab switching with automatic reconnection, session state preservation, and support for multiple sessions to the same server with independent working directories.
+Implementation of tabbed SSH connection management with support for up to 15 simultaneous connections, complete session isolation, independent working directories, and seamless tab switching. The architecture uses a connection-per-tab pattern with enhanced session state management, SQLite-based persistence, and proactive memory management.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (Main Process: CommonJS compiled, Renderer: ES modules via Vite)
-**Primary Dependencies**: Electron 28+, Vue 3 with Composition API, xterm.js, ssh2, ssh2-sftp-client, Pinia for state management
-**Storage**: YAML configuration files (config/app.yml), session persistence via JSON, in-memory connection pooling
-**Testing**: Vitest for unit tests, Playwright for E2E testing, SSH integration testing
-**Target Platform**: Electron desktop application (Windows, macOS, Linux)
-**Project Type**: Desktop application with separate main/renderer processes
-**Performance Goals**: Tab switching <1 second, support 15 concurrent connections, <100MB memory per connection
-**Constraints**: SSH server connection limits, context isolation between main/renderer, graceful degradation at resource limits
-**Scale/Scope**: 15 concurrent connections, 1000 lines terminal history per tab, session persistence across app restarts
+**Language/Version**: TypeScript 5.9+ / JavaScript (Electron main process)
+**Primary Dependencies**: Vue 3.2+, Electron 27+, ssh2, ssh2-sftp-client, better-sqlite3, xterm.js
+**Storage**: SQLite (better-sqlite3) + Electron Store hybrid approach
+**Testing**: Vitest + Vue Test Utils + Electron testing
+**Target Platform**: Desktop (Windows, macOS, Linux) via Electron
+**Project Type**: Electron desktop application
+**Performance Goals**: <1s tab switching, <200MB memory usage, 15+ concurrent connections
+**Constraints**: Complete session isolation, automatic memory cleanup, graceful degradation
+**Scale/Scope**: 15 concurrent tabs, 1000-line terminal buffers, session persistence
 
 ## Constitution Check
 

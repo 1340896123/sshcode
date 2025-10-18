@@ -1,0 +1,976 @@
+openapi: 3.0.3
+info:
+  title: Tabbed Connection Management API
+  description: API contracts for tabbed SSH connection management feature
+  version: 1.0.0
+  contact:
+    name: SSH Code Team
+
+# Tag definitions for API organization
+tags:
+  - name: tabs
+    description: Tab lifecycle management operations
+  - name: connections
+    description: SSH connection management operations
+  - name: sessions
+    description: Session state management operations
+  - name: terminal
+    description: Terminal state and history operations
+  - name: file-manager
+    description: File manager state operations
+  - name: ai-assistant
+    description: AI assistant state operations
+
+# Common components for reuse across APIs
+components:
+  schemas:
+    # Core entities
+    Tab:
+      type: object
+      required:
+        - id
+        - name
+        - connectionId
+        - isActive
+        - position
+        - createdAt
+        - lastAccessed
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique tab identifier
+        name:
+          type: string
+          maxLength: 100
+          description: Tab display name
+        connectionId:
+          type: string
+          format: uuid
+          description: Associated connection ID
+        isActive:
+          type: boolean
+          description: Whether this tab is currently active
+        position:
+          type: integer
+          minimum: 0
+          description: Tab position in the tab bar
+        createdAt:
+          type: integer
+          format: int64
+          description: Creation timestamp (Unix epoch)
+        lastAccessed:
+          type: integer
+          format: int64
+          description: Last access timestamp (Unix epoch)
+        customName:
+          type: string
+          maxLength: 100
+          description: User-defined custom name
+        windowState:
+          $ref: '#/components/schemas/WindowState'
+
+    WindowState:
+      type: object
+      properties:
+        width:
+          type: integer
+          minimum: 400
+        height:
+          type: integer
+          minimum: 300
+        splitSizes:
+          type: array
+          items:
+            type: number
+            minimum: 0
+            maximum: 1
+          maxItems: 3
+
+    Connection:
+      type: object
+      required:
+        - id
+        - host
+        - port
+        - username
+        - authType
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        host:
+          type: string
+          format: hostname
+          description: SSH server hostname or IP address
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 22
+        username:
+          type: string
+          minLength: 1
+          maxLength: 50
+        authType:
+          type: string
+          enum: [password, private_key]
+        status:
+          type: string
+          enum: [connecting, connected, disconnected, failed, reconnecting]
+        createdAt:
+          type: integer
+          format: int64
+        lastConnected:
+          type: integer
+          format: int64
+        reconnectAttempts:
+          type: integer
+          minimum: 0
+          maximum: 10
+        maxReconnectAttempts:
+          type: integer
+          minimum: 1
+          maximum: 10
+        latency:
+          type: integer
+          format: int32
+        bytesTransferred:
+          $ref: '#/components/schemas/BytesTransferred'
+        memoryUsage:
+          type: integer
+          format: int64
+        terminalLines:
+          type: integer
+          minimum: 0
+          maximum: 1000
+
+    BytesTransferred:
+      type: object
+      properties:
+        sent:
+          type: integer
+          format: int64
+          minimum: 0
+        received:
+          type: integer
+          format: int64
+          minimum: 0
+
+    Session:
+      type: object
+      required:
+        - id
+        - connectionId
+        - workingDir
+        - environment
+        - createdAt
+        - lastActivity
+      properties:
+        id:
+          type: string
+          format: uuid
+        connectionId:
+          type: string
+          format: uuid
+        workingDir:
+          type: string
+          maxLength: 500
+        environment:
+          type: object
+          additionalProperties:
+            type: string
+          maxProperties: 50
+        terminalState:
+          $ref: '#/components/schemas/TerminalState'
+        createdAt:
+          type: integer
+          format: int64
+        lastActivity:
+          type: integer
+          format: int64
+
+    TerminalState:
+      type: object
+      required:
+        - sessionId
+        - buffer
+        - cursorX
+        - cursorY
+        - rows
+        - cols
+        - timestamp
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        buffer:
+          type: array
+          items:
+            type: string
+            maxLength: 1000
+          maxItems: 1000
+        cursorX:
+          type: integer
+          minimum: 0
+        cursorY:
+          type: integer
+          minimum: 0
+        rows:
+          type: integer
+          minimum: 1
+          maximum: 200
+        cols:
+          type: integer
+          minimum: 1
+          maximum: 500
+        history:
+          type: array
+          items:
+            type: string
+            maxLength: 1000
+          maxItems: 100
+        scrollback:
+          type: integer
+          minimum: 0
+        timestamp:
+          type: integer
+          format: int64
+
+    # Request/Response DTOs
+    CreateTabRequest:
+      type: object
+      required:
+        - connectionId
+      properties:
+        connectionId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 100
+        position:
+          type: integer
+          minimum: 0
+
+    UpdateTabRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        position:
+          type: integer
+          minimum: 0
+        windowState:
+          $ref: '#/components/schemas/WindowState'
+
+    TabSwitchRequest:
+      type: object
+      required:
+        - tabId
+      properties:
+        tabId:
+          type: string
+          format: uuid
+
+    ReorderTabsRequest:
+      type: object
+      required:
+        - fromIndex
+        - toIndex
+      properties:
+        fromIndex:
+          type: integer
+          minimum: 0
+        toIndex:
+          type: integer
+          minimum: 0
+
+    CreateConnectionRequest:
+      type: object
+      required:
+        - host
+        - username
+        - authType
+      properties:
+        host:
+          type: string
+          format: hostname
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 22
+        username:
+          type: string
+          minLength: 1
+          maxLength: 50
+        authType:
+          type: string
+          enum: [password, private_key]
+        password:
+          type: string
+          format: password
+          minLength: 1
+        privateKey:
+          type: string
+          format: password
+        passphrase:
+          type: string
+          format: password
+        tabName:
+          type: string
+          maxLength: 100
+
+    SessionRestoreRequest:
+      type: object
+      properties:
+        includeConnections:
+          type: boolean
+          default: true
+        includeTerminalState:
+          type: boolean
+          default: true
+        includeAIHistory:
+          type: boolean
+          default: true
+
+    # Error responses
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          enum: [
+            VALIDATION_ERROR,
+            NOT_FOUND,
+            CONFLICT,
+            CONNECTION_FAILED,
+            SESSION_ERROR,
+            MEMORY_LIMIT_EXCEEDED,
+            AUTHENTICATION_FAILED,
+            NETWORK_ERROR,
+            INTERNAL_ERROR
+          ]
+        message:
+          type: string
+          maxLength: 500
+        details:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: integer
+          format: int64
+
+    # Pagination
+    PaginatedResponse:
+      type: object
+      required:
+        - data
+        - total
+        - page
+        - limit
+      properties:
+        data:
+          type: array
+          items: true
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+
+  parameters:
+    TabIdParam:
+      name: tabId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Tab identifier
+
+    ConnectionIdParam:
+      name: connectionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Connection identifier
+
+    SessionIdParam:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Session identifier
+
+  responses:
+    NotFoundResponse:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: NOT_FOUND
+            message: Tab with ID '123e4567-e89b-12d3-a456-426614174000' not found
+            timestamp: 1697644800000
+
+    ValidationErrorResponse:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: VALIDATION_ERROR
+            message: Request validation failed
+            details:
+              field: connectionId
+              message: Invalid UUID format
+            timestamp: 1697644800000
+
+    ConnectionFailedResponse:
+      description: Connection establishment failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: CONNECTION_FAILED
+            message: Failed to establish SSH connection to server
+            details:
+              host: example.com
+              port: 22
+              reason: Authentication failed
+            timestamp: 1697644800000
+
+# API paths organized by feature area
+paths:
+  # Tab Management APIs
+  /tabs:
+    get:
+      tags: [tabs]
+      summary: List all tabs
+      description: Retrieve all tabs with their current state
+      operationId: listTabs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tabs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tab'
+                  activeTabId:
+                    type: string
+                    format: uuid
+
+    post:
+      tags: [tabs]
+      summary: Create a new tab
+      description: Create a new tab with the specified connection
+      operationId: createTab
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTabRequest'
+      responses:
+        '201':
+          description: Tab created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '409':
+          description: Tab limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /tabs/{tabId}:
+    get:
+      tags: [tabs]
+      summary: Get tab details
+      description: Retrieve detailed information about a specific tab
+      operationId: getTab
+      parameters:
+        - $ref: '#/components/parameters/TabIdParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+    put:
+      tags: [tabs]
+      summary: Update tab
+      description: Update tab properties (name, position, window state)
+      operationId: updateTab
+      parameters:
+        - $ref: '#/components/parameters/TabIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTabRequest'
+      responses:
+        '200':
+          description: Tab updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+    delete:
+      tags: [tabs]
+      summary: Delete tab
+      description: Delete a tab and clean up its resources
+      operationId: deleteTab
+      parameters:
+        - $ref: '#/components/parameters/TabIdParam'
+      responses:
+        '204':
+          description: Tab deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+  /tabs/{tabId}/switch:
+    post:
+      tags: [tabs]
+      summary: Switch to tab
+      description: Switch the active tab and restore its state
+      operationId: switchTab
+      parameters:
+        - $ref: '#/components/parameters/TabIdParam'
+      responses:
+        '200':
+          description: Tab switched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+  /tabs/reorder:
+    post:
+      tags: [tabs]
+      summary: Reorder tabs
+      description: Reorder tabs by moving one tab to a new position
+      operationId: reorderTabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderTabsRequest'
+      responses:
+        '200':
+          description: Tabs reordered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tabs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tab'
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+
+  # Connection Management APIs
+  /connections:
+    get:
+      tags: [connections]
+      summary: List all connections
+      description: Retrieve all SSH connections with their status
+      operationId: listConnections
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Connection'
+
+    post:
+      tags: [connections]
+      summary: Create new connection
+      description: Create a new SSH connection and associated tab
+      operationId: createConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConnectionRequest'
+      responses:
+        '201':
+          description: Connection created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /connections/{connectionId}/connect:
+    post:
+      tags: [connections]
+      summary: Connect to SSH server
+      description: Establish SSH connection for the specified connection
+      operationId: connectSSH
+      parameters:
+        - $ref: '#/components/parameters/ConnectionIdParam'
+      responses:
+        '200':
+          description: Connection established successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '409':
+          description: Connection already active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /connections/{connectionId}/disconnect:
+    post:
+      tags: [connections]
+      summary: Disconnect SSH connection
+      description: Close SSH connection and clean up resources
+      operationId: disconnectSSH
+      parameters:
+        - $ref: '#/components/parameters/ConnectionIdParam'
+      responses:
+        '200':
+          description: Connection disconnected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+  /connections/{connectionId}/status:
+    get:
+      tags: [connections]
+      summary: Get connection status
+      description: Retrieve current connection status and metrics
+      operationId: getConnectionStatus
+      parameters:
+        - $ref: '#/components/parameters/ConnectionIdParam'
+      responses:
+        '200':
+          description: Connection status retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Connection'
+                  - type: object
+                    properties:
+                      healthChecks:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: integer
+                              format: int64
+                            status:
+                              type: string
+                              enum: [healthy, unhealthy, failed]
+                            latency:
+                              type: integer
+                              format: int32
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+  # Session Management APIs
+  /sessions:
+    get:
+      tags: [sessions]
+      summary: List active sessions
+      description: Retrieve all active sessions with their state
+      operationId: listSessions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+
+    post:
+      tags: [sessions]
+      summary: Create new session
+      description: Create a new session for an existing connection
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - connectionId
+              properties:
+                connectionId:
+                  type: string
+                  format: uuid
+                workingDir:
+                  type: string
+                  maxLength: 500
+                environment:
+                  type: object
+                  additionalProperties:
+                    type: string
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+
+  /sessions/{sessionId}:
+    get:
+      tags: [sessions]
+      summary: Get session details
+      description: Retrieve detailed session information including state
+      operationId: getSession
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      responses:
+        '200':
+          description: Session details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+    delete:
+      tags: [sessions]
+      summary: Terminate session
+      description: Terminate a session and clean up its resources
+      operationId: terminateSession
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      responses:
+        '204':
+          description: Session terminated successfully
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+  /sessions/{sessionId}/state:
+    put:
+      tags: [sessions]
+      summary: Update session state
+      description: Update session state (working directory, environment)
+      operationId: updateSessionState
+      parameters:
+        - $ref: '#/components/parameters/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                workingDir:
+                  type: string
+                  maxLength: 500
+                environment:
+                  type: object
+                  additionalProperties:
+                    type: string
+      responses:
+        '200':
+          description: Session state updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+
+  /sessions/restore:
+    post:
+      tags: [sessions]
+      summary: Restore sessions
+      description: Restore session states from persistent storage
+      operationId: restoreSessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionRestoreRequest'
+      responses:
+        '200':
+          description: Sessions restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restoredTabs:
+                    type: integer
+                  restoredConnections:
+                    type: integer
+                  restoredSessions:
+                    type: integer
+
+  # System Information APIs
+  /system/status:
+    get:
+      tags: [system]
+      summary: Get system status
+      description: Retrieve overall system status and performance metrics
+      operationId: getSystemStatus
+      responses:
+        '200':
+          description: System status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, warning, critical]
+                  tabs:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      active:
+                        type: integer
+                      maxAllowed:
+                        type: integer
+                  connections:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      connected:
+                        type: integer
+                      failed:
+                        type: integer
+                  memory:
+                    type: object
+                    properties:
+                      used:
+                        type: integer
+                        format: int64
+                      limit:
+                        type: integer
+                        format: int64
+                      percentage:
+                        type: number
+                        format: float
+                  uptime:
+                    type: integer
+                    format: int64
+                  timestamp:
+                    type: integer
+                    format: int64
+
+  /system/health:
+    get:
+      tags: [system]
+      summary: Health check
+      description: Perform system health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, unhealthy]
+                  checks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        status:
+                          type: string
+                          enum: [pass, fail, warn]
+                        message:
+                          type: string
+                        duration:
+                          type: integer
+                          format: int32
+                  timestamp:
+                    type: integer
+                    format: int64

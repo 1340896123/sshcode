@@ -8,20 +8,20 @@ export class TerminalStateModel {
   /**
    * Create or update terminal state for a tab
    */
-  public upsert(tabId: string, data: Partial<TerminalState>): TerminalState {
-    const existing = this.findByTabId(tabId);
+  public async upsert(tabId: string, data: Partial<TerminalState>): Promise<TerminalState> {
+    const existing = await this.findByTabId(tabId);
 
     if (existing) {
-      return this.update(tabId, data)!;
+      return (await this.update(tabId, data))!;
     } else {
-      return this.create(tabId, data);
+      return await this.create(tabId, data);
     }
   }
 
   /**
    * Create terminal state for a tab
    */
-  public create(tabId: string, data: Partial<TerminalState>): TerminalState {
+  public async create(tabId: string, data: Partial<TerminalState>): Promise<TerminalState> {
     const terminalState: TerminalState = {
       tabId,
       cursorPosition: data.cursorPosition || { x: 0, y: 0 },
@@ -38,7 +38,7 @@ export class TerminalStateModel {
 
     // Insert command history entries
     if (terminalState.history.length > 0) {
-      this.insertHistoryEntries(terminalState.history);
+      await this.insertHistoryEntries(terminalState.history);
     }
 
     return terminalState;
@@ -47,14 +47,14 @@ export class TerminalStateModel {
   /**
    * Get terminal state by tab ID
    */
-  public findByTabId(tabId: string): TerminalState | null {
+  public async findByTabId(tabId: string): Promise<TerminalState | null> {
     // Get command history for the tab
-    const historyStmt = this.db.prepare(`
+    const historyStmt = await this.db.prepare(`
       SELECT * FROM terminal_history
       WHERE tab_id = ?
       ORDER BY timestamp ASC
     `);
-    const historyRows = historyStmt.all(tabId) as any[];
+    const historyRows = await historyStmt.all(tabId) as any[];
 
     const history: CommandHistoryEntry[] = historyRows.map(row => ({
       id: row.id,
@@ -66,12 +66,12 @@ export class TerminalStateModel {
     }));
 
     // Get terminal buffer content
-    const bufferStmt = this.db.prepare(`
+    const bufferStmt = await this.db.prepare(`
       SELECT * FROM terminal_buffer
       WHERE tab_id = ?
       ORDER BY sequence_number ASC
     `);
-    const bufferRows = bufferStmt.all(tabId) as any[];
+    const bufferRows = await bufferStmt.all(tabId) as any[];
 
     // Note: Buffer content is not directly returned in TerminalState
     // but can be accessed via separate methods if needed
@@ -95,8 +95,8 @@ export class TerminalStateModel {
   /**
    * Update terminal state for a tab
    */
-  public update(tabId: string, updates: Partial<TerminalState>): TerminalState | null {
-    const existing = this.findByTabId(tabId);
+  public async update(tabId: string, updates: Partial<TerminalState>): Promise<TerminalState | null> {
+    const existing = await this.findByTabId(tabId);
     if (!existing) return null;
 
     const updated: TerminalState = {
@@ -107,11 +107,11 @@ export class TerminalStateModel {
     // Update history if provided
     if (updates.history) {
       // Delete existing history
-      const deleteStmt = this.db.prepare('DELETE FROM terminal_history WHERE tab_id = ?');
-      deleteStmt.run(tabId);
+      const deleteStmt = await this.db.prepare('DELETE FROM terminal_history WHERE tab_id = ?');
+      await deleteStmt.run(tabId);
 
       // Insert new history
-      this.insertHistoryEntries(updates.history);
+      await this.insertHistoryEntries(updates.history);
     }
 
     return updated;
@@ -120,7 +120,7 @@ export class TerminalStateModel {
   /**
    * Add command to history
    */
-  public addCommandToHistory(tabId: string, command: string, exitCode?: number, duration?: number): CommandHistoryEntry {
+  public async addCommandToHistory(tabId: string, command: string, exitCode?: number, duration?: number): Promise<CommandHistoryEntry> {
     const entry: CommandHistoryEntry = {
       id: uuidv4(),
       tabId,
@@ -130,12 +130,12 @@ export class TerminalStateModel {
       duration
     };
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       INSERT INTO terminal_history (id, tab_id, command, timestamp, exit_code, duration)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(entry.id, entry.tabId, entry.command, entry.timestamp, entry.exitCode, entry.duration);
+    await stmt.run(entry.id, entry.tabId, entry.command, entry.timestamp, entry.exitCode, entry.duration);
 
     return entry;
   }
@@ -143,7 +143,7 @@ export class TerminalStateModel {
   /**
    * Get command history for a tab
    */
-  public getCommandHistory(tabId: string, limit?: number): CommandHistoryEntry[] {
+  public async getCommandHistory(tabId: string, limit?: number): Promise<CommandHistoryEntry[]> {
     let query = `
       SELECT * FROM terminal_history
       WHERE tab_id = ?
@@ -154,8 +154,8 @@ export class TerminalStateModel {
       query += ` LIMIT ${limit}`;
     }
 
-    const stmt = this.db.prepare(query);
-    const rows = stmt.all(tabId) as any[];
+    const stmt = await this.db.prepare(query);
+    const rows = await stmt.all(tabId) as any[];
 
     return rows.map(row => ({
       id: row.id,
@@ -170,15 +170,15 @@ export class TerminalStateModel {
   /**
    * Search command history
    */
-  public searchHistory(tabId: string, query: string, limit: number = 50): CommandHistoryEntry[] {
-    const stmt = this.db.prepare(`
+  public async searchHistory(tabId: string, query: string, limit: number = 50): Promise<CommandHistoryEntry[]> {
+    const stmt = await this.db.prepare(`
       SELECT * FROM terminal_history
       WHERE tab_id = ? AND command LIKE ?
       ORDER BY timestamp DESC
       LIMIT ?
     `);
 
-    const rows = stmt.all(tabId, `%${query}%`, limit) as any[];
+    const rows = await stmt.all(tabId, `%${query}%`, limit) as any[];
     return rows.map(row => ({
       id: row.id,
       tabId: row.tab_id,
@@ -192,29 +192,29 @@ export class TerminalStateModel {
   /**
    * Clear command history for a tab
    */
-  public clearHistory(tabId: string): void {
-    const stmt = this.db.prepare('DELETE FROM terminal_history WHERE tab_id = ?');
-    stmt.run(tabId);
+  public async clearHistory(tabId: string): Promise<void> {
+    const stmt = await this.db.prepare('DELETE FROM terminal_history WHERE tab_id = ?');
+    await stmt.run(tabId);
   }
 
   /**
    * Add terminal buffer entry
    */
-  public addBufferEntry(tabId: string, content: string, type: 'input' | 'output' | 'error' | 'info'): void {
+  public async addBufferEntry(tabId: string, content: string, type: 'input' | 'output' | 'error' | 'info'): Promise<void> {
     // Get next sequence number
-    const seqStmt = this.db.prepare(`
+    const seqStmt = await this.db.prepare(`
       SELECT COALESCE(MAX(sequence_number), -1) + 1 as next_seq
       FROM terminal_buffer
       WHERE tab_id = ?
     `);
-    const { next_seq } = seqStmt.get(tabId) as { next_seq: number };
+    const { next_seq } = await seqStmt.get(tabId) as { next_seq: number };
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       INSERT INTO terminal_buffer (id, tab_id, content, type, sequence_number, timestamp)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(
+    await stmt.run(
       uuidv4(),
       tabId,
       content,
@@ -224,19 +224,19 @@ export class TerminalStateModel {
     );
 
     // Trim buffer if it exceeds maximum size
-    this.trimBuffer(tabId);
+    await this.trimBuffer(tabId);
   }
 
   /**
    * Get terminal buffer content
    */
-  public getBufferContent(tabId: string, limit?: number): Array<{
+  public async getBufferContent(tabId: string, limit?: number): Promise<Array<{
     id: string;
     content: string;
     type: string;
     sequenceNumber: number;
     timestamp: number;
-  }> {
+  }>> {
     let query = `
       SELECT * FROM terminal_buffer
       WHERE tab_id = ?
@@ -247,8 +247,8 @@ export class TerminalStateModel {
       query += ` LIMIT ${limit}`;
     }
 
-    const stmt = this.db.prepare(query);
-    const rows = stmt.all(tabId) as any[];
+    const stmt = await this.db.prepare(query);
+    const rows = await stmt.all(tabId) as any[];
 
     return rows.map(row => ({
       id: row.id,
@@ -262,9 +262,9 @@ export class TerminalStateModel {
   /**
    * Clear terminal buffer for a tab
    */
-  public clearBuffer(tabId: string): void {
-    const stmt = this.db.prepare('DELETE FROM terminal_buffer WHERE tab_id = ?');
-    stmt.run(tabId);
+  public async clearBuffer(tabId: string): Promise<void> {
+    const stmt = await this.db.prepare('DELETE FROM terminal_buffer WHERE tab_id = ?');
+    await stmt.run(tabId);
   }
 
   /**
@@ -286,43 +286,43 @@ export class TerminalStateModel {
   /**
    * Update terminal options
    */
-  public updateOptions(tabId: string, options: Partial<TerminalOptions>): void {
-    const existing = this.findByTabId(tabId);
+  public async updateOptions(tabId: string, options: Partial<TerminalOptions>): Promise<void> {
+    const existing = await this.findByTabId(tabId);
     if (existing) {
       const updatedOptions = { ...existing.options, ...options };
-      this.update(tabId, { options: updatedOptions });
+      await this.update(tabId, { options: updatedOptions });
     }
   }
 
   /**
    * Get terminal statistics
    */
-  public getStats(tabId?: string): {
+  public async getStats(tabId?: string): Promise<{
     totalCommands: number;
     averageCommandDuration: number;
     successRate: number;
     bufferSize: number;
-  } {
+  }> {
     let whereClause = tabId ? 'WHERE tab_id = ?' : '';
     const whereParams = tabId ? [tabId] : [];
 
-    const totalStmt = this.db.prepare(`SELECT COUNT(*) as count FROM terminal_history ${whereClause}`);
-    const avgDurationStmt = this.db.prepare(`
+    const totalStmt = await this.db.prepare(`SELECT COUNT(*) as count FROM terminal_history ${whereClause}`);
+    const avgDurationStmt = await this.db.prepare(`
       SELECT AVG(duration) as avg_duration FROM terminal_history
       WHERE duration IS NOT NULL ${tabId ? 'AND tab_id = ?' : ''}
     `);
-    const successStmt = this.db.prepare(`
+    const successStmt = await this.db.prepare(`
       SELECT COUNT(*) as count FROM terminal_history
       WHERE exit_code = 0 ${tabId ? 'AND tab_id = ?' : ''}
     `);
-    const bufferStmt = this.db.prepare(`
+    const bufferStmt = await this.db.prepare(`
       SELECT COUNT(*) as count FROM terminal_buffer ${whereClause}
     `);
 
-    const total = totalStmt.get(...whereParams) as { count: number };
-    const avgDuration = avgDurationStmt.get(...(tabId ? [tabId] : [])) as { avg_duration: number | null };
-    const success = successStmt.get(...(tabId ? [tabId] : [])) as { count: number };
-    const buffer = bufferStmt.get(...whereParams) as { count: number };
+    const total = await totalStmt.get(...whereParams) as { count: number };
+    const avgDuration = await avgDurationStmt.get(...(tabId ? [tabId] : [])) as { avg_duration: number | null };
+    const success = await successStmt.get(...(tabId ? [tabId] : [])) as { count: number };
+    const buffer = await bufferStmt.get(...whereParams) as { count: number };
 
     return {
       totalCommands: total.count,
@@ -335,54 +335,57 @@ export class TerminalStateModel {
   /**
    * Cleanup old terminal data
    */
-  public cleanupOldData(olderThanDays: number = 30): void {
+  public async cleanupOldData(olderThanDays: number = 30): Promise<void> {
     const cutoffTime = Date.now() - (olderThanDays * 24 * 60 * 60 * 1000);
 
     // Clean old history
-    const deleteHistoryStmt = this.db.prepare(`
+    const deleteHistoryStmt = await this.db.prepare(`
       DELETE FROM terminal_history WHERE timestamp < ?
     `);
-    deleteHistoryStmt.run(cutoffTime);
+    await deleteHistoryStmt.run(cutoffTime);
 
     // Clean old buffer entries
-    const deleteBufferStmt = this.db.prepare(`
+    const deleteBufferStmt = await this.db.prepare(`
       DELETE FROM terminal_buffer WHERE timestamp < ?
     `);
-    deleteBufferStmt.run(cutoffTime);
+    await deleteBufferStmt.run(cutoffTime);
   }
 
   /**
    * Insert multiple history entries
    */
-  private insertHistoryEntries(entries: CommandHistoryEntry[]): void {
+  private async insertHistoryEntries(entries: CommandHistoryEntry[]): Promise<void> {
     if (entries.length === 0) return;
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       INSERT OR REPLACE INTO terminal_history (id, tab_id, command, timestamp, exit_code, duration)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    const db = this.db;
-    const transaction = db.transaction(() => {
+    // Manual transaction implementation
+    await this.db.exec('BEGIN');
+    try {
       for (const entry of entries) {
-        stmt.run(entry.id, entry.tabId, entry.command, entry.timestamp, entry.exitCode, entry.duration);
+        await stmt.run(entry.id, entry.tabId, entry.command, entry.timestamp, entry.exitCode, entry.duration);
       }
-    });
-
-    transaction();
+      await this.db.exec('COMMIT');
+    } catch (error) {
+      await this.db.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   /**
    * Trim buffer to maintain reasonable size
    */
-  private trimBuffer(tabId: string, maxSize: number = 1000): void {
-    const countStmt = this.db.prepare(`
+  private async trimBuffer(tabId: string, maxSize: number = 1000): Promise<void> {
+    const countStmt = await this.db.prepare(`
       SELECT COUNT(*) as count FROM terminal_buffer WHERE tab_id = ?
     `);
-    const { count } = countStmt.get(tabId) as { count: number };
+    const { count } = await countStmt.get(tabId) as { count: number };
 
     if (count > maxSize) {
-      const deleteStmt = this.db.prepare(`
+      const deleteStmt = await this.db.prepare(`
         DELETE FROM terminal_buffer
         WHERE id IN (
           SELECT id FROM terminal_buffer
@@ -391,7 +394,7 @@ export class TerminalStateModel {
           LIMIT ?
         )
       `);
-      deleteStmt.run(tabId, count - maxSize);
+      await deleteStmt.run(tabId, count - maxSize);
     }
   }
 }

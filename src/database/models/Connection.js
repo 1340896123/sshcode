@@ -16,7 +16,7 @@ class ConnectionModel {
     /**
      * Create a new connection
      */
-    create(data) {
+    async create(data) {
         const now = Date.now();
         const connection = {
             ...data,
@@ -30,7 +30,7 @@ class ConnectionModel {
             createdAt: now,
             updatedAt: now
         };
-        const stmt = this.db.prepare(`
+        const stmt = await this.db.prepare(`
       INSERT INTO connections (
         id, name, host, port, username, auth_type, status,
         last_connected, max_reconnect_attempts, connected_at,
@@ -39,15 +39,15 @@ class ConnectionModel {
         error_count, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-        stmt.run(connection.id, connection.name, connection.host, connection.port, connection.username, connection.authType, connection.status, connection.lastConnected, connection.maxReconnectAttempts, connection.connectedAt, connection.latency, connection.bytesTransferred.sent, connection.bytesTransferred.received, connection.memoryUsage, connection.terminalLines, connection.lastHealthCheck, connection.healthStatus, connection.errorCount, connection.createdAt, connection.updatedAt);
+        await stmt.run(connection.id, connection.name, connection.host, connection.port, connection.username, connection.authType, connection.status, connection.lastConnected, connection.maxReconnectAttempts, connection.connectedAt, connection.latency, connection.bytesTransferred.sent, connection.bytesTransferred.received, connection.memoryUsage, connection.terminalLines, connection.lastHealthCheck, connection.healthStatus, connection.errorCount, connection.createdAt, connection.updatedAt);
         return connection;
     }
     /**
      * Get a connection by ID
      */
-    findById(id) {
-        const stmt = this.db.prepare('SELECT * FROM connections WHERE id = ?');
-        const row = stmt.get(id);
+    async findById(id) {
+        const stmt = await this.db.prepare('SELECT * FROM connections WHERE id = ?');
+        const row = await stmt.get(id);
         if (!row)
             return null;
         return this.mapRowToConnection(row);
@@ -55,32 +55,32 @@ class ConnectionModel {
     /**
      * Get all connections
      */
-    findAll() {
-        const stmt = this.db.prepare('SELECT * FROM connections ORDER BY name');
-        const rows = stmt.all();
+    async findAll() {
+        const stmt = await this.db.prepare('SELECT * FROM connections ORDER BY name');
+        const rows = await stmt.all();
         return rows.map(row => this.mapRowToConnection(row));
     }
     /**
      * Get connections by status
      */
-    findByStatus(status) {
-        const stmt = this.db.prepare('SELECT * FROM connections WHERE status = ? ORDER BY name');
-        const rows = stmt.all(status);
+    async findByStatus(status) {
+        const stmt = await this.db.prepare('SELECT * FROM connections WHERE status = ? ORDER BY name');
+        const rows = await stmt.all(status);
         return rows.map(row => this.mapRowToConnection(row));
     }
     /**
      * Get active connections
      */
-    findActive() {
-        const stmt = this.db.prepare('SELECT * FROM connections WHERE status IN (?, ?) ORDER BY name');
-        const rows = stmt.all('connected', 'connecting');
+    async findActive() {
+        const stmt = await this.db.prepare('SELECT * FROM connections WHERE status IN (?, ?) ORDER BY name');
+        const rows = await stmt.all('connected', 'connecting');
         return rows.map(row => this.mapRowToConnection(row));
     }
     /**
      * Update a connection
      */
-    update(id, updates) {
-        const existing = this.findById(id);
+    async update(id, updates) {
+        const existing = await this.findById(id);
         if (!existing)
             return null;
         const updated = {
@@ -161,34 +161,34 @@ class ConnectionModel {
         }
         setClause.push('updated_at = ?');
         values.push(updated.updatedAt);
-        const stmt = this.db.prepare(`
+        const stmt = await this.db.prepare(`
       UPDATE connections SET ${setClause.join(', ')} WHERE id = ?
     `);
-        stmt.run(...values, id);
+        await stmt.run(...values, id);
         return updated;
     }
     /**
      * Update connection status
      */
-    updateStatus(id, status) {
+    async updateStatus(id, status) {
         const now = Date.now();
-        const stmt = this.db.prepare(`
+        const stmt = await this.db.prepare(`
       UPDATE connections SET status = ?, updated_at = ? WHERE id = ?
     `);
-        stmt.run(status, now, id);
+        await stmt.run(status, now, id);
         // Update connected_at if connecting to connected
         if (status === 'connected') {
-            const updateConnectedAt = this.db.prepare(`
+            const updateConnectedAt = await this.db.prepare(`
         UPDATE connections SET connected_at = ? WHERE id = ?
       `);
-            updateConnectedAt.run(now, id);
+            await updateConnectedAt.run(now, id);
         }
     }
     /**
      * Update bytes transferred
      */
-    updateBytesTransferred(id, bytesSent, bytesReceived) {
-        const stmt = this.db.prepare(`
+    async updateBytesTransferred(id, bytesSent, bytesReceived) {
+        const stmt = await this.db.prepare(`
       UPDATE connections SET
         bytes_sent = bytes_sent + ?,
         bytes_received = bytes_received + ?,
@@ -196,39 +196,39 @@ class ConnectionModel {
       WHERE id = ?
     `);
         const now = Date.now();
-        stmt.run(bytesSent, bytesReceived, now, id);
+        await stmt.run(bytesSent, bytesReceived, now, id);
     }
     /**
      * Increment error count
      */
-    incrementErrorCount(id) {
-        const stmt = this.db.prepare(`
+    async incrementErrorCount(id) {
+        const stmt = await this.db.prepare(`
       UPDATE connections SET
         error_count = error_count + 1,
         updated_at = ?
       WHERE id = ?
     `);
         const now = Date.now();
-        stmt.run(now, id);
+        await stmt.run(now, id);
     }
     /**
      * Update health status
      */
-    updateHealthStatus(id, healthStatus) {
+    async updateHealthStatus(id, healthStatus) {
         const now = Date.now();
-        const stmt = this.db.prepare(`
+        const stmt = await this.db.prepare(`
       UPDATE connections SET
         health_status = ?,
         last_health_check = ?,
         updated_at = ?
       WHERE id = ?
     `);
-        stmt.run(healthStatus, now, now, id);
+        await stmt.run(healthStatus, now, now, id);
     }
     /**
      * Update performance metrics
      */
-    updatePerformanceMetrics(id, metrics) {
+    async updatePerformanceMetrics(id, metrics) {
         const setClause = [];
         const values = [];
         if (metrics.latency !== undefined) {
@@ -247,59 +247,59 @@ class ConnectionModel {
             return;
         setClause.push('updated_at = ?');
         values.push(Date.now(), id);
-        const stmt = this.db.prepare(`
+        const stmt = await this.db.prepare(`
       UPDATE connections SET ${setClause.join(', ')} WHERE id = ?
     `);
-        stmt.run(...values);
+        await stmt.run(...values);
     }
     /**
      * Reset reconnect attempts
      */
-    resetReconnectAttempts(id) {
-        const stmt = this.db.prepare(`
+    async resetReconnectAttempts(id) {
+        const stmt = await this.db.prepare(`
       UPDATE connections SET
         reconnect_attempts = 0,
         updated_at = ?
       WHERE id = ?
     `);
         const now = Date.now();
-        stmt.run(now, id);
+        await stmt.run(now, id);
     }
     /**
      * Increment reconnect attempts
      */
-    incrementReconnectAttempts(id) {
-        const stmt = this.db.prepare(`
+    async incrementReconnectAttempts(id) {
+        const stmt = await this.db.prepare(`
       UPDATE connections SET
         reconnect_attempts = reconnect_attempts + 1,
         updated_at = ?
       WHERE id = ?
     `);
         const now = Date.now();
-        stmt.run(now, id);
+        await stmt.run(now, id);
     }
     /**
      * Delete a connection
      */
-    delete(id) {
-        const stmt = this.db.prepare('DELETE FROM connections WHERE id = ?');
-        const result = stmt.run(id);
+    async delete(id) {
+        const stmt = await this.db.prepare('DELETE FROM connections WHERE id = ?');
+        const result = await stmt.run(id);
         return result.changes > 0;
     }
     /**
      * Get connection statistics
      */
-    getStats() {
-        const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM connections');
-        const connectedStmt = this.db.prepare('SELECT COUNT(*) as count FROM connections WHERE status = ?');
-        const failedStmt = this.db.prepare('SELECT COUNT(*) as count FROM connections WHERE status = ?');
-        const latencyStmt = this.db.prepare('SELECT AVG(latency) as avgLatency FROM connections WHERE latency IS NOT NULL');
-        const bytesStmt = this.db.prepare('SELECT SUM(bytes_sent) as sent, SUM(bytes_received) as received FROM connections');
-        const total = totalStmt.get();
-        const connected = connectedStmt.get('connected');
-        const failed = failedStmt.get('failed');
-        const latency = latencyStmt.get();
-        const bytes = bytesStmt.get();
+    async getStats() {
+        const totalStmt = await this.db.prepare('SELECT COUNT(*) as count FROM connections');
+        const connectedStmt = await this.db.prepare('SELECT COUNT(*) as count FROM connections WHERE status = ?');
+        const failedStmt = await this.db.prepare('SELECT COUNT(*) as count FROM connections WHERE status = ?');
+        const latencyStmt = await this.db.prepare('SELECT AVG(latency) as avgLatency FROM connections WHERE latency IS NOT NULL');
+        const bytesStmt = await this.db.prepare('SELECT SUM(bytes_sent) as sent, SUM(bytes_received) as received FROM connections');
+        const total = await totalStmt.get();
+        const connected = await connectedStmt.get('connected');
+        const failed = await failedStmt.get('failed');
+        const latency = await latencyStmt.get();
+        const bytes = await bytesStmt.get();
         return {
             totalConnections: total.count,
             connectedConnections: connected.count,
@@ -314,27 +314,27 @@ class ConnectionModel {
     /**
      * Get connections that need health check
      */
-    getConnectionsNeedingHealthCheck(checkInterval) {
+    async getConnectionsNeedingHealthCheck(checkInterval) {
         const cutoffTime = Date.now() - checkInterval;
-        const stmt = this.db.prepare(`
+        const stmt = await this.db.prepare(`
       SELECT * FROM connections
       WHERE status IN (?, ?) AND (last_health_check IS NULL OR last_health_check < ?)
       ORDER BY last_health_check ASC NULLS FIRST
     `);
-        const rows = stmt.all('connected', 'connecting', cutoffTime);
+        const rows = await stmt.all('connected', 'connecting', cutoffTime);
         return rows.map(row => this.mapRowToConnection(row));
     }
     /**
      * Search connections by name or host
      */
-    search(query) {
-        const stmt = this.db.prepare(`
+    async search(query) {
+        const stmt = await this.db.prepare(`
       SELECT * FROM connections
       WHERE name LIKE ? OR host LIKE ? OR username LIKE ?
       ORDER BY name
     `);
         const searchPattern = `%${query}%`;
-        const rows = stmt.all(searchPattern, searchPattern, searchPattern);
+        const rows = await stmt.all(searchPattern, searchPattern, searchPattern);
         return rows.map(row => this.mapRowToConnection(row));
     }
     /**

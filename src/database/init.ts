@@ -1,10 +1,11 @@
-import Database from 'better-sqlite3';
+import sqlite3 from 'sqlite3';
+import { open, Database } from 'sqlite';
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 
 export class DatabaseManager {
-  private db: Database.Database;
+  private db: Database | null = null;
   private dbPath: string;
 
   constructor() {
@@ -18,22 +19,27 @@ export class DatabaseManager {
     }
 
     this.dbPath = path.join(dbDir, 'sshclient.db');
-    this.db = new Database(this.dbPath);
     this.setupDatabase();
   }
 
-  private setupDatabase(): void {
+  private async setupDatabase(): Promise<void> {
     try {
+      // Open database connection
+      this.db = await open({
+        filename: this.dbPath,
+        driver: sqlite3.Database
+      });
+
       // Enable WAL mode for better performance
-      this.db.pragma('journal_mode = WAL');
-      this.db.pragma('synchronous = NORMAL');
-      this.db.pragma('cache_size = 10000');
-      this.db.pragma('temp_store = MEMORY');
-      this.db.pragma('mmap_size = 268435456'); // 256MB
+      await this.db.exec('PRAGMA journal_mode = WAL');
+      await this.db.exec('PRAGMA synchronous = NORMAL');
+      await this.db.exec('PRAGMA cache_size = 10000');
+      await this.db.exec('PRAGMA temp_store = MEMORY');
+      await this.db.exec('PRAGMA mmap_size = 268435456'); // 256MB
 
       // Create tables
-      this.createTables();
-      this.createIndexes();
+      await this.createTables();
+      await this.createIndexes();
 
       console.log('Database initialized successfully');
     } catch (error) {
@@ -42,9 +48,9 @@ export class DatabaseManager {
     }
   }
 
-  private createTables(): void {
+  private async createTables(): Promise<void> {
     // Tabs table
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS tabs (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -61,7 +67,7 @@ export class DatabaseManager {
     `);
 
     // Connections table
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS connections (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -88,7 +94,7 @@ export class DatabaseManager {
     `);
 
     // Terminal command history
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS terminal_history (
         id TEXT PRIMARY KEY,
         tab_id TEXT NOT NULL,
@@ -101,7 +107,7 @@ export class DatabaseManager {
     `);
 
     // Terminal output buffer (for session persistence)
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS terminal_buffer (
         id TEXT PRIMARY KEY,
         tab_id TEXT NOT NULL,
@@ -114,7 +120,7 @@ export class DatabaseManager {
     `);
 
     // AI messages
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS ai_messages (
         id TEXT PRIMARY KEY,
         tab_id TEXT NOT NULL,
@@ -127,7 +133,7 @@ export class DatabaseManager {
     `);
 
     // Tool calls
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS tool_calls (
         id TEXT PRIMARY KEY,
         tab_id TEXT NOT NULL,
@@ -144,7 +150,7 @@ export class DatabaseManager {
     `);
 
     // File transfers
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS file_transfers (
         id TEXT PRIMARY KEY,
         tab_id TEXT NOT NULL,
@@ -163,7 +169,7 @@ export class DatabaseManager {
     `);
 
     // Bookmarks
-    this.db.exec(`
+    await this.db.exec(`
       CREATE TABLE IF NOT EXISTS bookmarks (
         id TEXT PRIMARY KEY,
         tab_id TEXT NOT NULL,
@@ -173,11 +179,89 @@ export class DatabaseManager {
         FOREIGN KEY (tab_id) REFERENCES tabs(id) ON DELETE CASCADE
       );
     `);
+
+    // Sessions table for isolated session management
+    await this.db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        connection_id TEXT NOT NULL,
+        tab_id TEXT NOT NULL UNIQUE,
+        working_directory TEXT NOT NULL,
+        environment TEXT NOT NULL,
+        shell_state TEXT NOT NULL,
+        terminal_state TEXT NOT NULL,
+        file_manager_state TEXT NOT NULL,
+        ai_assistant_state TEXT NOT NULL,
+        isolation_level TEXT NOT NULL CHECK(isolation_level IN ('full', 'shared-shell', 'minimal')),
+        created_at INTEGER NOT NULL,
+        last_activity INTEGER NOT NULL,
+        memory_usage INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT 1,
+        health_status TEXT DEFAULT 'healthy',
+        FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE CASCADE,
+        FOREIGN KEY (tab_id) REFERENCES tabs(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Session directory history for working directory tracking
+    await this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_directory_history (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        directory TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        duration INTEGER,
+        command_count INTEGER DEFAULT 0,
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Session metrics for performance monitoring
+    await this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_metrics (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        memory_usage INTEGER NOT NULL,
+        terminal_lines INTEGER NOT NULL,
+        file_operations INTEGER DEFAULT 0,
+        ai_messages INTEGER DEFAULT 0,
+        response_time INTEGER DEFAULT 0,
+        uptime INTEGER NOT NULL,
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Session events for debugging and monitoring
+    await this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_events (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        data TEXT,
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Session limits configuration
+    await this.db.exec(`
+      CREATE TABLE IF NOT EXISTS session_limits_config (
+        id INTEGER PRIMARY KEY CHECK(id = 1),
+        max_total_sessions INTEGER DEFAULT 15,
+        max_sessions_per_connection INTEGER DEFAULT 5,
+        max_memory_per_session INTEGER DEFAULT 8388608,
+        max_total_memory INTEGER DEFAULT 209715200,
+        enable_graceful_degradation BOOLEAN DEFAULT 1,
+        warning_threshold REAL DEFAULT 0.8,
+        critical_threshold REAL DEFAULT 0.95
+      );
+    `);
   }
 
-  private createIndexes(): void {
+  private async createIndexes(): Promise<void> {
     // Performance indexes
-    this.db.exec(`
+    await this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_tabs_connection_id ON tabs(connection_id);
       CREATE INDEX IF NOT EXISTS idx_tabs_position ON tabs(position);
       CREATE INDEX IF NOT EXISTS idx_tabs_last_accessed ON tabs(last_accessed);
@@ -187,10 +271,57 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_tool_calls_tab_start_time ON tool_calls(tab_id, start_time);
       CREATE INDEX IF NOT EXISTS idx_file_transfers_tab_status ON file_transfers(tab_id, status);
       CREATE INDEX IF NOT EXISTS idx_bookmarks_tab_created ON bookmarks(tab_id, created_at);
+
+      -- Session-related indexes for performance
+      CREATE INDEX IF NOT EXISTS idx_sessions_connection_id ON sessions(connection_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_tab_id ON sessions(tab_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON sessions(last_activity);
+      CREATE INDEX IF NOT EXISTS idx_sessions_health_status ON sessions(health_status);
+      CREATE INDEX IF NOT EXISTS idx_sessions_isolation_level ON sessions(isolation_level);
+      CREATE INDEX IF NOT EXISTS idx_sessions_is_active ON sessions(is_active);
+
+      -- Session directory history indexes
+      CREATE INDEX IF NOT EXISTS idx_session_directory_history_session_id ON session_directory_history(session_id);
+      CREATE INDEX IF NOT EXISTS idx_session_directory_history_timestamp ON session_directory_history(timestamp);
+
+      -- Session metrics indexes
+      CREATE INDEX IF NOT EXISTS idx_session_metrics_session_id ON session_metrics(session_id);
+      CREATE INDEX IF NOT EXISTS idx_session_metrics_timestamp ON session_metrics(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_session_metrics_memory_usage ON session_metrics(memory_usage);
+
+      -- Session events indexes
+      CREATE INDEX IF NOT EXISTS idx_session_events_session_id ON session_events(session_id);
+      CREATE INDEX IF NOT EXISTS idx_session_events_timestamp ON session_events(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_session_events_event_type ON session_events(event_type);
     `);
+
+    // Initialize session limits configuration
+    await this.initializeSessionLimitsConfig();
   }
 
-  public getDatabase(): Database.Database {
+  private async initializeSessionLimitsConfig(): Promise<void> {
+    try {
+      // Check if config already exists
+      const existingConfig = await (await this.db.prepare('SELECT id FROM session_limits_config WHERE id = 1')).get();
+
+      if (!existingConfig) {
+        // Insert default session limits configuration
+        await (await this.db.prepare(`
+          INSERT INTO session_limits_config (
+            id, max_total_sessions, max_sessions_per_connection,
+            max_memory_per_session, max_total_memory, enable_graceful_degradation,
+            warning_threshold, critical_threshold
+          ) VALUES (1, 15, 5, 8388608, 209715200, 1, 0.8, 0.95)
+        `)).run();
+
+        console.log('Session limits configuration initialized');
+      }
+    } catch (error) {
+      console.error('Error initializing session limits configuration:', error);
+    }
+  }
+
+  public getDatabase(): Database {
     return this.db;
   }
 
@@ -222,16 +353,16 @@ export class DatabaseManager {
     }
   }
 
-  public getDatabaseInfo(): {
+  public async getDatabaseInfo(): Promise<{
     path: string;
     size: number;
     pageCount: number;
     pageSize: number;
-  } {
+  }> {
     try {
       const stats = fs.statSync(this.dbPath);
-      const pageCount = this.db.prepare('PRAGMA page_count').get() as { page_count: number };
-      const pageSize = this.db.prepare('PRAGMA page_size').get() as { page_size: number };
+      const pageCount = await (await this.db.prepare('PRAGMA page_count')).get() as { page_count: number };
+      const pageSize = await (await this.db.prepare('PRAGMA page_size')).get() as { page_size: number };
 
       return {
         path: this.dbPath,
@@ -246,9 +377,16 @@ export class DatabaseManager {
   }
 
   // Transaction helper
-  public transaction<T>(fn: () => T): T {
-    const transaction = this.db.transaction(fn);
-    return transaction();
+  public async transaction<T>(fn: () => Promise<T>): Promise<T> {
+    await this.db.exec('BEGIN TRANSACTION');
+    try {
+      const result = await fn();
+      await this.db.exec('COMMIT');
+      return result;
+    } catch (error) {
+      await this.db.exec('ROLLBACK');
+      throw error;
+    }
   }
 }
 

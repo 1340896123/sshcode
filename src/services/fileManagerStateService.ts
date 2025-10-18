@@ -13,8 +13,8 @@ export class FileManagerStateService {
   /**
    * Initialize file manager state tracking for a tab
    */
-  initializeFileManagerState(tabId: string): void {
-    const existingState = this.fileManagerModel.findByTabId(tabId);
+  async initializeFileManagerState(tabId: string): Promise<void> {
+    const existingState = await this.fileManagerModel.findByTabId(tabId);
 
     if (existingState) {
       this.fileManagerStates.set(tabId, existingState);
@@ -33,7 +33,7 @@ export class FileManagerStateService {
         bookmarks: []
       };
       this.fileManagerStates.set(tabId, defaultState);
-      this.fileManagerModel.create(tabId, defaultState);
+      await this.fileManagerModel.create(tabId, defaultState);
     }
   }
 
@@ -57,7 +57,7 @@ export class FileManagerStateService {
   async navigateToDirectory(tabId: string, directory: string): Promise<FileManagerState> {
     let state = this.fileManagerStates.get(tabId);
     if (!state) {
-      this.initializeFileManagerState(tabId);
+      await this.initializeFileManagerState(tabId);
       state = this.fileManagerStates.get(tabId)!;
     }
 
@@ -84,7 +84,7 @@ export class FileManagerStateService {
    */
   async navigateBack(tabId: string): Promise<string | null> {
     try {
-      const previousDirectory = this.fileManagerModel.navigateBack(tabId);
+      const previousDirectory = await this.fileManagerModel.navigateBack(tabId);
 
       if (previousDirectory) {
         const state = this.fileManagerStates.get(tabId);
@@ -177,7 +177,7 @@ export class FileManagerStateService {
    */
   async addBookmark(tabId: string, name: string, path: string): Promise<Bookmark | null> {
     try {
-      const bookmark = this.fileManagerModel.addBookmark(tabId, name, path);
+      const bookmark = await this.fileManagerModel.addBookmark(tabId, name, path);
 
       const state = this.fileManagerStates.get(tabId);
       if (state) {
@@ -196,7 +196,7 @@ export class FileManagerStateService {
    */
   async removeBookmark(tabId: string, bookmarkId: string): Promise<boolean> {
     try {
-      const success = this.fileManagerModel.removeBookmark(bookmarkId);
+      const success = await this.fileManagerModel.removeBookmark(bookmarkId);
 
       if (success) {
         const state = this.fileManagerStates.get(tabId);
@@ -231,7 +231,7 @@ export class FileManagerStateService {
     totalBytes: number = 0
   ): Promise<FileTransfer | null> {
     try {
-      const transfer = this.fileManagerModel.createFileTransfer(
+      const transfer = await this.fileManagerModel.createFileTransfer(
         tabId,
         type,
         sourcePath,
@@ -317,9 +317,9 @@ export class FileManagerStateService {
   /**
    * Get transfer history for a tab
    */
-  getTransferHistory(tabId: string, limit: number = 50): FileTransfer[] {
+  async getTransferHistory(tabId: string, limit: number = 50): Promise<FileTransfer[]> {
     try {
-      return this.fileManagerModel.getTransferHistory(tabId, limit);
+      return await this.fileManagerModel.getTransferHistory(tabId, limit);
     } catch (error) {
       console.error(`Failed to get transfer history for tab ${tabId}:`, error);
       return [];
@@ -329,14 +329,14 @@ export class FileManagerStateService {
   /**
    * Get file manager statistics for a tab
    */
-  getFileManagerStats(tabId: string): {
+  async getFileManagerStats(tabId: string): Promise<{
     bookmarksCount: number;
     activeTransfersCount: number;
     completedTransfersCount: number;
     totalBytesTransferred: number;
-  } {
+  }> {
     try {
-      const stats = this.fileManagerModel.getStats(tabId);
+      const stats = await this.fileManagerModel.getStats(tabId);
       return {
         bookmarksCount: stats.totalBookmarks,
         activeTransfersCount: stats.activeTransfers,

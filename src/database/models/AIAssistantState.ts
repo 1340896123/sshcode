@@ -17,20 +17,20 @@ export class AIAssistantStateModel {
   /**
    * Create or update AI assistant state for a tab
    */
-  public upsert(tabId: string, data: Partial<AIAssistantState>): AIAssistantState {
-    const existing = this.findByTabId(tabId);
+  public async upsert(tabId: string, data: Partial<AIAssistantState>): Promise<AIAssistantState> {
+    const existing = await this.findByTabId(tabId);
 
     if (existing) {
-      return this.update(tabId, data)!;
+      return (await this.update(tabId, data))!;
     } else {
-      return this.create(tabId, data);
+      return await this.create(tabId, data);
     }
   }
 
   /**
    * Create AI assistant state for a tab
    */
-  public create(tabId: string, data: Partial<AIAssistantState>): AIAssistantState {
+  public async create(tabId: string, data: Partial<AIAssistantState>): Promise<AIAssistantState> {
     const aiAssistantState: AIAssistantState = {
       tabId,
       messages: data.messages || [],
@@ -56,12 +56,12 @@ export class AIAssistantStateModel {
 
     // Insert messages if provided
     if (aiAssistantState.messages.length > 0) {
-      this.insertMessages(aiAssistantState.messages);
+      await this.insertMessages(aiAssistantState.messages);
     }
 
     // Insert tool calls if provided
     if (aiAssistantState.toolCalls.length > 0) {
-      this.insertToolCalls(aiAssistantState.toolCalls);
+      await this.insertToolCalls(aiAssistantState.toolCalls);
     }
 
     return aiAssistantState;
@@ -70,14 +70,14 @@ export class AIAssistantStateModel {
   /**
    * Get AI assistant state by tab ID
    */
-  public findByTabId(tabId: string): AIAssistantState | null {
+  public async findByTabId(tabId: string): Promise<AIAssistantState | null> {
     // Get messages for the tab
-    const messageStmt = this.db.prepare(`
+    const messageStmt = await this.db.prepare(`
       SELECT * FROM ai_messages
       WHERE tab_id = ?
       ORDER BY timestamp ASC
     `);
-    const messageRows = messageStmt.all(tabId) as any[];
+    const messageRows = await messageStmt.all(tabId) as any[];
 
     const messages: AIMessage[] = messageRows.map(row => ({
       id: row.id,
@@ -89,12 +89,12 @@ export class AIAssistantStateModel {
     }));
 
     // Get tool calls for the tab
-    const toolCallStmt = this.db.prepare(`
+    const toolCallStmt = await this.db.prepare(`
       SELECT * FROM tool_calls
       WHERE tab_id = ?
       ORDER BY start_time ASC
     `);
-    const toolCallRows = toolCallStmt.all(tabId) as any[];
+    const toolCallRows = await toolCallStmt.all(tabId) as any[];
 
     const toolCalls: ToolCall[] = toolCallRows.map(row => ({
       id: row.id,
@@ -140,8 +140,8 @@ export class AIAssistantStateModel {
   /**
    * Update AI assistant state for a tab
    */
-  public update(tabId: string, updates: Partial<AIAssistantState>): AIAssistantState | null {
-    const existing = this.findByTabId(tabId);
+  public async update(tabId: string, updates: Partial<AIAssistantState>): Promise<AIAssistantState | null> {
+    const existing = await this.findByTabId(tabId);
     if (!existing) return null;
 
     const updated: AIAssistantState = {
@@ -152,21 +152,21 @@ export class AIAssistantStateModel {
     // Update messages if provided
     if (updates.messages) {
       // Delete existing messages
-      const deleteStmt = this.db.prepare('DELETE FROM ai_messages WHERE tab_id = ?');
-      deleteStmt.run(tabId);
+      const deleteStmt = await this.db.prepare('DELETE FROM ai_messages WHERE tab_id = ?');
+      await deleteStmt.run(tabId);
 
       // Insert new messages
-      this.insertMessages(updates.messages);
+      await this.insertMessages(updates.messages);
     }
 
     // Update tool calls if provided
     if (updates.toolCalls) {
       // Delete existing tool calls
-      const deleteStmt = this.db.prepare('DELETE FROM tool_calls WHERE tab_id = ?');
-      deleteStmt.run(tabId);
+      const deleteStmt = await this.db.prepare('DELETE FROM tool_calls WHERE tab_id = ?');
+      await deleteStmt.run(tabId);
 
       // Insert new tool calls
-      this.insertToolCalls(updates.toolCalls);
+      await this.insertToolCalls(updates.toolCalls);
     }
 
     return updated;
@@ -175,12 +175,12 @@ export class AIAssistantStateModel {
   /**
    * Add message to conversation
    */
-  public addMessage(
+  public async addMessage(
     tabId: string,
     role: AIMessageRole,
     content: string,
     metadata?: AIMessageMetadata
-  ): AIMessage {
+  ): Promise<AIMessage> {
     const message: AIMessage = {
       id: uuidv4(),
       tabId,
@@ -190,12 +190,12 @@ export class AIAssistantStateModel {
       metadata
     };
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       INSERT INTO ai_messages (id, tab_id, role, content, timestamp, metadata)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(
+    await stmt.run(
       message.id,
       message.tabId,
       message.role,
@@ -210,7 +210,7 @@ export class AIAssistantStateModel {
   /**
    * Get messages for a tab
    */
-  public getMessages(tabId: string, limit?: number): AIMessage[] {
+  public async getMessages(tabId: string, limit?: number): Promise<AIMessage[]> {
     let query = `
       SELECT * FROM ai_messages
       WHERE tab_id = ?
@@ -221,8 +221,8 @@ export class AIAssistantStateModel {
       query += ` LIMIT ${limit}`;
     }
 
-    const stmt = this.db.prepare(query);
-    const rows = stmt.all(tabId) as any[];
+    const stmt = await this.db.prepare(query);
+    const rows = await stmt.all(tabId) as any[];
 
     return rows.map(row => ({
       id: row.id,
@@ -237,14 +237,14 @@ export class AIAssistantStateModel {
   /**
    * Get recent messages for a tab
    */
-  public getRecentMessages(tabId: string, count: number = 20): AIMessage[] {
-    const stmt = this.db.prepare(`
+  public async getRecentMessages(tabId: string, count: number = 20): Promise<AIMessage[]> {
+    const stmt = await this.db.prepare(`
       SELECT * FROM ai_messages
       WHERE tab_id = ?
       ORDER BY timestamp DESC
       LIMIT ?
     `);
-    const rows = stmt.all(tabId, count) as any[];
+    const rows = await stmt.all(tabId, count) as any[];
 
     return rows.reverse().map(row => ({
       id: row.id,
@@ -259,19 +259,19 @@ export class AIAssistantStateModel {
   /**
    * Clear messages for a tab
    */
-  public clearMessages(tabId: string): void {
-    const stmt = this.db.prepare('DELETE FROM ai_messages WHERE tab_id = ?');
-    stmt.run(tabId);
+  public async clearMessages(tabId: string): Promise<void> {
+    const stmt = await this.db.prepare('DELETE FROM ai_messages WHERE tab_id = ?');
+    await stmt.run(tabId);
   }
 
   /**
    * Add tool call
    */
-  public addToolCall(
+  public async addToolCall(
     tabId: string,
     command: string,
     context: ToolCallContext
-  ): ToolCall {
+  ): Promise<ToolCall> {
     const toolCall: ToolCall = {
       id: uuidv4(),
       tabId,
@@ -281,12 +281,12 @@ export class AIAssistantStateModel {
       context
     };
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       INSERT INTO tool_calls (id, tab_id, command, status, start_time, context)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(
+    await stmt.run(
       toolCall.id,
       toolCall.tabId,
       toolCall.command,
@@ -301,30 +301,31 @@ export class AIAssistantStateModel {
   /**
    * Update tool call with result
    */
-  public completeToolCall(
+  public async completeToolCall(
     toolCallId: string,
     status: ToolCallStatus,
     result?: string,
     error?: string
-  ): void {
+  ): Promise<void> {
     const endTime = Date.now();
-    const executionTime = endTime - (this.getToolCall(toolCallId)?.startTime || endTime);
+    const existingToolCall = await this.getToolCall(toolCallId);
+    const executionTime = endTime - (existingToolCall?.startTime || endTime);
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       UPDATE tool_calls
       SET status = ?, result = ?, error = ?, end_time = ?, execution_time = ?
       WHERE id = ?
     `);
 
-    stmt.run(status, result, error, endTime, executionTime, toolCallId);
+    await stmt.run(status, result, error, endTime, executionTime, toolCallId);
   }
 
   /**
    * Get tool call by ID
    */
-  public getToolCall(toolCallId: string): ToolCall | null {
-    const stmt = this.db.prepare('SELECT * FROM tool_calls WHERE id = ?');
-    const row = stmt.get(toolCallId) as any;
+  public async getToolCall(toolCallId: string): Promise<ToolCall | null> {
+    const stmt = await this.db.prepare('SELECT * FROM tool_calls WHERE id = ?');
+    const row = await stmt.get(toolCallId) as any;
 
     if (!row) return null;
 
@@ -334,7 +335,7 @@ export class AIAssistantStateModel {
   /**
    * Get tool calls for a tab
    */
-  public getToolCalls(tabId: string, status?: ToolCallStatus): ToolCall[] {
+  public async getToolCalls(tabId: string, status?: ToolCallStatus): Promise<ToolCall[]> {
     let query = `
       SELECT * FROM tool_calls
       WHERE tab_id = ?
@@ -349,8 +350,8 @@ export class AIAssistantStateModel {
 
     query += ' ORDER BY start_time DESC';
 
-    const stmt = this.db.prepare(query);
-    const rows = stmt.all(...params) as any[];
+    const stmt = await this.db.prepare(query);
+    const rows = await stmt.all(...params) as any[];
 
     return rows.map(row => this.mapRowToToolCall(row));
   }
@@ -358,14 +359,14 @@ export class AIAssistantStateModel {
   /**
    * Get recent tool calls for a tab
    */
-  public getRecentToolCalls(tabId: string, count: number = 10): ToolCall[] {
-    const stmt = this.db.prepare(`
+  public async getRecentToolCalls(tabId: string, count: number = 10): Promise<ToolCall[]> {
+    const stmt = await this.db.prepare(`
       SELECT * FROM tool_calls
       WHERE tab_id = ?
       ORDER BY start_time DESC
       LIMIT ?
     `);
-    const rows = stmt.all(tabId, count) as any[];
+    const rows = await stmt.all(tabId, count) as any[];
 
     return rows.map(row => this.mapRowToToolCall(row));
   }
@@ -373,64 +374,64 @@ export class AIAssistantStateModel {
   /**
    * Clear tool calls for a tab
    */
-  public clearToolCalls(tabId: string): void {
-    const stmt = this.db.prepare('DELETE FROM tool_calls WHERE tab_id = ?');
-    stmt.run(tabId);
+  public async clearToolCalls(tabId: string): Promise<void> {
+    const stmt = await this.db.prepare('DELETE FROM tool_calls WHERE tab_id = ?');
+    await stmt.run(tabId);
   }
 
   /**
    * Update AI context
    */
-  public updateContext(tabId: string, context: Partial<AIContext>): void {
-    const existing = this.findByTabId(tabId);
+  public async updateContext(tabId: string, context: Partial<AIContext>): Promise<void> {
+    const existing = await this.findByTabId(tabId);
     if (!existing) return;
 
     const updatedContext = { ...existing.currentContext, ...context };
-    this.update(tabId, { currentContext: updatedContext });
+    await this.update(tabId, { currentContext: updatedContext });
   }
 
   /**
    * Update visibility state
    */
-  public updateVisibility(tabId: string, isVisible: boolean): void {
-    const existing = this.findByTabId(tabId);
+  public async updateVisibility(tabId: string, isVisible: boolean): Promise<void> {
+    const existing = await this.findByTabId(tabId);
     if (!existing) return;
 
-    this.update(tabId, { isVisible });
+    await this.update(tabId, { isVisible });
   }
 
   /**
    * Update scroll position
    */
-  public updateScrollPosition(tabId: string, position: number): void {
-    const existing = this.findByTabId(tabId);
+  public async updateScrollPosition(tabId: string, position: number): Promise<void> {
+    const existing = await this.findByTabId(tabId);
     if (!existing) return;
 
-    this.update(tabId, { scrollPosition: position });
+    await this.update(tabId, { scrollPosition: position });
   }
 
   /**
    * Update input height
    */
-  public updateInputHeight(tabId: string, height: number): void {
-    const existing = this.findByTabId(tabId);
+  public async updateInputHeight(tabId: string, height: number): Promise<void> {
+    const existing = await this.findByTabId(tabId);
     if (!existing) return;
 
-    this.update(tabId, { inputHeight: height });
+    await this.update(tabId, { inputHeight: height });
   }
 
   /**
    * Search messages by content
    */
-  public searchMessages(tabId: string, query: string, limit: number = 50): AIMessage[] {
-    const stmt = this.db.prepare(`
+  public async searchMessages(tabId: string, query: string, limit: number = 50): Promise<AIMessage[]> {
+    const stmt = await this.db.prepare(`
       SELECT * FROM ai_messages
       WHERE tab_id = ? AND content LIKE ?
       ORDER BY timestamp DESC
       LIMIT ?
     `);
 
-    const rows = stmt.all(tabId, `%${query}%`, limit) as any[];
+    const rows = await stmt.all(tabId, `%${query}%`, limit) as any[];
     return rows.reverse().map(row => ({
       id: row.id,
       tabId: row.tab_id,
@@ -444,29 +445,29 @@ export class AIAssistantStateModel {
   /**
    * Get AI assistant statistics
    */
-  public getStats(tabId?: string): {
+  public async getStats(tabId?: string): Promise<{
     totalMessages: number;
     totalToolCalls: number;
     completedToolCalls: number;
     averageToolExecutionTime: number;
     totalTokensUsed: number;
-  } {
+  }> {
     let messageWhere = tabId ? 'WHERE tab_id = ?' : '';
     let toolWhere = tabId ? 'WHERE tab_id = ?' : '';
     const messageParams = tabId ? [tabId] : [];
     const toolParams = tabId ? [tabId] : [];
 
-    const messageStmt = this.db.prepare(`SELECT COUNT(*) as count FROM ai_messages ${messageWhere}`);
-    const toolStmt = this.db.prepare(`SELECT COUNT(*) as count FROM tool_calls ${toolWhere}`);
-    const completedStmt = this.db.prepare(`
+    const messageStmt = await this.db.prepare(`SELECT COUNT(*) as count FROM ai_messages ${messageWhere}`);
+    const toolStmt = await this.db.prepare(`SELECT COUNT(*) as count FROM tool_calls ${toolWhere}`);
+    const completedStmt = await this.db.prepare(`
       SELECT COUNT(*) as count FROM tool_calls
       ${toolWhere} AND status = 'completed'
     `);
-    const avgTimeStmt = this.db.prepare(`
+    const avgTimeStmt = await this.db.prepare(`
       SELECT AVG(execution_time) as avg_time FROM tool_calls
       WHERE execution_time IS NOT NULL ${tabId ? 'AND tab_id = ?' : ''}
     `);
-    const tokensStmt = this.db.prepare(`
+    const tokensStmt = await this.db.prepare(`
       SELECT SUM(CAST(
         CASE
           WHEN metadata IS NOT NULL
@@ -477,11 +478,11 @@ export class AIAssistantStateModel {
       )) as total_tokens FROM ai_messages ${messageWhere}
     `);
 
-    const messages = messageStmt.get(...messageParams) as { count: number };
-    const tools = toolStmt.get(...toolParams) as { count: number };
-    const completed = completedStmt.get(...toolParams) as { count: number };
-    const avgTime = avgTimeStmt.get(...(tabId ? [tabId] : [])) as { avg_time: number | null };
-    const tokens = tokensStmt.get(...messageParams) as { total_tokens: number | null };
+    const messages = await messageStmt.get(...messageParams) as { count: number };
+    const tools = await toolStmt.get(...toolParams) as { count: number };
+    const completed = await completedStmt.get(...toolParams) as { count: number };
+    const avgTime = await avgTimeStmt.get(...(tabId ? [tabId] : [])) as { avg_time: number | null };
+    const tokens = await tokensStmt.get(...messageParams) as { total_tokens: number | null };
 
     return {
       totalMessages: messages.count,
@@ -495,37 +496,38 @@ export class AIAssistantStateModel {
   /**
    * Cleanup old AI data
    */
-  public cleanupOldData(olderThanDays: number = 30): void {
+  public async cleanupOldData(olderThanDays: number = 30): Promise<void> {
     const cutoffTime = Date.now() - (olderThanDays * 24 * 60 * 60 * 1000);
 
     // Clean old messages
-    const deleteMessagesStmt = this.db.prepare(`
+    const deleteMessagesStmt = await this.db.prepare(`
       DELETE FROM ai_messages WHERE timestamp < ?
     `);
-    deleteMessagesStmt.run(cutoffTime);
+    await deleteMessagesStmt.run(cutoffTime);
 
     // Clean old tool calls
-    const deleteToolCallsStmt = this.db.prepare(`
+    const deleteToolCallsStmt = await this.db.prepare(`
       DELETE FROM tool_calls WHERE start_time < ?
     `);
-    deleteToolCallsStmt.run(cutoffTime);
+    await deleteToolCallsStmt.run(cutoffTime);
   }
 
   /**
    * Insert multiple messages
    */
-  private insertMessages(messages: AIMessage[]): void {
+  private async insertMessages(messages: AIMessage[]): Promise<void> {
     if (messages.length === 0) return;
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       INSERT OR REPLACE INTO ai_messages (id, tab_id, role, content, timestamp, metadata)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    const db = this.db;
-    const transaction = db.transaction(() => {
+    // Manual transaction implementation
+    await this.db.exec('BEGIN');
+    try {
       for (const message of messages) {
-        stmt.run(
+        await stmt.run(
           message.id,
           message.tabId,
           message.role,
@@ -534,28 +536,31 @@ export class AIAssistantStateModel {
           message.metadata ? JSON.stringify(message.metadata) : null
         );
       }
-    });
-
-    transaction();
+      await this.db.exec('COMMIT');
+    } catch (error) {
+      await this.db.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   /**
    * Insert multiple tool calls
    */
-  private insertToolCalls(toolCalls: ToolCall[]): void {
+  private async insertToolCalls(toolCalls: ToolCall[]): Promise<void> {
     if (toolCalls.length === 0) return;
 
-    const stmt = this.db.prepare(`
+    const stmt = await this.db.prepare(`
       INSERT OR REPLACE INTO tool_calls (
         id, tab_id, command, status, result, error,
         start_time, end_time, execution_time, context
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const db = this.db;
-    const transaction = db.transaction(() => {
+    // Manual transaction implementation
+    await this.db.exec('BEGIN');
+    try {
       for (const toolCall of toolCalls) {
-        stmt.run(
+        await stmt.run(
           toolCall.id,
           toolCall.tabId,
           toolCall.command,
@@ -568,9 +573,11 @@ export class AIAssistantStateModel {
           JSON.stringify(toolCall.context)
         );
       }
-    });
-
-    transaction();
+      await this.db.exec('COMMIT');
+    } catch (error) {
+      await this.db.exec('ROLLBACK');
+      throw error;
+    }
   }
 
   /**

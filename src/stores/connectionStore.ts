@@ -44,7 +44,7 @@ export const useConnectionStore = defineStore('connection', () => {
       error.value = null;
 
       const connectionModel = getConnectionModel();
-      const dbConnections = connectionModel.findAll();
+      const dbConnections = await connectionModel.findAll();
 
       // Clear current state
       connections.value.clear();
@@ -94,7 +94,7 @@ export const useConnectionStore = defineStore('connection', () => {
       };
 
       // Create connection in database
-      const newConnection = connectionModel.create(connectionData);
+      const newConnection = await connectionModel.create(connectionData);
 
       // Add to state
       connections.value.set(newConnection.id, newConnection);
@@ -130,7 +130,7 @@ export const useConnectionStore = defineStore('connection', () => {
       const connectionModel = getConnectionModel();
 
       // Update in database
-      connectionModel.updateStatus(connectionId, status);
+      await connectionModel.updateStatus(connectionId, status);
 
       // Update local state
       const updatedConnection = { ...connection, status, updatedAt: Date.now() };
@@ -165,7 +165,7 @@ export const useConnectionStore = defineStore('connection', () => {
 
       // Reset reconnect attempts when manually connecting
       const connectionModel = getConnectionModel();
-      connectionModel.resetReconnectAttempts(connectionId);
+      await connectionModel.resetReconnectAttempts(connectionId);
 
       // Update local state
       connections.value.set(connectionId, {
@@ -214,7 +214,7 @@ export const useConnectionStore = defineStore('connection', () => {
       const connectionModel = getConnectionModel();
 
       // Delete from database
-      const success = connectionModel.delete(connectionId);
+      const success = await connectionModel.delete(connectionId);
       if (!success) {
         throw new Error(`Failed to delete connection from database: ${connectionId}`);
       }
@@ -273,7 +273,7 @@ export const useConnectionStore = defineStore('connection', () => {
       }
 
       // Increment reconnect attempts
-      connectionModel.incrementReconnectAttempts(connectionId);
+      await connectionModel.incrementReconnectAttempts(connectionId);
 
       // Update local state
       connections.value.set(connectionId, {
@@ -356,7 +356,7 @@ export const useConnectionStore = defineStore('connection', () => {
       const connectionModel = getConnectionModel();
 
       // Update health status in database
-      connectionModel.updateHealthStatus(connectionId, healthStatus);
+      await connectionModel.updateHealthStatus(connectionId, healthStatus);
 
       // Update local state
       const updatedConnection = {
@@ -385,7 +385,7 @@ export const useConnectionStore = defineStore('connection', () => {
       }
 
       const connectionModel = getConnectionModel();
-      connectionModel.incrementErrorCount(connectionId);
+      await connectionModel.incrementErrorCount(connectionId);
 
       // Update local state
       const updatedConnection = {
@@ -422,15 +422,15 @@ export const useConnectionStore = defineStore('connection', () => {
   /**
    * Get connection statistics
    */
-  function getStats(): {
+  async function getStats(): Promise<{
     totalConnections: number;
     connectedConnections: number;
     failedConnections: number;
     averageLatency: number;
     totalBytesTransferred: { sent: number; received: number };
     canCreateMore: boolean;
-  } {
-    const stats = getConnectionModel().getStats();
+  }> {
+    const stats = await getConnectionModel().getStats();
     return {
       ...stats,
       canCreateMore: canCreateConnection.value
@@ -440,8 +440,8 @@ export const useConnectionStore = defineStore('connection', () => {
   /**
    * Get connections that need health checks
    */
-  function getConnectionsNeedingHealthCheck(checkInterval: number = 30000): Connection[] {
-    return getConnectionModel().getConnectionsNeedingHealthCheck(checkInterval);
+  async function getConnectionsNeedingHealthCheck(checkInterval: number = 30000): Promise<Connection[]> {
+    return await getConnectionModel().getConnectionsNeedingHealthCheck(checkInterval);
   }
 
   /**
@@ -450,10 +450,10 @@ export const useConnectionStore = defineStore('connection', () => {
   async function clearAllConnections(): Promise<void> {
     try {
       const connectionModel = getConnectionModel();
-      const allConnections = connectionModel.findAll();
+      const allConnections = await connectionModel.findAll();
 
       for (const connection of allConnections) {
-        connectionModel.delete(connection.id);
+        await connectionModel.delete(connection.id);
       }
 
       connections.value.clear();

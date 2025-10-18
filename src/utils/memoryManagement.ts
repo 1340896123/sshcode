@@ -3,7 +3,10 @@
  *
  * Provides memory monitoring and cleanup functionality for the SSH client
  * to ensure optimal performance and prevent memory leaks.
+ * Enhanced with session-specific memory tracking for isolated session management.
  */
+
+import type { SessionMemoryManager, MemoryUsage, MemoryEnforcementResult, MemoryCleanupResult, MemoryOptimizationResult, EmergencyCleanupResult, OptimizationType } from '../types/session';
 
 // Type declaration for performance.memory API
 declare global {
@@ -373,6 +376,593 @@ Memory Report:
 
 // Export singleton instance
 export const memoryManager = MemoryManager.getInstance();
+
+// ============================================================================
+// SESSION MEMORY MANAGER
+// ============================================================================
+
+export class SessionMemoryManagerImpl implements SessionMemoryManager {
+  private sessionMemoryUsage: Map<string, MemoryUsage> = new Map();
+  private sessionLimits: Map<string, number> = new Map();
+  private totalMemoryLimit: number = 200 * 1024 * 1024; // 200MB default
+  private cleanupCallbacks: Map<string, (() => void)[]> = new Map();
+  private emergencyThreshold: number = 0.95; // 95%
+  private autoCleanupEnabled: boolean = false;
+  private autoCleanupInterval: NodeJS.Timeout | null = null;
+
+  constructor(totalMemoryLimit?: number) {
+    if (totalMemoryLimit) {
+      this.totalMemoryLimit = totalMemoryLimit;
+    }
+  }
+
+  // ============================================================================
+  // MEMORY TRACKING
+  // ============================================================================
+
+  async getSessionMemoryUsage(sessionId: string): Promise<MemoryUsage> {
+    let usage = this.sessionMemoryUsage.get(sessionId);
+
+    if (!usage) {
+      // Initialize memory usage for new session
+      usage = {
+        sessionId,
+        totalUsage: 0,
+        terminalMemory: 0,
+        fileManagerMemory: 0,
+        aiAssistantMemory: 0,
+        shellMemory: 0,
+        connectionMemory: 0,
+        lastUpdated: Date.now()
+      };
+      this.sessionMemoryUsage.set(sessionId, usage);
+    }
+
+    // Update with current estimates
+    await this.updateSessionMemoryEstimates(sessionId);
+
+    return usage;
+  }
+
+  async getTotalMemoryUsage(): Promise<number> {
+    let total = 0;
+    for (const usage of this.sessionMemoryUsage.values()) {
+      total += usage.totalUsage;
+    }
+
+    // Add base application memory usage
+    const baseMemory = this.getBaseApplicationMemory();
+    total += baseMemory;
+
+    return total;
+  }
+
+  async getMemoryUsageBySession(): Promise<Map<string, MemoryUsage>> {
+    // Update all sessions before returning
+    const updatePromises = Array.from(this.sessionMemoryUsage.keys()).map(
+      sessionId => this.updateSessionMemoryEstimates(sessionId)
+    );
+    await Promise.all(updatePromises);
+
+    return new Map(this.sessionMemoryUsage);
+  }
+
+  // ============================================================================
+  // MEMORY CONTROL
+  // ============================================================================
+
+  async setMemoryLimit(sessionId: string, limit: number): Promise<void> {
+    this.sessionLimits.set(sessionId, limit);
+    console.log(`Set memory limit for session ${sessionId}: ${(limit / 1024 / 1024).toFixed(1)}MB`);
+  }
+
+  async enforceMemoryLimits(): Promise<MemoryEnforcementResult> {
+    const sessionsEnforced: string[] = [];
+    let memoryFreed = 0;
+    const sessionsTerminated: string[] = [];
+    const warnings: string[] = [];
+
+    for (const [sessionId, usage] of this.sessionMemoryUsage) {
+      const limit = this.sessionLimits.get(sessionId) || (this.totalMemoryLimit / 10); // Default 10% of total
+      const totalUsage = await this.getTotalMemoryUsage();
+
+      if (usage.totalUsage > limit) {
+        // Try cleanup first
+        const cleanupResult = await this.cleanupSessionMemory(sessionId);
+        memoryFreed += cleanupResult.memoryFreed;
+
+        // Check if still over limit
+        const updatedUsage = await this.getSessionMemoryUsage(sessionId);
+        if (updatedUsage.totalUsage > limit) {
+          // More aggressive cleanup
+          const optimizationResult = await this.optimizeSessionMemory(sessionId);
+          memoryFreed += optimizationResult.memoryOptimized;
+
+          // Final check - consider termination if still over limit
+          const finalUsage = await this.getSessionMemoryUsage(sessionId);
+          if (finalUsage.totalUsage > limit * 1.2) { // 20% tolerance
+            sessionsTerminated.push(sessionId);
+            warnings.push(`Session ${sessionId} exceeded memory limit significantly and may need termination`);
+          } else {
+            sessionsEnforced.push(sessionId);
+          }
+        }
+      }
+
+      // Check total memory limit
+      if (totalUsage > this.totalMemoryLimit * this.emergencyThreshold) {
+        warnings.push('Total memory usage approaching critical threshold');
+        break;
+      }
+    }
+
+    return {
+      sessionsEnforced,
+      memoryFreed,
+      sessionsTerminated,
+      warnings
+    };
+  }
+
+  // ============================================================================
+  // MEMORY CLEANUP
+  // ============================================================================
+
+  async cleanupSessionMemory(sessionId: string): Promise<MemoryCleanupResult> {
+    const startTime = Date.now();
+    let memoryFreed = 0;
+    const componentsCleaned: string[] = [];
+    const errors: string[] = [];
+
+    try {
+      const usage = this.sessionMemoryUsage.get(sessionId);
+      if (!usage) {
+        throw new Error(`Session ${sessionId} not found`);
+      }
+
+      // Cleanup terminal memory
+      const terminalFreed = await this.cleanupTerminalMemory(sessionId);
+      if (terminalFreed > 0) {
+        memoryFreed += terminalFreed;
+        componentsCleaned.push('terminal-buffer');
+      }
+
+      // Cleanup file manager memory
+      const fileManagerFreed = await this.cleanupFileManagerMemory(sessionId);
+      if (fileManagerFreed > 0) {
+        memoryFreed += fileManagerFreed;
+        componentsCleaned.push('file-cache');
+      }
+
+      // Cleanup AI assistant memory
+      const aiFreed = await this.cleanupAIAssistantMemory(sessionId);
+      if (aiFreed > 0) {
+        memoryFreed += aiFreed;
+        componentsCleaned.push('ai-history');
+      }
+
+      // Cleanup shell memory
+      const shellFreed = await this.cleanupShellMemory(sessionId);
+      if (shellFreed > 0) {
+        memoryFreed += shellFreed;
+        componentsCleaned.push('shell-history');
+      }
+
+      // Run custom cleanup callbacks
+      const callbacks = this.cleanupCallbacks.get(sessionId) || [];
+      for (const callback of callbacks) {
+        try {
+          await callback();
+          componentsCleaned.push('custom-cleanup');
+        } catch (error) {
+          errors.push(`Custom cleanup callback failed: ${error}`);
+        }
+      }
+
+      // Update memory usage
+      await this.updateSessionMemoryEstimates(sessionId);
+
+    } catch (error) {
+      errors.push(`Cleanup failed for session ${sessionId}: ${error}`);
+    }
+
+    const duration = Date.now() - startTime;
+    const success = errors.length === 0;
+
+    return {
+      memoryFreed,
+      componentsCleaned,
+      duration,
+      success,
+      errors
+    };
+  }
+
+  async cleanupAllSessions(): Promise<MemoryCleanupResult> {
+    const sessionIds = Array.from(this.sessionMemoryUsage.keys());
+    let totalMemoryFreed = 0;
+    const allComponentsCleaned: string[] = [];
+    const allErrors: string[] = [];
+    let totalDuration = 0;
+
+    for (const sessionId of sessionIds) {
+      try {
+        const result = await this.cleanupSessionMemory(sessionId);
+        totalMemoryFreed += result.memoryFreed;
+        allComponentsCleaned.push(...result.componentsCleaned);
+        allErrors.push(...result.errors);
+        totalDuration += result.duration;
+      } catch (error) {
+        allErrors.push(`Failed to cleanup session ${sessionId}: ${error}`);
+      }
+    }
+
+    return {
+      memoryFreed: totalMemoryFreed,
+      componentsCleaned: [...new Set(allComponentsCleaned)],
+      duration: totalDuration,
+      success: allErrors.length === 0,
+      errors: allErrors
+    };
+  }
+
+  // ============================================================================
+  // AUTO CLEANUP MANAGEMENT
+  // ============================================================================
+
+  enableAutoCleanup(threshold: number, interval: number): void {
+    this.emergencyThreshold = threshold;
+    this.autoCleanupEnabled = true;
+
+    if (this.autoCleanupInterval) {
+      clearInterval(this.autoCleanupInterval);
+    }
+
+    this.autoCleanupInterval = setInterval(async () => {
+      try {
+        const totalUsage = await this.getTotalMemoryUsage();
+        if (totalUsage > this.totalMemoryLimit * threshold) {
+          console.log(`Auto cleanup triggered - memory usage: ${(totalUsage / 1024 / 1024).toFixed(1)}MB`);
+          await this.cleanupAllSessions();
+        }
+      } catch (error) {
+        console.error('Auto cleanup failed:', error);
+      }
+    }, interval);
+
+    console.log(`Auto cleanup enabled - threshold: ${(threshold * 100).toFixed(1)}%, interval: ${interval}ms`);
+  }
+
+  disableAutoCleanup(): void {
+    if (this.autoCleanupInterval) {
+      clearInterval(this.autoCleanupInterval);
+      this.autoCleanupInterval = null;
+    }
+    this.autoCleanupEnabled = false;
+    console.log('Auto cleanup disabled');
+  }
+
+  // ============================================================================
+  // MEMORY OPTIMIZATION
+  // ============================================================================
+
+  async optimizeSessionMemory(sessionId: string): Promise<MemoryOptimizationResult> {
+    const startTime = Date.now();
+    let memoryOptimized = 0;
+    const optimizationsApplied: OptimizationType[] = [];
+    const errors: string[] = [];
+
+    try {
+      // Terminal buffer truncation
+      const terminalResult = await this.optimizeTerminalMemory(sessionId);
+      if (terminalResult > 0) {
+        memoryOptimized += terminalResult;
+        optimizationsApplied.push('terminal-buffer-truncate');
+      }
+
+      // File cache clearing
+      const fileResult = await this.optimizeFileManagerMemory(sessionId);
+      if (fileResult > 0) {
+        memoryOptimized += fileResult;
+        optimizationsApplied.push('file-cache-clear');
+      }
+
+      // AI history compression
+      const aiResult = await this.optimizeAIAssistantMemory(sessionId);
+      if (aiResult > 0) {
+        memoryOptimized += aiResult;
+        optimizationsApplied.push('ai-history-compress');
+      }
+
+      // Shell history limiting
+      const shellResult = await this.optimizeShellMemory(sessionId);
+      if (shellResult > 0) {
+        memoryOptimized += shellResult;
+        optimizationsApplied.push('shell-history-limit');
+      }
+
+      // Connection pool reduction
+      const connectionResult = await this.optimizeConnectionMemory(sessionId);
+      if (connectionResult > 0) {
+        memoryOptimized += connectionResult;
+        optimizationsApplied.push('connection-pool-reduce');
+      }
+
+      // Force garbage collection
+      if (window.gc) {
+        window.gc();
+        optimizationsApplied.push('garbage-collection');
+      }
+
+    } catch (error) {
+      errors.push(`Memory optimization failed for session ${sessionId}: ${error}`);
+    }
+
+    const duration = Date.now() - startTime;
+    const success = errors.length === 0;
+
+    // Estimate performance impact based on optimizations applied
+    let performanceImpact: 'low' | 'medium' | 'high' = 'low';
+    if (optimizationsApplied.length > 3) {
+      performanceImpact = 'high';
+    } else if (optimizationsApplied.length > 1) {
+      performanceImpact = 'medium';
+    }
+
+    return {
+      memoryOptimized,
+      optimizationsApplied,
+      duration,
+      success,
+      performanceImpact
+    };
+  }
+
+  async optimizeAllSessions(): Promise<MemoryOptimizationResult> {
+    const sessionIds = Array.from(this.sessionMemoryUsage.keys());
+    let totalMemoryOptimized = 0;
+    const allOptimizations: OptimizationType[] = [];
+    const allErrors: string[] = [];
+    let totalDuration = 0;
+
+    for (const sessionId of sessionIds) {
+      try {
+        const result = await this.optimizeSessionMemory(sessionId);
+        totalMemoryOptimized += result.memoryOptimized;
+        allOptimizations.push(...result.optimizationsApplied);
+        totalDuration += result.duration;
+      } catch (error) {
+        allErrors.push(`Failed to optimize session ${sessionId}: ${error}`);
+      }
+    }
+
+    const optimizationsApplied = [...new Set(allOptimizations)];
+    let performanceImpact: 'low' | 'medium' | 'high' = 'low';
+    if (optimizationsApplied.length > 5) {
+      performanceImpact = 'high';
+    } else if (optimizationsApplied.length > 2) {
+      performanceImpact = 'medium';
+    }
+
+    return {
+      memoryOptimized: totalMemoryOptimized,
+      optimizationsApplied,
+      duration: totalDuration,
+      success: allErrors.length === 0,
+      performanceImpact
+    };
+  }
+
+  // ============================================================================
+  // EMERGENCY PROCEDURES
+  // ============================================================================
+
+  async triggerEmergencyCleanup(): Promise<EmergencyCleanupResult> {
+    console.warn('Triggering emergency cleanup - memory usage critically high');
+    const startTime = Date.now();
+
+    try {
+      // Step 1: Aggressive cleanup of all sessions
+      const cleanupResult = await this.cleanupAllSessions();
+
+      // Step 2: Aggressive optimization
+      const optimizationResult = await this.optimizeAllSessions();
+
+      // Step 3: Force garbage collection multiple times
+      for (let i = 0; i < 3; i++) {
+        if (window.gc) {
+          window.gc();
+          await new Promise(resolve => setTimeout(resolve, 100)); // Brief pause
+        }
+      }
+
+      // Step 4: Identify critical sessions
+      const criticalSessions: string[] = [];
+      for (const [sessionId, usage] of this.sessionMemoryUsage) {
+        const limit = this.sessionLimits.get(sessionId) || (this.totalMemoryLimit / 10);
+        if (usage.totalUsage > limit * 1.5) {
+          criticalSessions.push(sessionId);
+        }
+      }
+
+      const memoryFreed = cleanupResult.memoryFreed + optimizationResult.memoryOptimized;
+      const sessionsTerminated = criticalSessions.length;
+      const success = criticalSessions.length === 0;
+      const downtime = Date.now() - startTime;
+
+      if (!success) {
+        console.error(`Emergency cleanup completed but ${sessionsTerminated} sessions still exceed limits`);
+      }
+
+      return {
+        memoryFreed,
+        sessionsTerminated,
+        criticalSessions,
+        success,
+        downtime
+      };
+
+    } catch (error) {
+      console.error('Emergency cleanup failed:', error);
+      return {
+        memoryFreed: 0,
+        sessionsTerminated: 0,
+        criticalSessions: [],
+        success: false,
+        downtime: Date.now() - startTime
+      };
+    }
+  }
+
+  setEmergencyThreshold(threshold: number): void {
+    this.emergencyThreshold = threshold;
+    console.log(`Emergency cleanup threshold set to ${(threshold * 100).toFixed(1)}%`);
+  }
+
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+
+  registerCleanupCallback(sessionId: string, callback: () => void): void {
+    if (!this.cleanupCallbacks.has(sessionId)) {
+      this.cleanupCallbacks.set(sessionId, []);
+    }
+    this.cleanupCallbacks.get(sessionId)!.push(callback);
+  }
+
+  unregisterCleanupCallback(sessionId: string, callback: () => void): void {
+    const callbacks = this.cleanupCallbacks.get(sessionId);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
+      if (index > -1) {
+        callbacks.splice(index, 1);
+      }
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+
+  private async updateSessionMemoryEstimates(sessionId: string): Promise<void> {
+    const usage = this.sessionMemoryUsage.get(sessionId);
+    if (!usage) return;
+
+    // Estimate memory usage based on heuristics
+    // In a real implementation, these would be actual measurements
+    usage.terminalMemory = this.estimateTerminalMemory(sessionId);
+    usage.fileManagerMemory = this.estimateFileManagerMemory(sessionId);
+    usage.aiAssistantMemory = this.estimateAIAssistantMemory(sessionId);
+    usage.shellMemory = this.estimateShellMemory(sessionId);
+    usage.connectionMemory = this.estimateConnectionMemory(sessionId);
+
+    usage.totalUsage = usage.terminalMemory + usage.fileManagerMemory +
+                      usage.aiAssistantMemory + usage.shellMemory + usage.connectionMemory;
+    usage.lastUpdated = Date.now();
+
+    this.sessionMemoryUsage.set(sessionId, usage);
+  }
+
+  private getBaseApplicationMemory(): number {
+    // Estimate base application memory (non-session related)
+    try {
+      if (performance.memory) {
+        return performance.memory.usedJSHeapSize;
+      }
+    } catch (error) {
+      // Fallback estimate
+      return 50 * 1024 * 1024; // 50MB estimate
+    }
+    return 50 * 1024 * 1024;
+  }
+
+  // Memory estimation methods (simplified for this example)
+  private estimateTerminalMemory(sessionId: string): number {
+    return 5 * 1024 * 1024; // 5MB estimate
+  }
+
+  private estimateFileManagerMemory(sessionId: string): number {
+    return 3 * 1024 * 1024; // 3MB estimate
+  }
+
+  private estimateAIAssistantMemory(sessionId: string): number {
+    return 10 * 1024 * 1024; // 10MB estimate
+  }
+
+  private estimateShellMemory(sessionId: string): number {
+    return 2 * 1024 * 1024; // 2MB estimate
+  }
+
+  private estimateConnectionMemory(sessionId: string): number {
+    return 8 * 1024 * 1024; // 8MB estimate
+  }
+
+  // Component-specific cleanup methods
+  private async cleanupTerminalMemory(sessionId: string): Promise<number> {
+    // Emit event for terminal component to cleanup
+    this.emitCleanupEvent(sessionId, 'terminal-cleanup');
+    return 1024 * 1024; // 1MB estimated
+  }
+
+  private async cleanupFileManagerMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'file-manager-cleanup');
+    return 512 * 1024; // 512KB estimated
+  }
+
+  private async cleanupAIAssistantMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'ai-assistant-cleanup');
+    return 2 * 1024 * 1024; // 2MB estimated
+  }
+
+  private async cleanupShellMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'shell-cleanup');
+    return 256 * 1024; // 256KB estimated
+  }
+
+  // Component-specific optimization methods
+  private async optimizeTerminalMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'terminal-optimize');
+    return 2048 * 1024; // 2MB estimated
+  }
+
+  private async optimizeFileManagerMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'file-manager-optimize');
+    return 1024 * 1024; // 1MB estimated
+  }
+
+  private async optimizeAIAssistantMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'ai-assistant-optimize');
+    return 3 * 1024 * 1024; // 3MB estimated
+  }
+
+  private async optimizeShellMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'shell-optimize');
+    return 128 * 1024; // 128KB estimated
+  }
+
+  private async optimizeConnectionMemory(sessionId: string): Promise<number> {
+    this.emitCleanupEvent(sessionId, 'connection-optimize');
+    return 1024 * 1024; // 1MB estimated
+  }
+
+  private emitCleanupEvent(sessionId: string, action: string): void {
+    const event = new CustomEvent('session-memory-cleanup', {
+      detail: { sessionId, action, timestamp: Date.now() }
+    });
+    window.dispatchEvent(event);
+  }
+
+  // Cleanup method
+  destroy(): void {
+    this.disableAutoCleanup();
+    this.sessionMemoryUsage.clear();
+    this.sessionLimits.clear();
+    this.cleanupCallbacks.clear();
+  }
+}
+
+// Export session memory manager
+export const sessionMemoryManager = new SessionMemoryManagerImpl();
 
 // Utility functions for easy access
 export const startMemoryMonitoring = (intervalMs?: number) => memoryManager.startMonitoring(intervalMs);

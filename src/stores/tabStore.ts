@@ -31,7 +31,7 @@ export const useTabStore = defineStore('tab', () => {
       error.value = null;
 
       const tabModel = getTabModel();
-      const dbTabs = tabModel.findAll();
+      const dbTabs = await tabModel.findAll();
 
       // Clear current state
       tabs.value.clear();
@@ -42,7 +42,7 @@ export const useTabStore = defineStore('tab', () => {
       }
 
       // Set active tab
-      const activeDbTab = tabModel.findActive();
+      const activeDbTab = await tabModel.findActive();
       if (activeDbTab) {
         activeTabId.value = activeDbTab.id;
       } else if (tabs.value.size > 0) {
@@ -74,7 +74,7 @@ export const useTabStore = defineStore('tab', () => {
       const tabModel = getTabModel();
 
       // Determine position for new tab
-      const maxPosition = tabModel.getMaxPosition();
+      const maxPosition = await tabModel.getMaxPosition();
       const position = request?.position ?? maxPosition + 1;
 
       // Create tab data
@@ -127,10 +127,10 @@ export const useTabStore = defineStore('tab', () => {
       const tabModel = getTabModel();
 
       // Update active status in database
-      tabModel.setActive(tabId, true);
+      await tabModel.setActive(tabId, true);
 
       // Update last accessed
-      tabModel.updateLastAccessed(tabId);
+      await tabModel.updateLastAccessed(tabId);
 
       // Update local state
       // Deactivate all tabs
@@ -170,7 +170,7 @@ export const useTabStore = defineStore('tab', () => {
       const tabModel = getTabModel();
 
       // Delete from database
-      const success = tabModel.delete(tabId);
+      const success = await tabModel.delete(tabId);
       if (!success) {
         throw new Error(`Failed to delete tab from database: ${tabId}`);
       }
@@ -282,7 +282,7 @@ export const useTabStore = defineStore('tab', () => {
       }
 
       // Update positions in database
-      tabModel.updatePositions(updates);
+      await tabModel.updatePositions(updates);
 
       // Update local state
       for (const update of updates) {
@@ -320,13 +320,13 @@ export const useTabStore = defineStore('tab', () => {
   /**
    * Get tab statistics
    */
-  function getStats(): {
+  async function getStats(): Promise<{
     totalTabs: number;
     activeTabs: number;
     visibleTabs: number;
     canCreateMore: boolean;
-  } {
-    const stats = getTabModel().getStats();
+  }> {
+    const stats = await getTabModel().getStats();
     return {
       ...stats,
       canCreateMore: canCreateTab.value
@@ -353,10 +353,10 @@ export const useTabStore = defineStore('tab', () => {
   async function clearAllTabs(): Promise<void> {
     try {
       const tabModel = getTabModel();
-      const allTabs = tabModel.findAll();
+      const allTabs = await tabModel.findAll();
 
       for (const tab of allTabs) {
-        tabModel.delete(tab.id);
+        await tabModel.delete(tab.id);
       }
 
       tabs.value.clear();
@@ -374,7 +374,7 @@ export const useTabStore = defineStore('tab', () => {
   async function reorderTabsAfterClose(closedTabId: string): Promise<void> {
     try {
       const tabModel = getTabModel();
-      const remainingTabs = tabModel.findAll().sort((a, b) => a.position - b.position);
+      const remainingTabs = (await tabModel.findAll()).sort((a, b) => a.position - b.position);
 
       const updates: { id: string; position: number }[] = [];
       remainingTabs.forEach((tab, index) => {
@@ -384,7 +384,7 @@ export const useTabStore = defineStore('tab', () => {
       });
 
       if (updates.length > 0) {
-        tabModel.updatePositions(updates);
+        await tabModel.updatePositions(updates);
 
         // Update local state
         for (const update of updates) {

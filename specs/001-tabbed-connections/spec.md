@@ -14,7 +14,7 @@
 - Q: What specific components should be preserved as "state" when switching tabs? → A: State preservation applies to three components: file manager (directory/navigation state), terminal (session/history/output), and AI assistant (chat history/context)
 - Q: When users create multiple sessions to the same SSH server (same host, username, and authentication), how should the system distinguish between these connections? → A: Generate unique connection IDs internally but display identical names (rely on tab position only)
 - Q: SSH servers often have connection limits per user. How should the system handle scenarios where users attempt to create multiple sessions that exceed the server's connection limits? → A: Automatically detect server connection limits and prevent creating new sessions when limits would be exceeded
-- Q: When users have multiple sessions to the same server, should each session maintain its own independent working directory, or should they share the same working directory state? → A: Each session maintains its own independent working directory state
+- Q: When users have multiple sessions to the same server, should each session maintain its own independent working directory, or should they share the same working directory state? → A: Each session maintains completely independent working directory, shell environment, and terminal state
 - Q: To facilitate creating multiple sessions to the same server (a common workflow for development), should the system provide a specialized quick action for duplicating an existing connection with the same credentials? → A: No special duplication needed - users can create new tab and reuse same credentials manually
 
 ## User Scenarios & Testing *(mandatory)*
@@ -114,7 +114,7 @@ Users can have their tab configuration and connection details restored when reop
 ### Functional Requirements
 
 - **FR-001**: System MUST allow users to create up to 15 tabs, each representing an independent SSH connection (including multiple sessions to the same server), with graceful degradation warnings when approaching limits
-- **FR-002**: System MUST maintain separate connection state, terminal session (history/output), file manager state (independent directory/navigation for each session even to same server), and AI assistant context (chat history) for each tab
+- **FR-002**: System MUST maintain separate connection state, terminal session (history/output, shell environment, working directory), file manager state (independent directory/navigation for each session even to same server), and AI assistant context (chat history) for each tab
 - **FR-003**: System MUST provide instant tab switching with immediate context switching to the selected connection, including automatic SSH reconnection if the connection was disconnected
 - **FR-004**: System MUST display clear visual indicators for each tab's connection status (connected, connecting, disconnected, failed)
 - **FR-005**: System MUST allow users to rename tabs for better organization and identification
@@ -137,7 +137,7 @@ Users can have their tab configuration and connection details restored when reop
 - **Tab**: Represents a visual container for a single SSH connection with metadata (name, status, connection info)
 - **Connection**: Represents the actual SSH connection state and associated resources (terminal session, file operations, AI context)
 - **Tab Configuration**: User preferences for tab organization, custom names, and layout settings
-- **Session State**: Preserved state information for each connection including terminal history/output, file manager directory/navigation state, and AI assistant chat history/context
+- **Session State**: Preserved state information for each connection including terminal history/output, shell environment, working directory, file manager directory/navigation state, and AI assistant chat history/context
 
 ## Success Criteria *(mandatory)*
 

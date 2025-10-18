@@ -22,8 +22,8 @@ export class AIAssistantStateService {
   /**
    * Initialize AI assistant state tracking for a tab
    */
-  initializeAIAssistantState(tabId: string): void {
-    const existingState = this.aiAssistantModel.findByTabId(tabId);
+  async initializeAIAssistantState(tabId: string): Promise<void> {
+    const existingState = await this.aiAssistantModel.findByTabId(tabId);
 
     if (existingState) {
       this.aiAssistantStates.set(tabId, existingState);
@@ -52,7 +52,7 @@ export class AIAssistantStateService {
         scrollPosition: 0
       };
       this.aiAssistantStates.set(tabId, defaultState);
-      this.aiAssistantModel.create(tabId, defaultState);
+      await this.aiAssistantModel.create(tabId, defaultState);
     }
   }
 
@@ -80,7 +80,7 @@ export class AIAssistantStateService {
     metadata?: AIMessageMetadata
   ): Promise<AIMessage | null> {
     try {
-      const message = this.aiAssistantModel.addMessage(tabId, role, content, metadata);
+      const message = await this.aiAssistantModel.addMessage(tabId, role, content, metadata);
 
       const state = this.aiAssistantStates.get(tabId);
       if (state) {
@@ -112,9 +112,9 @@ export class AIAssistantStateService {
   /**
    * Get recent messages for a tab
    */
-  getRecentMessages(tabId: string, count: number = 20): AIMessage[] {
+  async getRecentMessages(tabId: string, count: number = 20): Promise<AIMessage[]> {
     try {
-      return this.aiAssistantModel.getRecentMessages(tabId, count);
+      return await this.aiAssistantModel.getRecentMessages(tabId, count);
     } catch (error) {
       console.error(`Failed to get recent messages for tab ${tabId}:`, error);
       return [];
@@ -146,7 +146,7 @@ export class AIAssistantStateService {
     context: ToolCallContext
   ): Promise<ToolCall | null> {
     try {
-      const toolCall = this.aiAssistantModel.addToolCall(tabId, command, context);
+      const toolCall = await this.aiAssistantModel.addToolCall(tabId, command, context);
 
       const state = this.aiAssistantStates.get(tabId);
       if (state) {
@@ -210,9 +210,9 @@ export class AIAssistantStateService {
   /**
    * Get recent tool calls for a tab
    */
-  getRecentToolCalls(tabId: string, count: number = 10): ToolCall[] {
+  async getRecentToolCalls(tabId: string, count: number = 10): Promise<ToolCall[]> {
     try {
-      return this.aiAssistantModel.getRecentToolCalls(tabId, count);
+      return await this.aiAssistantModel.getRecentToolCalls(tabId, count);
     } catch (error) {
       console.error(`Failed to get recent tool calls for tab ${tabId}:`, error);
       return [];
@@ -332,9 +332,9 @@ export class AIAssistantStateService {
   /**
    * Search messages by content
    */
-  searchMessages(tabId: string, query: string, limit: number = 50): AIMessage[] {
+  async searchMessages(tabId: string, query: string, limit: number = 50): Promise<AIMessage[]> {
     try {
-      return this.aiAssistantModel.searchMessages(tabId, query, limit);
+      return await this.aiAssistantModel.searchMessages(tabId, query, limit);
     } catch (error) {
       console.error(`Failed to search messages for tab ${tabId}:`, error);
       return [];
@@ -344,15 +344,15 @@ export class AIAssistantStateService {
   /**
    * Get AI assistant statistics for a tab
    */
-  getAIAssistantStats(tabId: string): {
+  async getAIAssistantStats(tabId: string): Promise<{
     totalMessages: number;
     totalToolCalls: number;
     completedToolCalls: number;
     averageToolExecutionTime: number;
     totalTokensUsed: number;
-  } {
+  }> {
     try {
-      const stats = this.aiAssistantModel.getStats(tabId);
+      const stats = await this.aiAssistantModel.getStats(tabId);
       return {
         totalMessages: stats.totalMessages,
         totalToolCalls: stats.totalToolCalls,
@@ -391,7 +391,7 @@ export class AIAssistantStateService {
    */
   async restoreState(tabId: string): Promise<AIAssistantState | null> {
     try {
-      const state = this.aiAssistantModel.findByTabId(tabId);
+      const state = await this.aiAssistantModel.findByTabId(tabId);
       if (state) {
         this.aiAssistantStates.set(tabId, state);
       }

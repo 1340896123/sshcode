@@ -176,9 +176,59 @@ All research findings support the success criteria defined in the specification:
 - **SC-006** (100% state preservation): Supported by SQLite + hybrid storage approach
 - **SC-007** (<3s startup restoration): Possible with efficient session restore service
 
+## 5. Session State Isolation Patterns (Additional Research)
+
+**Decision**: Enhanced session isolation with independent working directories and shell environments
+**Rationale**: Complete session independence is critical for multi-server development workflows where users need different contexts even on the same server.
+
+**Key Findings**:
+- **Session Factory Pattern**: Ensures consistent isolated session creation
+- **Environment Isolation**: Session-specific variables, unique history files, independent PTY allocation
+- **Working Directory Tracking**: Real-time directory change detection via PROMPT_COMMAND interception
+- **State Persistence**: JSON-based session state for crash recovery
+- **Memory Safety**: Bounded terminal buffers, proactive cleanup, session lifecycle management
+
+**Implementation Strategy**:
+```typescript
+// Session isolation: Unique SESSION_ID, TAB_ID, HISTFILE per session
+// Environment isolation: Independent PTY allocation with custom shell initialization
+// Working directory tracking: PROMPT_COMMAND interception for real-time tracking
+// State management: SessionStateManager with serialization for persistence
+```
+
+### Session Isolation Architecture
+
+```typescript
+interface IsolatedSession {
+  sessionId: string;
+  connectionId: string;
+  sshConnection: Client;
+  shellStream: ClientChannel;
+  workingDirectory: string;
+  environment: Record<string, string>;
+  terminalState: TerminalState;
+  createdAt: number;
+  lastActivity: number;
+}
+```
+
+### Enhanced Shell Creation
+
+- Session-specific environment variables (`SESSION_ID`, `TAB_ID`, `HISTFILE`)
+- Working directory tracking via shell command interception
+- Isolated PTY allocation with unique identifiers
+- Custom shell initialization for complete independence
+
+### State Management Enhancement
+
+- `SessionStateManager` for working directory tracking
+- `TerminalStateManager` for buffer and state preservation
+- Session serialization for crash recovery
+- Environment variable isolation per session
+
 ## Next Steps
 
-Phase 0 research complete. All technical unknowns resolved. Ready to proceed to Phase 1 design phase with:
+Phase 0 research complete. All technical unknowns resolved including session isolation patterns. Ready to proceed to Phase 1 design phase with:
 - Data model specification
 - API contract definitions
 - Component architecture design

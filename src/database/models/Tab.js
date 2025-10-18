@@ -24,11 +24,11 @@ class TabModel {
             createdAt: now,
             updatedAt: now
         };
-        const stmt = this.db.prepare(`INSERT INTO tabs (
+        const stmt = await this.db.prepare(`INSERT INTO tabs (
         id, name, connection_id, is_active, is_visible, position,
         last_accessed, created_at, updated_at, window_state
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-        const result = stmt.run(tab.id, tab.name, tab.connectionId, tab.isActive ? 1 : 0, tab.isVisible ? 1 : 0, tab.position, tab.lastAccessed, tab.createdAt, tab.updatedAt, JSON.stringify(tab.windowState));
+        const result = await stmt.run(tab.id, tab.name, tab.connectionId, tab.isActive ? 1 : 0, tab.isVisible ? 1 : 0, tab.position, tab.lastAccessed, tab.createdAt, tab.updatedAt, JSON.stringify(tab.windowState));
         if (result.changes === 0) {
             throw new Error(`Failed to create tab: No rows inserted`);
         }
@@ -38,8 +38,8 @@ class TabModel {
      * Get a tab by ID
      */
     async findById(id) {
-        const stmt = this.db.prepare('SELECT * FROM tabs WHERE id = ?');
-        const row = stmt.get(id);
+        const stmt = await this.db.prepare('SELECT * FROM tabs WHERE id = ?');
+        const row = await stmt.get(id);
         if (!row)
             return null;
         return this.mapRowToTab(row);
@@ -47,25 +47,25 @@ class TabModel {
     /**
      * Get all tabs, ordered by position
      */
-    findAll() {
-        const stmt = this.db.prepare('SELECT * FROM tabs ORDER BY position');
-        const rows = stmt.all();
+    async findAll() {
+        const stmt = await this.db.prepare('SELECT * FROM tabs ORDER BY position');
+        const rows = await stmt.all();
         return rows.map(row => this.mapRowToTab(row));
     }
     /**
      * Get all tabs for a connection
      */
-    findByConnectionId(connectionId) {
-        const stmt = this.db.prepare('SELECT * FROM tabs WHERE connection_id = ? ORDER BY position');
-        const rows = stmt.all(connectionId);
+    async findByConnectionId(connectionId) {
+        const stmt = await this.db.prepare('SELECT * FROM tabs WHERE connection_id = ? ORDER BY position');
+        const rows = await stmt.all(connectionId);
         return rows.map(row => this.mapRowToTab(row));
     }
     /**
      * Get the active tab
      */
-    findActive() {
-        const stmt = this.db.prepare('SELECT * FROM tabs WHERE is_active = 1 LIMIT 1');
-        const row = stmt.get();
+    async findActive() {
+        const stmt = await this.db.prepare('SELECT * FROM tabs WHERE is_active = 1 LIMIT 1');
+        const row = await stmt.get();
         if (!row)
             return null;
         return this.mapRowToTab(row);
@@ -115,77 +115,92 @@ class TabModel {
         }
         setClause.push('updated_at = ?');
         values.push(updated.updatedAt);
-        const stmt = this.db.prepare(`
+        const stmt = await this.db.prepare(`
       UPDATE tabs SET ${setClause.join(', ')} WHERE id = ?
     `);
-        stmt.run(...values, id);
+        await stmt.run(...values, id);
         return updated;
     }
     /**
      * Update a tab's active status (deactivates all other tabs)
      */
-    setActive(id, isActive) {
-        const db = this.db;
-        db.transaction(() => {
+    async setActive(id, isActive) {
+        // Manual transaction implementation
+        await this.db.exec('BEGIN');
+        try {
             // Deactivate all tabs
-            const deactivateStmt = db.prepare('UPDATE tabs SET is_active = 0');
-            deactivateStmt.run();
+            const deactivateStmt = await this.db.prepare('UPDATE tabs SET is_active = 0');
+            await deactivateStmt.run();
             // Activate the specified tab
             if (isActive) {
-                const activateStmt = db.prepare('UPDATE tabs SET is_active = 1 WHERE id = ?');
-                activateStmt.run(id);
+                const activateStmt = await this.db.prepare('UPDATE tabs SET is_active = 1 WHERE id = ?');
+                await activateStmt.run(id);
             }
-        })();
+            await this.db.exec('COMMIT');
+        }
+        catch (error) {
+            await this.db.exec('ROLLBACK');
+            throw error;
+        }
     }
     /**
      * Delete a tab
      */
-    delete(id) {
-        const stmt = this.db.prepare('DELETE FROM tabs WHERE id = ?');
-        const result = stmt.run(id);
+    async delete(id) {
+        const stmt = await this.db.prepare('DELETE FROM tabs WHERE id = ?');
+        const result = await stmt.run(id);
         return result.changes > 0;
     }
     /**
      * Update tab positions after reordering
      */
-    updatePositions(updates) {
-        const db = this.db;
-        db.transaction(() => {
-            const stmt = db.prepare('UPDATE tabs SET position = ? WHERE id = ?');
+    async updatePositions(updates) {
+        // Manual transaction implementation
+        await this.db.exec('BEGIN');
+        try {
+            const stmt = await this.db.prepare('UPDATE tabs SET position = ? WHERE id = ?');
             for (const update of updates) {
-                stmt.run(update.position, update.id);
+                await stmt.run(update.position, update.id);
             }
-        })();
+            await this.db.exec('COMMIT');
+        }
+        catch (error) {
+            await this.db.exec('ROLLBACK');
+            throw error;
+        }
     }
     /**
      * Get the highest position number
      */
-    getMaxPosition() {
-        const stmt = this.db.prepare('SELECT MAX(position) as maxPosition FROM tabs');
-        const result = stmt.get();
+    async getMaxPosition() {
+        const stmt = await this.db.prepare('SELECT MAX(position) as maxPosition FROM tabs');
+        const result = await stmt.get();
         return result.maxPosition ?? 0;
     }
     /**
      * Update the last accessed timestamp for a tab
      */
-    updateLastAccessed(id) {
-        const stmt = this.db.prepare(`
+    async updateLastAccessed(id) {
+        const stmt = await this.db.prepare(`
       UPDATE tabs SET last_accessed = ?, updated_at = ? WHERE id = ?
     `);
         const now = Date.now();
-        stmt.run(now, now, id);
+        await stmt.run(now, now, id);
     }
     /**
      * Get statistics about tabs
      */
-    getStats() {
-        const totalStmt = this.db.prepare('SELECT COUNT(*) as count FROM tabs');
-        const activeStmt = this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_active = 1');
-        const visibleStmt = this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_visible = 1');
+    async getStats() {
+        const totalStmt = await this.db.prepare('SELECT COUNT(*) as count FROM tabs');
+        const activeStmt = await this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_active = 1');
+        const visibleStmt = await this.db.prepare('SELECT COUNT(*) as count FROM tabs WHERE is_visible = 1');
+        const total = await totalStmt.get();
+        const active = await activeStmt.get();
+        const visible = await visibleStmt.get();
         return {
-            totalTabs: totalStmt.get().count,
-            activeTabs: activeStmt.get().count,
-            visibleTabs: visibleStmt.get().count
+            totalTabs: total.count,
+            activeTabs: active.count,
+            visibleTabs: visible.count
         };
     }
     /**
