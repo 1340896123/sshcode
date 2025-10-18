@@ -144,6 +144,7 @@ export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
         .filter(msg => msg.role !== 'system')
         .map(msg => ({
           id: msg.id,
+          tabId: props.connectionId || 'default',
           role: msg.role,
           content: msg.content,
           timestamp: msg.timestamp.getTime()

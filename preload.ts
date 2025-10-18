@@ -25,6 +25,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSession: (sessionData: SessionData) => ipcRenderer.invoke('save-session', sessionData),
   deleteSession: (sessionId: string) => ipcRenderer.invoke('delete-session', sessionId),
 
+  // Tab session management
+  getLastTabSession: () => ipcRenderer.invoke('get-last-tab-session'),
+  saveTabSession: (sessionState: any) => ipcRenderer.invoke('save-tab-session', sessionState),
+  clearTabSession: () => ipcRenderer.invoke('clear-tab-session'),
+
   // SSH connections
   sshConnect: (connectionConfig: SSHConnectionConfig) =>
     ipcRenderer.invoke('ssh-connect', connectionConfig),

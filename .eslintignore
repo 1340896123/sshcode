@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+coverage/
+
+# Generated files
+*.min.js
+*.bundle.js
+*.chunk.js
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration
+config/
+userData/
+
+# Temporary files
+temp/
+tmp/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Test results
+test-results/
+playwright-report/

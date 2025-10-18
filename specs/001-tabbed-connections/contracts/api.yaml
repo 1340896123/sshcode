@@ -1,0 +1,1021 @@
+# API Contracts: Tabbed Connection Management
+# OpenAPI 3.0.2 Specification
+
+openapi: 3.0.2
+info:
+  title: SSH Client Tabbed Connection API
+  description: API contracts for tab management, connection operations, and state persistence
+  version: 1.0.0
+  contact:
+    name: SSH Client Team
+
+servers:
+  - url: electron://main
+    description: Electron main process IPC
+
+paths:
+  /tabs:
+    get:
+      summary: Get all tabs
+      description: Retrieve list of all tabs with their current state
+      operationId: getTabs
+      tags:
+        - Tabs
+      responses:
+        '200':
+          description: List of tabs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tab'
+
+    post:
+      summary: Create new tab
+      description: Create a new tab with optional connection
+      operationId: createTab
+      tags:
+        - Tabs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTabRequest'
+      responses:
+        '201':
+          description: Tab created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '400':
+          description: Invalid request
+        '409':
+          description: Maximum tabs reached
+
+  /tabs/{tabId}:
+    get:
+      summary: Get tab by ID
+      description: Retrieve detailed information about a specific tab
+      operationId: getTab
+      tags:
+        - Tabs
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tab details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '404':
+          description: Tab not found
+
+    put:
+      summary: Update tab
+      description: Update tab properties and state
+      operationId: updateTab
+      tags:
+        - Tabs
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTabRequest'
+      responses:
+        '200':
+          description: Tab updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '404':
+          description: Tab not found
+
+    delete:
+      summary: Delete tab
+      description: Delete a tab and optionally close its connection
+      operationId: deleteTab
+      tags:
+        - Tabs
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      parameters:
+        - name: closeConnection
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '204':
+          description: Tab deleted successfully
+        '404':
+          description: Tab not found
+
+  /tabs/{tabId}/activate:
+    post:
+      summary: Activate tab
+      description: Switch to the specified tab and make it active
+      operationId: activateTab
+      tags:
+        - Tabs
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tab activated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tab'
+        '404':
+          description: Tab not found
+
+  /tabs/{tabId}/connection:
+    get:
+      summary: Get tab connection
+      description: Retrieve connection details for a specific tab
+      operationId: getTabConnection
+      tags:
+        - Connections
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Connection details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '404':
+          description: Tab or connection not found
+
+    post:
+      summary: Connect tab
+      description: Establish SSH connection for the specified tab
+      operationId: connectTab
+      tags:
+        - Connections
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionRequest'
+      responses:
+        '200':
+          description: Connection established
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          description: Invalid connection parameters
+        '401':
+          description: Authentication failed
+        '409':
+          description: Connection already exists
+
+    delete:
+      summary: Disconnect tab
+      description: Close SSH connection for the specified tab
+      operationId: disconnectTab
+      tags:
+        - Connections
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Connection closed successfully
+        '404':
+          description: Tab or connection not found
+
+  /tabs/{tabId}/terminal:
+    get:
+      summary: Get terminal state
+      description: Retrieve terminal state and history for the specified tab
+      operationId: getTerminalState
+      tags:
+        - Terminal
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Terminal state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalState'
+        '404':
+          description: Tab not found
+
+    post:
+      summary: Execute terminal command
+      description: Execute a command in the tab's terminal
+      operationId: executeCommand
+      tags:
+        - Terminal
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                command:
+                  type: string
+                  description: Command to execute
+                workingDirectory:
+                  type: string
+                  description: Working directory for command
+              required:
+                - command
+      responses:
+        '200':
+          description: Command executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+        '400':
+          description: Invalid command
+        '404':
+          description: Tab not connected
+
+  /tabs/{tabId}/file-manager:
+    get:
+      summary: Get file manager state
+      description: Retrieve file manager state for the specified tab
+      operationId: getFileManagerState
+      tags:
+        - File Manager
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File manager state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileManagerState'
+        '404':
+          description: Tab not found
+
+    post:
+      summary: Navigate directory
+      description: Change directory in the tab's file manager
+      operationId: navigateDirectory
+      tags:
+        - File Manager
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+                  description: Directory path to navigate to
+              required:
+                - path
+      responses:
+        '200':
+          description: Navigation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirectoryListing'
+        '400':
+          description: Invalid path
+        '404':
+          description: Directory not found
+
+  /tabs/{tabId}/ai-assistant:
+    get:
+      summary: Get AI assistant state
+      description: Retrieve AI assistant state and conversation history
+      operationId: getAIAssistantState
+      tags:
+        - AI Assistant
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: AI assistant state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAssistantState'
+        '404':
+          description: Tab not found
+
+    post:
+      summary: Send AI message
+      description: Send a message to the AI assistant
+      operationId: sendAIMessage
+      tags:
+        - AI Assistant
+      parameters:
+        - name: tabId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Message to send to AI
+                context:
+                  type: object
+                  description: Additional context for the AI
+              required:
+                - message
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIMessage'
+        '400':
+          description: Invalid message
+        '429':
+          description: Rate limit exceeded
+
+  /sessions:
+    post:
+      summary: Save session
+      description: Save current session state
+      operationId: saveSession
+      tags:
+        - Sessions
+      responses:
+        '200':
+          description: Session saved successfully
+
+    get:
+      summary: Restore session
+      description: Restore previously saved session
+      operationId: restoreSession
+      tags:
+        - Sessions
+      responses:
+        '200':
+          description: Session restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tabs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tab'
+                  activeTabId:
+                    type: string
+                    format: uuid
+
+components:
+  schemas:
+    Tab:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique tab identifier
+        name:
+          type: string
+          description: Tab display name
+        connectionId:
+          type: string
+          format: uuid
+          description: Associated connection ID
+        isActive:
+          type: boolean
+          description: Whether this tab is currently active
+        isVisible:
+          type: boolean
+          description: Whether this tab is visible in UI
+        position:
+          type: integer
+          description: Tab position in the tab bar
+        lastAccessed:
+          type: integer
+          format: int64
+          description: Unix timestamp of last access
+        createdAt:
+          type: integer
+          format: int64
+          description: Unix timestamp of creation
+        updatedAt:
+          type: integer
+          format: int64
+          description: Unix timestamp of last update
+        windowState:
+          $ref: '#/components/schemas/WindowState'
+      required:
+        - id
+        - name
+        - connectionId
+        - isActive
+        - isVisible
+        - position
+
+    CreateTabRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Optional tab name
+        connection:
+          $ref: '#/components/schemas/ConnectionRequest'
+        position:
+          type: integer
+          description: Optional position for the tab
+      required:
+        []
+
+    UpdateTabRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: New tab name
+        position:
+          type: integer
+          description: New tab position
+        windowState:
+          $ref: '#/components/schemas/WindowState'
+
+    WindowState:
+      type: object
+      properties:
+        width:
+          type: integer
+          description: Window width
+        height:
+          type: integer
+          description: Window height
+        splitSizes:
+          type: array
+          items:
+            type: number
+          description: Panel split proportions
+
+    Connection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        host:
+          type: string
+        port:
+          type: integer
+        username:
+          type: string
+        status:
+          $ref: '#/components/schemas/ConnectionStatus'
+        lastConnected:
+          type: integer
+          format: int64
+        reconnectAttempts:
+          type: integer
+        maxReconnectAttempts:
+          type: integer
+        connectedAt:
+          type: integer
+          format: int64
+        latency:
+          type: integer
+        bytesTransferred:
+          $ref: '#/components/schemas/BytesTransferred'
+        memoryUsage:
+          type: integer
+        terminalLines:
+          type: integer
+        healthStatus:
+          $ref: '#/components/schemas/HealthStatus'
+        errorCount:
+          type: integer
+
+    ConnectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Connection display name
+        host:
+          type: string
+          description: SSH host
+        port:
+          type: integer
+          description: SSH port
+          default: 22
+        username:
+          type: string
+          description: SSH username
+        authType:
+          $ref: '#/components/schemas/AuthType'
+        password:
+          type: string
+          description: SSH password (if authType is password)
+        privateKey:
+          type: string
+          description: SSH private key (if authType is key)
+      required:
+        - name
+        - host
+        - username
+        - authType
+
+    ConnectionStatus:
+      type: string
+      enum:
+        - disconnected
+        - connecting
+        - connected
+        - failed
+        - reconnecting
+
+    AuthType:
+      type: string
+      enum:
+        - password
+        - key
+
+    BytesTransferred:
+      type: object
+      properties:
+        sent:
+          type: integer
+        received:
+          type: integer
+
+    HealthStatus:
+      type: string
+      enum:
+        - healthy
+        - unhealthy
+        - failed
+
+    TerminalState:
+      type: object
+      properties:
+        tabId:
+          type: string
+          format: uuid
+        cursorPosition:
+          $ref: '#/components/schemas/CursorPosition'
+        scrollOffset:
+          type: integer
+        bufferSize:
+          type: integer
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommandHistoryEntry'
+        options:
+          $ref: '#/components/schemas/TerminalOptions'
+
+    CursorPosition:
+      type: object
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+
+    CommandHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        command:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        exitCode:
+          type: integer
+        duration:
+          type: integer
+
+    TerminalOptions:
+      type: object
+      properties:
+        fontSize:
+          type: integer
+        fontFamily:
+          type: string
+        theme:
+          type: string
+        scrollback:
+          type: integer
+
+    CommandResult:
+      type: object
+      properties:
+        command:
+          type: string
+        exitCode:
+          type: integer
+        output:
+          type: string
+        error:
+          type: string
+        duration:
+          type: integer
+
+    FileManagerState:
+      type: object
+      properties:
+        tabId:
+          type: string
+          format: uuid
+        currentDirectory:
+          type: string
+        directoryHistory:
+          type: array
+          items:
+            type: string
+        selectedFiles:
+          type: array
+          items:
+            type: string
+        viewMode:
+          $ref: '#/components/schemas/ViewMode'
+        sortBy:
+          $ref: '#/components/schemas/SortBy'
+        sortOrder:
+          $ref: '#/components/schemas/SortOrder'
+        showHiddenFiles:
+          type: boolean
+        activeTransfers:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileTransfer'
+        bookmarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bookmark'
+
+    ViewMode:
+      type: string
+      enum:
+        - list
+        - grid
+
+    SortBy:
+      type: string
+      enum:
+        - name
+        - size
+        - modified
+        - type
+
+    SortOrder:
+      type: string
+      enum:
+        - asc
+        - desc
+
+    FileTransfer:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/TransferType'
+        sourcePath:
+          type: string
+        destinationPath:
+          type: string
+        status:
+          $ref: '#/components/schemas/TransferStatus'
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        bytesTransferred:
+          type: integer
+        totalBytes:
+          type: integer
+        startTime:
+          type: integer
+          format: int64
+        endTime:
+          type: integer
+          format: int64
+        error:
+          type: string
+
+    TransferType:
+      type: string
+      enum:
+        - upload
+        - download
+
+    TransferStatus:
+      type: string
+      enum:
+        - pending
+        - active
+        - completed
+        - failed
+        - paused
+
+    Bookmark:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        createdAt:
+          type: integer
+          format: int64
+
+    DirectoryListing:
+      type: object
+      properties:
+        path:
+          type: string
+        parent:
+          type: string
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileInfo'
+
+    FileInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        type:
+          type: string
+        size:
+          type: integer
+        modified:
+          type: integer
+          format: int64
+        permissions:
+          type: string
+        isDirectory:
+          type: boolean
+
+    AIAssistantState:
+      type: object
+      properties:
+        tabId:
+          type: string
+          format: uuid
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIMessage'
+        toolCalls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+        currentContext:
+          $ref: '#/components/schemas/AIContext'
+        isVisible:
+          type: boolean
+        inputHeight:
+          type: integer
+        scrollPosition:
+          type: integer
+
+    AIMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        role:
+          $ref: '#/components/schemas/AIMessageRole'
+        content:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        metadata:
+          type: object
+          properties:
+            model:
+              type: string
+            tokens:
+              type: integer
+            duration:
+              type: integer
+
+    AIMessageRole:
+      type: string
+      enum:
+        - user
+        - assistant
+        - system
+
+    ToolCall:
+      type: object
+      properties:
+        id:
+          type: string
+        command:
+          type: string
+        status:
+          $ref: '#/components/schemas/ToolCallStatus'
+        result:
+          type: string
+        error:
+          type: string
+        startTime:
+          type: integer
+          format: int64
+        endTime:
+          type: integer
+          format: int64
+        executionTime:
+          type: integer
+        context:
+          $ref: '#/components/schemas/ToolCallContext'
+
+    ToolCallStatus:
+      type: string
+      enum:
+        - executing
+        - completed
+        - error
+        - timeout
+
+    ToolCallContext:
+      type: object
+      properties:
+        workingDirectory:
+          type: string
+        environment:
+          type: object
+          additionalProperties:
+            type: string
+
+    AIContext:
+      type: object
+      properties:
+        workingDirectory:
+          type: string
+        environment:
+          type: object
+          additionalProperties:
+            type: string
+        systemInfo:
+          $ref: '#/components/schemas/SystemInfo'
+        recentCommands:
+          type: array
+          items:
+            type: string
+
+    SystemInfo:
+      type: object
+      properties:
+        hostname:
+          type: string
+        os:
+          type: string
+        architecture:
+          type: string
+        uptime:
+          type: integer
+        cpuUsage:
+          type: number
+        memoryUsage:
+          type: number
+        diskUsage:
+          type: number
+
+  securitySchemes:
+    electronIPC:
+      type: apiKey
+      in: header
+      name: x-electron-ipc-channel
+      description: Electron IPC communication channel
+
+tags:
+  - name: Tabs
+    description: Tab management operations
+  - name: Connections
+    description: SSH connection management
+  - name: Terminal
+    description: Terminal operations and state
+  - name: File Manager
+    description: File manager operations
+  - name: AI Assistant
+    description: AI assistant operations
+  - name: Sessions
+    description: Session persistence

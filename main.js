@@ -37,6 +37,8 @@ const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const yaml = __importStar(require("js-yaml"));
+const init_js_1 = require("./src/database/init.js");
+const index_js_1 = require("./src/ipc/index.js");
 let mainWindow = null;
 const sshConnections = {};
 const sshConnectionConfigs = {};
@@ -75,16 +77,88 @@ function createWindow() {
     });
 }
 electron_1.app.whenReady().then(() => {
+    // Initialize database
+    try {
+        console.log('Initializing database...');
+        (0, init_js_1.initializeDatabase)();
+        console.log('Database initialized successfully');
+    }
+    catch (error) {
+        console.error('Failed to initialize database:', error);
+        electron_1.app.quit();
+        return;
+    }
+    // Register IPC handlers
+    try {
+        console.log('Registering IPC handlers...');
+        (0, index_js_1.registerIPCHandlers)();
+        console.log('IPC handlers registered successfully');
+    }
+    catch (error) {
+        console.error('Failed to register IPC handlers:', error);
+        electron_1.app.quit();
+        return;
+    }
     createWindow();
+    // 等待窗口加载完成后尝试恢复会话
+    setTimeout(() => {
+        restoreLastSession();
+    }, 1000);
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();
+            // 创建新窗口后也尝试恢复会话
+            setTimeout(() => {
+                restoreLastSession();
+            }, 1000);
         }
     });
 });
 electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         electron_1.app.quit();
+    }
+});
+// 恢复最后会话的函数
+const restoreLastSession = async () => {
+    try {
+        console.log('尝试恢复最后的会话...');
+        const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
+        if (fs.existsSync(sessionsPath)) {
+            const data = fs.readFileSync(sessionsPath, 'utf8');
+            const sessions = JSON.parse(data);
+            if (sessions.length > 0) {
+                console.log(`找到 ${sessions.length} 个保存的会话`);
+                // 发送会话数据到渲染进程进行恢复
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('restore-session', {
+                        sessions: sessions,
+                        timestamp: Date.now()
+                    });
+                    console.log('会话数据已发送到渲染进程进行恢复');
+                }
+            }
+            else {
+                console.log('没有找到保存的会话');
+            }
+        }
+        else {
+            console.log('会话文件不存在，跳过会话恢复');
+        }
+    }
+    catch (error) {
+        console.error('恢复会话失败:', error);
+    }
+};
+// Clean up database connection on app quit
+electron_1.app.on('before-quit', () => {
+    try {
+        console.log('Closing database connection...');
+        (0, init_js_1.closeDatabase)();
+        console.log('Database connection closed successfully');
+    }
+    catch (error) {
+        console.error('Failed to close database connection:', error);
     }
 });
 // IPC handlers
@@ -144,6 +218,59 @@ electron_1.ipcMain.handle('delete-session', async (event, sessionId) => {
         return { success: true };
     }
     catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+// 保存完整的会话状态（包括标签页状态）
+electron_1.ipcMain.handle('save-tab-session', async (event, sessionState) => {
+    try {
+        const sessionPath = path.join(__dirname, 'data', 'last-session.json');
+        const sessionDir = path.dirname(sessionPath);
+        if (!fs.existsSync(sessionDir)) {
+            fs.mkdirSync(sessionDir, { recursive: true });
+        }
+        const sessionData = {
+            ...sessionState,
+            savedAt: Date.now(),
+            version: '1.0'
+        };
+        fs.writeFileSync(sessionPath, JSON.stringify(sessionData, null, 2));
+        console.log('标签页会话状态已保存');
+        return { success: true };
+    }
+    catch (error) {
+        console.error('保存会话状态失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+// 获取最后的会话状态
+electron_1.ipcMain.handle('get-last-tab-session', async () => {
+    try {
+        const sessionPath = path.join(__dirname, 'data', 'last-session.json');
+        if (fs.existsSync(sessionPath)) {
+            const data = fs.readFileSync(sessionPath, 'utf8');
+            const sessionData = JSON.parse(data);
+            return { success: true, sessionData };
+        }
+        return { success: false, message: 'No saved session found' };
+    }
+    catch (error) {
+        console.error('获取会话状态失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+// 清除会话状态
+electron_1.ipcMain.handle('clear-tab-session', async () => {
+    try {
+        const sessionPath = path.join(__dirname, 'data', 'last-session.json');
+        if (fs.existsSync(sessionPath)) {
+            fs.unlinkSync(sessionPath);
+            console.log('会话状态已清除');
+        }
+        return { success: true };
+    }
+    catch (error) {
+        console.error('清除会话状态失败:', error);
         return { success: false, error: error.message };
     }
 });

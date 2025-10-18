@@ -10,6 +10,10 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     getSessions: () => electron_1.ipcRenderer.invoke('get-sessions'),
     saveSession: (sessionData) => electron_1.ipcRenderer.invoke('save-session', sessionData),
     deleteSession: (sessionId) => electron_1.ipcRenderer.invoke('delete-session', sessionId),
+    // Tab session management
+    getLastTabSession: () => electron_1.ipcRenderer.invoke('get-last-tab-session'),
+    saveTabSession: (sessionState) => electron_1.ipcRenderer.invoke('save-tab-session', sessionState),
+    clearTabSession: () => electron_1.ipcRenderer.invoke('clear-tab-session'),
     // SSH connections
     sshConnect: (connectionConfig) => electron_1.ipcRenderer.invoke('ssh-connect', connectionConfig),
     sshExecute: (connectionId, command) => electron_1.ipcRenderer.invoke('ssh-execute', connectionId, command),

@@ -46,19 +46,25 @@
     "wait-on": "^9.0.1"
   },
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vueuse/core": "^10.0.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-web-links": "^0.11.0",
     "@xterm/xterm": "^5.5.0",
     "ansi-to-html": "^0.7.2",
     "axios": "^1.6.0",
+    "better-sqlite3": "^9.6.0",
+    "electron-store": "^8.1.0",
     "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21",
     "markdown-it": "^14.1.0",
     "mitt": "^3.0.1",
     "pinia": "^3.0.3",
     "sass": "^1.93.2",
     "ssh2": "^1.14.0",
     "ssh2-sftp-client": "^9.0.0",
+    "uuid": "^8.3.2",
     "vue": "^3.2.36"
   },
   "build": {

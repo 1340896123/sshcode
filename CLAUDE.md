@@ -1,4 +1,4 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -48,6 +48,24 @@ npm run format:check   # Check code formatting with Prettier
 - **Module System**: ES modules with bundler resolution
 
 ### Key Architectural Components
+
+#### Tabbed Connection Management System
+- **TabManager.vue**: Main component managing multiple SSH connection tabs with independent contexts
+- **TabBar.vue**: Tab navigation component with drag-and-drop reordering, renaming, and context menus
+- **TabContextMenu.vue**: Rich context menu for tab management with keyboard shortcuts and actions
+- **TabSettings.vue**: Comprehensive configuration for tab preferences, limits, and behavior
+- **useTabManager.ts**: Composable for tab lifecycle management, persistence, and state restoration
+- **sessionRestoreService.ts**: Service for automatic session saving and restoration across application restarts
+- **Memory Management**: Automatic memory monitoring and cleanup with configurable thresholds
+- **Accessibility**: Full ARIA support, keyboard navigation (Arrow keys, Home/End, F2, Ctrl+Tab, etc.)
+- **Tab Features**:
+  - Multi-connection support with independent terminal contexts
+  - Drag-and-drop tab reordering with visual feedback
+  - Inline tab renaming with double-click or F2 key
+  - Confirmation dialogs for closing tabs with active operations
+  - Session persistence and automatic restoration
+  - Performance monitoring and memory optimization
+  - Connection limit warnings and graceful degradation
 
 #### Connection Management System
 - **useConnectionManager.ts**: Core composable managing SSH connection lifecycle with reactive state

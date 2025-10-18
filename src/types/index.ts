@@ -14,10 +14,74 @@ export type {
   NetworkHistory
 } from './ssh.js';
 
+// Export tabbed connection types
 export type {
-  // AI Assistant types
+  // Core tab and connection types
+  Tab,
+  Connection as TabConnection,
+  ConnectionRequest,
+  CreateTabRequest,
+  UpdateTabRequest,
+  WindowState,
+
+  // Authentication and status types
+  AuthType,
+  ConnectionStatus,
+  HealthStatus,
+  BytesTransferred,
+
+  // Terminal state types
+  TerminalState,
+  CursorPosition,
+  CommandHistoryEntry,
+  TerminalOptions,
+  CommandResult,
+
+  // File manager state types
+  FileManagerState,
+  ViewMode,
+  SortBy,
+  SortOrder,
+  FileTransfer,
+  TransferType,
+  TransferStatus,
+  Bookmark,
+  DirectoryListing,
+  FileInfo,
+
+  // AI assistant state types
+  AIAssistantState,
   AIMessage,
+  AIMessageRole,
+  AIMessageMetadata,
   ToolCall,
+  ToolCallStatus,
+  ToolCallContext,
+  AIContext,
+  SystemInfo as AISystemInfo,
+
+  // Store and composable types
+  TabStoreState,
+  ConnectionStoreState,
+  TabManagerComposable,
+  ConnectionManagerComposable,
+  TerminalPoolComposable,
+  PooledTerminal,
+  PoolStats,
+
+  // Event types
+  TabEvent,
+  ConnectionEvent,
+
+  // Performance and session types
+  PerformanceMetrics,
+  PerformanceSnapshot,
+  SessionData as TabSessionData,
+  SessionRestoreOptions
+} from './tab.js';
+
+export type {
+  // AI Assistant types (excluding duplicates)
   AIConfig,
   ParsedResponse,
   ValidationResult,
@@ -28,7 +92,6 @@ export type {
   Action,
   ToolCallHistoryItem,
   AIChatEmits,
-  ToolCallStatus,
   ConfigStatus,
   TerminalInput,
   ToolCallStats,

@@ -17,13 +17,18 @@ export default defineConfig({
         manualChunks: {
           vendor: ['vue']
         }
-      }
+      },
+      external: ['better-sqlite3']
     },
     chunkSizeWarningLimit: 1000
   },
+  optimizeDeps: {
+    exclude: ['better-sqlite3']
+  },
   server: {
     port: 3000,
-    open: true
+    strictPort: true,
+    open: false
   },
   resolve: {
     alias: {

@@ -8,7 +8,6 @@ import { emitEvent, EventTypes } from '@/utils/eventSystem.js';
 import type {
   AIConfig,
   AIMessage,
-  ToolCall,
   Connection,
   ParsedResponse,
   ValidationResult,
@@ -16,13 +15,23 @@ import type {
   APIResponse
 } from '@/types/index.js';
 
+// OpenAI-style tool call interface for AI API responses
+interface OpenAIToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
 // AI Service specific types
 export interface AIRequestData {
   model: string;
   messages: Array<{
     role: string;
     content: string;
-    tool_calls?: ToolCall[];
+    tool_calls?: OpenAIToolCall[];
   }>;
   tools?: Array<{
     type: string;
@@ -43,7 +52,7 @@ export interface AIRequestData {
 export interface AIResponseChoice {
   message: {
     content?: string;
-    tool_calls?: ToolCall[];
+    tool_calls?: OpenAIToolCall[];
     finish_reason?: string;
   };
   finish_reason?: string;
@@ -383,10 +392,10 @@ function buildSystemPrompt(connection: Connection): string {
  * 构建包含工具结果的消息
  */
 function buildMessagesWithToolResults(
-  currentMessages: Array<{ role: string; content: string; tool_calls?: ToolCall[] }>,
-  toolCalls: ToolCall[],
+  currentMessages: Array<{ role: string; content: string; tool_calls?: OpenAIToolCall[] }>,
+  toolCalls: OpenAIToolCall[],
   toolResults: ToolResult[]
-): Array<{ role: string; content: string | null; tool_calls?: ToolCall[]; tool_call_id?: string }> {
+): Array<{ role: string; content: string | null; tool_calls?: OpenAIToolCall[]; tool_call_id?: string }> {
   return [
     ...currentMessages,
     {
@@ -436,7 +445,7 @@ function processToolCallResult(choice: AIResponseChoice): ParsedResponse {
  * 处理工具调用
  */
 async function handleToolCalls(
-  toolCalls: ToolCall[],
+  toolCalls: OpenAIToolCall[],
   requestData: AIRequestData,
   config: AIConfig,
   connection: Connection

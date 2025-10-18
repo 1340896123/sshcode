@@ -18,7 +18,9 @@
       "@/stores/*": ["src/stores/*"],
       "@/utils/*": ["src/utils/*"],
       "@/hooks/*": ["src/hooks/*"],
-      "@/constants/*": ["src/constants/*"]
+      "@/constants/*": ["src/constants/*"],
+      "@/database/*": ["src/database/*"],
+      "@/types/*": ["src/types/*"]
     },
 
     /* Electron main process support */

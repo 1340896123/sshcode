@@ -12,15 +12,19 @@
     "resolveJsonModule": true,
     "isolatedModules": false,
     "jsx": "preserve",
-    "types": ["node", "electron"]
+    "types": ["node", "electron"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": [
     "main.ts",
-    "preload.ts"
+    "preload.ts",
+    "src/database/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "src/**/*"
+    "dist"
   ]
 }
