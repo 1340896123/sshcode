@@ -25,5 +25,19 @@
     "keyContent": "",
     "createdAt": "2025-10-12T12:38:17.911Z",
     "updatedAt": "2025-10-12T12:38:17.911Z"
+  },
+  {
+    "id": "1761015656379",
+    "name": "http://202.104.115.238/",
+    "host": "202.104.115.238",
+    "port": 48056,
+    "username": "root",
+    "description": "",
+    "authType": "password",
+    "password": "Ulike@2024",
+    "keyPath": "",
+    "keyContent": "",
+    "createdAt": "2025-10-21T03:00:56.379Z",
+    "updatedAt": "2025-10-21T03:00:56.380Z"
   }
 ]
