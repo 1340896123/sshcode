@@ -103,7 +103,7 @@ export const FILE_ICONS = {
   flv: '🎬',
   webm: '🎬',
   m4v: '🎬',
-  3gp: '🎬',
+  '3gp': '🎬',
   mpg: '🎬',
   mpeg: '🎬',
 

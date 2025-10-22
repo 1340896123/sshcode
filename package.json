@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "npm run build-main && npm run build && electron .",
-    "debug": "concurrently \"vite\" \"npm run build-main && wait-on http://localhost:3000 && electron . --dev --remote-debugging-port=9222\"",
+    "debug": "concurrently \"vite --port 5173\" \"npm run build-main && wait-on http://localhost:5173 && electron . --dev --remote-debugging-port=9222\"",
     "build": "vite build",
     "build-main": "tsc -p tsconfig.main.json",
     "build-electron": "npm run build-main && npm run build && electron-builder",

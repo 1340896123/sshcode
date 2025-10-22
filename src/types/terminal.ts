@@ -2,17 +2,48 @@
  * Terminal related types
  */
 
+// 终端数据类型
 export interface TerminalData {
   output: string;
   timestamp: number;
   type: 'input' | 'output' | 'error';
 }
 
+// Legacy: 保持向后兼容
 export interface TerminalSession {
   id: string;
   connectionId: string;
+  name: string;
   terminal?: import('@xterm/xterm').Terminal;
   history: TerminalData[];
+  shellStream?: import('ssh2').ClientChannel;
+  isActive: boolean;
+  createdAt: Date;
+  lastActivity: Date;
+  currentWorkingDirectory?: string;
+  commandHistory: string[];
+  shellOptions?: ShellOptions;
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  errorMessage?: string | null;
+  // Session-specific state
+  envVars?: Record<string, string>;
+  isDirty?: boolean; // Has unsaved changes/output
+}
+
+// Legacy: 保持向后兼容
+export interface SessionManager {
+  sessions: Map<string, TerminalSession>;
+  activeSessionId: string | null;
+  connectionId: string;
+}
+
+// 创建会话的选项
+export interface CreateSessionOptions {
+  name?: string;
+  shellOptions?: ShellOptions;
+  envVars?: Record<string, string>;
+  workingDirectory?: string;
+  initialPanel?: 'files' | 'terminal' | 'ai';
 }
 
 // Shell options for creating SSH shell sessions

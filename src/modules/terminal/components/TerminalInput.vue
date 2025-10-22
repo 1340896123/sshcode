@@ -84,23 +84,7 @@
       </div>
     </div>
 
-    <!-- 历史记录建议 -->
-    <div class="history-container" v-show="showHistory && commandHistory.length > 0">
-      <div class="history-header">
-        <span class="history-title">命令历史</span>
-        <span class="history-hint">↑↓ 浏览</span>
-      </div>
-      <div
-        v-for="(cmd, index) in recentHistory"
-        :key="index"
-        :class="['history-item', { active: historyIndex === index }]"
-        @click="selectHistory(cmd)"
-      >
-        <span class="history-command">{{ cmd }}</span>
-        <span class="history-time">{{ getHistoryTime(index) }}</span>
-      </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -143,8 +127,12 @@ const filteredSuggestions = ref([]);
 const aiEnabled = ref(true);
 const isAILoading = ref(false);
 const aiSuggestions = ref([]);
+const aiServiceReady = ref(false);
 
-// 历史记录状态
+// 传统补全状态
+const traditionalCompletionActive = ref(false);
+
+// 历史记录状态 (已禁用)
 const commandHistory = ref([]);
 const showHistory = ref(false);
 const historyIndex = ref(-1);
@@ -1470,10 +1458,6 @@ const localCommands = [
 ];
 
 // 计算属性
-const recentHistory = computed(() => {
-  return commandHistory.value.slice(-10).reverse();
-});
-
 const modeText = computed(() => {
   switch (mode.value) {
     case 'ai':
@@ -1510,12 +1494,13 @@ const filterSuggestions = async input => {
   if (!input || input.trim().length < 1) {
     filteredSuggestions.value = [];
     showAutocomplete.value = false;
+    traditionalCompletionActive.value = false;
     return;
   }
 
   const trimmedInput = input.trim().toLowerCase();
 
-  // 本地命令匹配
+  // 传统补全：本地命令匹配 (立即显示)
   const localMatches = localCommands
     .map(cmd => {
       const command = cmd.command.toLowerCase();
@@ -1551,26 +1536,37 @@ const filterSuggestions = async input => {
       return {
         ...cmd,
         confidence: score,
-        matchType
+        matchType,
+        type: 'traditional' // 标记为传统补全
       };
     })
     .filter(cmd => cmd.confidence > 0.3)
-    .sort((a, b) => b.confidence - a.confidence);
-
-  // AI 建议获取
-  let aiMatches = [];
-  if (aiEnabled.value && trimmedInput.length > 2) {
-    aiMatches = await getAISuggestions(trimmedInput);
-  }
-
-  // 合并和排序建议
-  const allSuggestions = [...localMatches, ...aiMatches]
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 8);
 
-  filteredSuggestions.value = allSuggestions;
+  // 立即显示传统补全结果
+  filteredSuggestions.value = localMatches;
   selectedIndex.value = 0;
-  showAutocomplete.value = allSuggestions.length > 0;
+  showAutocomplete.value = localMatches.length > 0;
+  traditionalCompletionActive.value = true;
+
+  // AI 建议获取 (异步，在后台进行)
+  if (aiEnabled.value && aiServiceReady.value && trimmedInput.length > 2) {
+    getAISuggestions(trimmedInput).then(aiMatches => {
+      // 如果仍有输入且AI服务可用，合并AI建议
+      if (currentInput.value.trim() === trimmedInput && aiMatches.length > 0) {
+        const allSuggestions = [...localMatches, ...aiMatches]
+          .sort((a, b) => b.confidence - a.confidence)
+          .slice(0, 8);
+
+        filteredSuggestions.value = allSuggestions;
+        traditionalCompletionActive.value = false;
+      }
+    }).catch(error => {
+      console.warn('AI建议获取失败，继续使用传统补全:', error);
+      // 保持传统补全显示
+    });
+  }
 };
 
 // 计算模糊匹配分数
@@ -1597,7 +1593,7 @@ const calculateFuzzyScore = (input, command) => {
 
 // AI 补全建议获取
 const getAISuggestions = async input => {
-  if (!aiEnabled.value) return [];
+  if (!aiEnabled.value || !aiServiceReady.value) return [];
 
   try {
     isAILoading.value = true;
@@ -1605,7 +1601,7 @@ const getAISuggestions = async input => {
     // 构建上下文信息
     const context = {
       currentDirectory: '', // 可以从父组件传入当前目录
-      recentCommands: commandHistory.value.slice(-5),
+      recentCommands: [], // 历史记录已禁用
       connectionId: props.connectionId
     };
 
@@ -1617,11 +1613,7 @@ const getAISuggestions = async input => {
       type: 'ai'
     }));
   } catch (error) {
-    console.error('获取AI建议失败:', error);
-    emit('show-notification', {
-      type: 'error',
-      message: 'AI补全功能暂时不可用'
-    });
+    console.warn('获取AI建议失败，继续使用传统补全:', error);
     return [];
   } finally {
     isAILoading.value = false;
@@ -1636,13 +1628,6 @@ const selectSuggestion = suggestion => {
   focus();
 };
 
-// 选择历史记录
-const selectHistory = cmd => {
-  currentInput.value = cmd;
-  showHistory.value = false;
-  historyIndex.value = -1;
-  focus();
-};
 
 // 执行命令
 const executeCommand = async () => {
@@ -1650,15 +1635,6 @@ const executeCommand = async () => {
   if (!command) return;
 
   isExecuting.value = true;
-
-  // 添加到历史记录
-  if (!commandHistory.value.includes(command)) {
-    commandHistory.value.push(command);
-    // 限制历史记录数量
-    if (commandHistory.value.length > 100) {
-      commandHistory.value = commandHistory.value.slice(-100);
-    }
-  }
 
   // 发送执行事件
   emit('execute-command', command);
@@ -1696,11 +1672,6 @@ const toggleAICompletion = () => {
   }
 };
 
-// 获取历史记录时间
-const getHistoryTime = index => {
-  // 这里可以存储和显示实际的时间戳
-  return '最近';
-};
 
 // 工具方法
 const getSuggestionItemClass = (suggestion, index) => {
@@ -1709,6 +1680,7 @@ const getSuggestionItemClass = (suggestion, index) => {
     {
       active: index === selectedIndex.value,
       'ai-suggestion': suggestion.type === 'ai',
+      'traditional-suggestion': suggestion.type === 'traditional',
       'local-suggestion': suggestion.type === 'local'
     }
   ];
@@ -1716,6 +1688,7 @@ const getSuggestionItemClass = (suggestion, index) => {
 
 const getSuggestionIcon = suggestion => {
   if (suggestion.type === 'ai') return '🤖';
+  if (suggestion.type === 'traditional') return '⚡';
   if (suggestion.category === 'git') return '📦';
   if (suggestion.category === 'network') return '🌐';
   if (suggestion.category === 'system') return '⚙️';
@@ -1735,13 +1708,11 @@ const highlightMatch = command => {
 
 // 事件处理
 const handleInput = event => {
-  showHistory.value = false;
-  historyIndex.value = -1;
-
   if (event.target.value) {
     filterSuggestions(event.target.value);
   } else {
     showAutocomplete.value = false;
+    traditionalCompletionActive.value = false;
   }
 };
 
@@ -1784,34 +1755,7 @@ const handleKeyDown = async event => {
     }
   }
 
-  // 历史记录导航
-  if (showHistory.value || key === 'ArrowUp') {
-    switch (key) {
-      case 'ArrowUp':
-        event.preventDefault();
-        if (!showHistory.value) {
-          showHistory.value = true;
-          historyIndex.value = 0;
-        } else {
-          historyIndex.value = Math.min(historyIndex.value + 1, recentHistory.value.length - 1);
-          selectHistory(recentHistory.value[historyIndex.value]);
-        }
-        return;
-
-      case 'ArrowDown':
-        event.preventDefault();
-        if (showHistory.value) {
-          historyIndex.value = Math.max(historyIndex.value - 1, -1);
-          if (historyIndex.value === -1) {
-            currentInput.value = '';
-          } else {
-            selectHistory(recentHistory.value[historyIndex.value]);
-          }
-        }
-        return;
-    }
-  }
-
+  
   // 普通按键处理
   switch (key) {
     case 'Enter':
@@ -1823,11 +1767,10 @@ const handleKeyDown = async event => {
 
     case 'Escape':
       event.preventDefault();
-      if (showAutocomplete.value || showHistory.value) {
+      if (showAutocomplete.value) {
         showAutocomplete.value = false;
-        showHistory.value = false;
         selectedIndex.value = 0;
-        historyIndex.value = -1;
+        traditionalCompletionActive.value = false;
       } else {
         hide();
       }
@@ -1864,7 +1807,7 @@ const handleBlur = () => {
   setTimeout(() => {
     if (document.activeElement !== inputRef.value) {
       showAutocomplete.value = false;
-      showHistory.value = false;
+      traditionalCompletionActive.value = false;
       mode.value = '';
     }
   }, 200);
@@ -1874,8 +1817,12 @@ const handleBlur = () => {
 onMounted(async () => {
   try {
     await aiCompletionService.initialize();
+    aiServiceReady.value = true;
+    console.log('✅ AI补全服务已就绪');
   } catch (error) {
     console.warn('AI completion service initialization failed:', error);
+    aiServiceReady.value = false;
+    console.log('ℹ️ 将使用传统补全功能');
   }
 });
 
@@ -1901,7 +1848,7 @@ defineExpose({
   getContextualSuggestions: () =>
     aiCompletionService.getContextualSuggestions({
       currentDirectory: '',
-      recentCommands: commandHistory.value.slice(-5),
+      recentCommands: [],
       connectionId: props.connectionId
     })
 });
@@ -1983,6 +1930,10 @@ defineExpose({
       border-left: 3px solid #51cf66;
     }
 
+    &.traditional-suggestion {
+      border-left: 3px solid #ffd43b;
+    }
+
     .suggestion-content {
       display: flex;
       align-items: center;
@@ -2036,69 +1987,6 @@ defineExpose({
   }
 }
 
-// 历史记录容器
-.history-container {
-  background: rgba(30, 30, 30, 0.95);
-  border: 1px solid #444;
-  border-radius: 0 0 8px 8px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  margin-top: 2px;
-  max-height: 180px;
-  overflow-y: auto;
-
-  .history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.3);
-    border-bottom: 1px solid #444;
-
-    .history-title {
-      color: #f06595;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .history-hint {
-      color: #868e96;
-      font-size: 11px;
-    }
-  }
-
-  .history-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.2s ease;
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &:hover,
-    &.active {
-      background: rgba(240, 101, 149, 0.1);
-    }
-
-    .history-command {
-      color: #fff;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 12px;
-      flex: 1;
-    }
-
-    .history-time {
-      color: #868e96;
-      font-size: 10px;
-      margin-left: 10px;
-    }
-  }
-}
 
 // 输入容器
 .input-container {
@@ -2236,8 +2124,7 @@ defineExpose({
 }
 
 // 自定义滚动条
-.autocomplete-container,
-.history-container {
+.autocomplete-container {
   &::-webkit-scrollbar {
     width: 6px;
   }
@@ -2286,8 +2173,7 @@ defineExpose({
     }
   }
 
-  .suggestion-item,
-  .history-item {
+  .suggestion-item {
     padding: 8px 10px;
   }
 }

@@ -9,6 +9,7 @@
         <FileManager
           :connection-id="connection.id"
           :connection="connection"
+          :session="session"
           @show-notification="$emit('show-notification', $event)"
           @execute-command="$emit('execute-command', $event)"
         />
@@ -47,23 +48,36 @@
       </div>
       <div class="panel-body">
         <div class="terminal-content">
-          <!-- 新的XTerminal组件 -->
-          <XTerminal
-            :connection-id="connection.id"
+          <!-- SessionTerminal组件 (包含会话上下文) -->
+          <SessionTerminal
+            v-if="session && session.status === 'connected'"
             :connection="connection"
+            :session="session"
             :height="'400px'"
             :font-size="14"
-            @data="handleTerminalData"
-            @resize="handleTerminalResize"
-            @focus="handleTerminalFocus"
-            @blur="handleTerminalBlur"
-            @contextmenu="handleTerminalContextMenu"
+            @execute-command="handleTerminalInputCommand"
+            @show-notification="$emit('show-notification', $event)"
+            @session-ready="$emit('session-ready', $event)"
+            @session-data="$emit('session-data', $event)"
+            @shell-connected="$emit('shell-connected', $event)"
+            @shell-disconnected="$emit('shell-disconnected', $event)"
+            @shell-error="$emit('shell-error', $event)"
           />
+
+          <!-- 无会话时的提示 -->
+          <div v-else class="no-session-terminal">
+            <div class="no-session-content">
+              <div class="no-session-icon">💻</div>
+              <h3>无活动会话</h3>
+              <p>请选择或创建一个终端会话以开始使用</p>
+            </div>
+          </div>
 
           <!-- 浮动输入框组件 -->
           <TerminalInput
             :is-visible="showTerminalInput"
             :connection-id="connection.id"
+            :session-id="session?.id"
             :prompt="'$'"
             @execute-command="handleTerminalInputCommand"
             @hide-input="hideTerminalInput"
@@ -88,6 +102,7 @@
         <AIAssistant
           :connection-id="connection.id"
           :connection="connection"
+          :session="session"
           @show-notification="$emit('show-notification', $event)"
           @execute-command="$emit('execute-command-from-ai', $event)"
           @show-settings="$emit('show-settings')"
@@ -103,6 +118,7 @@ import AIAssistant from '../../modules/ai-assistant/components/AIAssistant.vue';
 import TerminalAutocomplete from '../../modules/terminal/components/TerminalAutocomplete.vue';
 import TerminalInput from '../../modules/terminal/components/TerminalInput.vue';
 import XTerminal from '../../modules/terminal/components/XTerminal.vue';
+import SessionTerminal from '../../modules/terminal/components/SessionTerminal.vue';
 import { useAIStore } from '../../modules/ai-assistant/stores/ai.js';
 
 export default {
@@ -112,12 +128,17 @@ export default {
     AIAssistant,
     TerminalAutocomplete,
     TerminalInput,
-    XTerminal
+    XTerminal,
+    SessionTerminal
   },
   props: {
     connection: {
       type: Object,
       required: true
+    },
+    session: {
+      type: Object,
+      default: null
     },
     panelWidths: {
       type: Object,
@@ -403,6 +424,40 @@ export default {
   display: flex;
   flex-direction: column;
   background: color(surface);
+}
+
+.no-session-terminal {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1e1e;
+}
+
+.no-session-content {
+  text-align: center;
+  max-width: 300px;
+  padding: 40px 20px;
+}
+
+.no-session-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.no-session h3 {
+  margin: 0 0 12px 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.no-session p {
+  margin: 0;
+  color: #868e96;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .terminal-output {

@@ -9,6 +9,8 @@ export { default as XTerminal } from './components/XTerminal.vue';
 export { default as TerminalInput } from './components/TerminalInput.vue';
 export { default as TerminalInputBox } from './components/TerminalInputBox.vue';
 export { default as TerminalAutocomplete } from './components/TerminalAutocomplete.vue';
+export { default as SessionTabs } from './components/SessionTabs.vue';
+export { default as SessionTerminal } from './components/SessionTerminal.vue';
 
 // Composables
 export { useTerminalManager } from './composables/useTerminalManager.js';

@@ -72,7 +72,7 @@ export interface CommandSuggestion {
 }
 
 export interface UseAIChatProps {
-  connection: SSHConnection;
+  connection: import('./ssh.js').Connection;
   connectionId: string;
 }
 

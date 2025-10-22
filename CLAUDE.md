@@ -159,6 +159,15 @@ npm run format:check   # Check code formatting with Prettier
 - The build system compiles TypeScript to JavaScript in many cases, so imports may reference .js files
 - Path aliases use `@/` mapped to `src/` for clean imports across the codebase
 
+
+### 概念设计
+- 连接：SSH的连接信息，由用户进行配置的
+- 会话：使用【链接】连接服务器时的状态，每个会话要不成功，要不失败，允许一个连接创建多个会话，每个会话完全独立，一个会话包含【文件管理】【终端】【AI助手】
+- 文件管理：对当前会话的文件进行管理
+- 终端：对当前会话的终端进行管理
+- AI助手：对当前回话进行聊天，处理，可以调用当前会话的终端执行命令
+
+
 ### SSH Connection Pool Architecture
 - `useSSHConnectionPool.js`: Manages persistent SSH connections with batch command execution
 - System monitoring commands are executed in batches every second for real-time metrics

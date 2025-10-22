@@ -9,6 +9,12 @@
         <button class="nav-btn" @click="refreshDirectory" title="刷新">🔄</button>
       </div>
 
+      <!-- 会话信息 -->
+      <div v-if="session" class="session-info">
+        <span class="session-label">当前会话:</span>
+        <span class="session-name">{{ session.name }}</span>
+      </div>
+
       <div class="current-path">
         <input
           type="text"
@@ -279,6 +285,10 @@ export default {
     connection: {
       type: Object,
       required: true
+    },
+    session: {
+      type: Object,
+      default: null
     }
   },
   emits: ['show-notification', 'execute-command'],
@@ -390,7 +400,9 @@ export default {
 
     // 导航方法
     const navigateToDirectory = dirName => {
-      const newPath = currentPath.value === '/' ? `/${dirName}` : `${currentPath.value}/${dirName}`;
+      // 优先使用会话的工作目录
+      const basePath = props.session?.currentWorkingDirectory || '/';
+      const newPath = basePath === '/' ? `/${dirName}` : `${basePath}/${dirName}`;
       loadFileList(newPath);
     };
 
@@ -420,14 +432,16 @@ export default {
     };
 
     const goHome = () => {
-      // 根据用户名确定主目录路径
-      const homePath =
-        props.connection.username === 'root' ? '/root' : `/home/${props.connection.username}`;
+      // 优先使用会话的工作目录，否则根据用户名确定主目录路径
+      const homePath = props.session?.currentWorkingDirectory ||
+        (props.connection.username === 'root' ? '/root' : `/home/${props.connection.username}`);
       loadFileList(homePath);
     };
 
     const refreshDirectory = () => {
-      loadFileList(currentPath.value);
+      // 刷新当前路径，优先使用会话的工作目录
+      const targetPath = props.session?.currentWorkingDirectory || currentPath.value;
+      loadFileList(targetPath);
     };
 
     // 文件选择
@@ -509,9 +523,10 @@ export default {
     const uploadFile = async () => {
       try {
         if (window.electronAPI) {
+          const basePath = props.session?.currentWorkingDirectory || currentPath.value;
           const result = await window.electronAPI.selectAndUploadFile(
             props.connectionId,
-            currentPath.value
+            basePath
           );
 
           if (result.success) {
@@ -554,10 +569,11 @@ export default {
       }
 
       try {
+        const basePath = props.session?.currentWorkingDirectory || currentPath.value;
         const command =
           newItemModal.type === 'directory'
-            ? `mkdir -p "${currentPath.value}/${newItemModal.name}"`
-            : `touch "${currentPath.value}/${newItemModal.name}"`;
+            ? `mkdir -p "${basePath}/${newItemModal.name}"`
+            : `touch "${basePath}/${newItemModal.name}"`;
 
         emit('execute-command', command);
         emit(
@@ -595,14 +611,15 @@ export default {
       }
 
       try {
+        const basePath = props.session?.currentWorkingDirectory || currentPath.value;
         const oldPath =
-          currentPath.value === '/'
+          basePath === '/'
             ? `/${renameModal.item.name}`
-            : `${currentPath.value}/${renameModal.item.name}`;
+            : `${basePath}/${renameModal.item.name}`;
         const newPath =
-          currentPath.value === '/'
+          basePath === '/'
             ? `/${renameModal.newName}`
-            : `${currentPath.value}/${renameModal.newName}`;
+            : `${basePath}/${renameModal.newName}`;
         const command = `mv "${oldPath}" "${newPath}"`;
 
         emit('execute-command', command);
@@ -627,8 +644,9 @@ export default {
       }
 
       try {
+        const basePath = props.session?.currentWorkingDirectory || currentPath.value;
         const path =
-          currentPath.value === '/' ? `/${item.name}` : `${currentPath.value}/${item.name}`;
+          basePath === '/' ? `/${item.name}` : `${basePath}/${item.name}`;
         const command = item.type?.includes('dir') ? `rm -rf "${path}"` : `rm "${path}"`;
 
         emit('execute-command', command);

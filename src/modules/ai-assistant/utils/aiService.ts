@@ -171,13 +171,13 @@ function buildTools(
       type: 'function',
       function: {
         name: 'execute_command',
-        description: `在远程服务器上执行命令并获取输出结果。执行环境：${connection.username}@${connection.host}:${connection.currentWorkingDirectory || `~${connection.username}`}，操作系统：${osInfo}`,
+        description: `在远程服务器上执行命令并获取输出结果。执行环境：${connection.config.username}@${connection.config.host}:~${connection.config.username}，操作系统：${osInfo}`,
         parameters: {
           type: 'object',
           properties: {
             command: {
               type: 'string',
-              description: `要在 ${connection.host} (${osInfo}) 上执行的命令，当前工作目录：${connection.currentWorkingDirectory || `~${connection.username}`}`
+              description: `要在 ${connection.config.host} (${osInfo}) 上执行的命令，当前工作目录：~${connection.config.username}`
             }
           },
           required: ['command']
@@ -332,15 +332,15 @@ export async function callAIAPI(
  * 构建系统提示词
  */
 function buildSystemPrompt(connection: Connection): string {
-  return `你是一个专业的SSH远程管理助手，正在通过SSH连接帮助用户管理服务器 ${connection.host}。
+  return `你是一个专业的SSH远程管理助手，正在通过SSH连接帮助用户管理服务器 ${connection.config.host}。
 
 **当前连接环境：**
-- 主机地址: ${connection.host}
-- 端口: ${connection.port || 22}
-- 登录用户: ${connection.username}
-- 认证方式: ${connection.authType === 'key' ? 'SSH密钥认证' : '密码认证'}
+- 主机地址: ${connection.config.host}
+- 端口: ${connection.config.port || 22}
+- 登录用户: ${connection.config.username}
+- 认证方式: ${connection.config.authType === 'key' ? 'SSH密钥认证' : '密码认证'}
 - 连接状态: SSH已建立
-- 当前工作目录: ${connection.currentWorkingDirectory || `~${connection.username}`}
+- 当前工作目录: ~${connection.config.username}
 
 **你的核心职责：**
 1. **实时系统监控**: 通过execute_command工具获取真实的系统状态信息
@@ -360,7 +360,7 @@ function buildSystemPrompt(connection: Connection): string {
 
 **execute_command工具使用说明：**
 - 此工具直接在SSH连接的远程服务器上执行命令
-- 命令执行环境: ${connection.username}@${connection.host}:${connection.currentWorkingDirectory || `~${connection.username}`}
+- 命令执行环境: ${connection.config.username}@${connection.config.host}:~${connection.config.username}
 - 所有命令都在真实的服务器环境中运行
 - 返回的是实际的命令输出结果
 

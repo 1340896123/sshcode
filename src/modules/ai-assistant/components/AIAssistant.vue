@@ -24,9 +24,10 @@
               <span class="connection-status" :class="{ connected: isConnected }">
                 {{ isConnected ? '已连接' : '离线' }}
               </span>
-              <span class="connection-details"
-                >{{ connection.username }}@{{ connection.host }}</span
-              >
+              <span class="connection-details">
+                {{ connection.username }}@{{ connection.host }}
+                <span v-if="session" class="session-info"> | {{ session.name }}</span>
+              </span>
             </div>
           </div>
         </div>
@@ -62,6 +63,7 @@
             <p class="welcome-subtitle">
               已连接到 <strong>{{ connection.host }}</strong>
               <span class="connection-badge">SSH连接</span>
+              <span v-if="session" class="session-badge">当前会话: {{ session.name }}</span>
             </p>
 
             <div class="capabilities-grid">
@@ -281,6 +283,10 @@ export default {
     connection: {
       type: Object,
       required: true
+    },
+    session: {
+      type: Object,
+      default: null
     }
   },
   emits: ['show-notification', 'execute-command', 'show-settings'],
@@ -555,29 +561,7 @@ export default {
         { deep: true }
       );
 
-      // 添加测试工具消息（仅在开发环境）
-      if (process.env.NODE_ENV === 'development') {
-        setTimeout(() => {
-          console.log('🧪 [AI-ASSISTANT] 添加测试工具消息');
-          addSystemMessage('', 'tool-start', {
-            toolCallId: 'test-tool-call-123',
-            command: 'ls -la',
-            connectionId: props.connectionId
-          });
-
-          // 2秒后添加完成消息
-          setTimeout(() => {
-            addSystemMessage('', 'tool-complete', {
-              toolCallId: 'test-tool-call-123',
-              command: 'ls -la',
-              result:
-                'total 48\ndrwxr-xr-x  6 user user 4096 Oct 17 01:42 .\ndrwxr-xr-x  3 root root 4096 Oct 17 01:40 ..',
-              executionTime: 1500
-            });
-          }, 2000);
-        }, 1000);
-      }
-    });
+      });
 
     // 本地清空聊天函数
     const clearChatLocal = () => {
@@ -691,5 +675,25 @@ export default {
   font-size: 10px;
   color: var(--text-tertiary, #888);
   margin-top: 4px;
+}
+
+// Session info styles
+.session-info {
+  color: var(--color-primary, #74c0fc);
+  font-weight: 500;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.session-badge {
+  display: inline-block;
+  background: rgba(116, 192, 252, 0.15);
+  color: var(--color-primary, #74c0fc);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+  border: 1px solid rgba(116, 192, 252, 0.3);
 }
 </style>
