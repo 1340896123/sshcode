@@ -40,6 +40,7 @@ import {
   completeAllAICommands
 } from '../../ai-assistant/utils/aiCommandExecutor.js';
 import aiCompletionService from '../../ai-assistant/utils/aiCompletionService.js';
+import { commandSearchEngine } from '../utils/commandDatabase.js';
 import TerminalInputBox from './TerminalInputBox.vue';
 import TerminalInput from './TerminalInput.vue';
 import ResizeHandle from '../../../components/ui/ResizeHandle.vue';
@@ -101,224 +102,7 @@ export default {
     const commandHistory = ref([]);
     const historyIndex = ref(-1);
 
-    // 本地命令数据库
-    const localCommands = [
-      // 文件操作
-      { command: 'ls', description: 'List directory contents', type: 'local' },
-      {
-        command: 'ls -la',
-        description: 'List all files including hidden ones',
-        type: 'local'
-      },
-      { command: 'cd', description: 'Change directory', type: 'local' },
-      { command: 'pwd', description: 'Print working directory', type: 'local' },
-      { command: 'mkdir', description: 'Create directory', type: 'local' },
-      {
-        command: 'rm',
-        description: 'Remove files or directories',
-        type: 'local'
-      },
-      {
-        command: 'rm -rf',
-        description: 'Force remove directory and contents',
-        type: 'local'
-      },
-      {
-        command: 'cp',
-        description: 'Copy files or directories',
-        type: 'local'
-      },
-      {
-        command: 'mv',
-        description: 'Move/rename files or directories',
-        type: 'local'
-      },
-      {
-        command: 'touch',
-        description: 'Create empty file or update timestamp',
-        type: 'local'
-      },
-      { command: 'cat', description: 'Display file contents', type: 'local' },
-      {
-        command: 'less',
-        description: 'View file contents page by page',
-        type: 'local'
-      },
-      {
-        command: 'head',
-        description: 'Display first lines of file',
-        type: 'local'
-      },
-      {
-        command: 'tail',
-        description: 'Display last lines of file',
-        type: 'local'
-      },
-      {
-        command: 'tail -f',
-        description: 'Follow file content in real-time',
-        type: 'local'
-      },
-      { command: 'find', description: 'Search for files', type: 'local' },
-      { command: 'grep', description: 'Search text patterns', type: 'local' },
-      {
-        command: 'chmod',
-        description: 'Change file permissions',
-        type: 'local'
-      },
-      { command: 'chown', description: 'Change file owner', type: 'local' },
-
-      // 系统信息
-      { command: 'ps', description: 'Show running processes', type: 'local' },
-      {
-        command: 'ps aux',
-        description: 'Show all running processes',
-        type: 'local'
-      },
-      {
-        command: 'top',
-        description: 'Display system processes',
-        type: 'local'
-      },
-      {
-        command: 'htop',
-        description: 'Interactive process viewer',
-        type: 'local'
-      },
-      { command: 'kill', description: 'Terminate processes', type: 'local' },
-      { command: 'df', description: 'Display disk usage', type: 'local' },
-      { command: 'du', description: 'Display directory sizes', type: 'local' },
-      { command: 'free', description: 'Display memory usage', type: 'local' },
-      {
-        command: 'uname',
-        description: 'Display system information',
-        type: 'local'
-      },
-      {
-        command: 'sudo',
-        description: 'Execute command as superuser',
-        type: 'local'
-      },
-
-      // 网络工具
-      {
-        command: 'ping',
-        description: 'Test network connectivity',
-        type: 'local'
-      },
-      {
-        command: 'curl',
-        description: 'Transfer data from servers',
-        type: 'local'
-      },
-      {
-        command: 'wget',
-        description: 'Download files from web',
-        type: 'local'
-      },
-      {
-        command: 'ssh',
-        description: 'Connect to remote server',
-        type: 'local'
-      },
-      {
-        command: 'scp',
-        description: 'Secure copy files remotely',
-        type: 'local'
-      },
-      {
-        command: 'netstat',
-        description: 'Display network connections',
-        type: 'local'
-      },
-
-      // Git 命令
-      { command: 'git', description: 'Version control system', type: 'local' },
-      {
-        command: 'git status',
-        description: 'Show working tree status',
-        type: 'local'
-      },
-      {
-        command: 'git add',
-        description: 'Add files to staging area',
-        type: 'local'
-      },
-      {
-        command: 'git commit',
-        description: 'Record changes to repository',
-        type: 'local'
-      },
-      {
-        command: 'git push',
-        description: 'Push changes to remote repository',
-        type: 'local'
-      },
-      {
-        command: 'git pull',
-        description: 'Fetch from and merge with remote repository',
-        type: 'local'
-      },
-      {
-        command: 'git branch',
-        description: 'List, create, or delete branches',
-        type: 'local'
-      },
-      {
-        command: 'git checkout',
-        description: 'Switch branches or restore working tree files',
-        type: 'local'
-      },
-      { command: 'git log', description: 'Show commit logs', type: 'local' },
-      {
-        command: 'git diff',
-        description: 'Show changes between commits',
-        type: 'local'
-      },
-
-      // 包管理器
-      {
-        command: 'apt-get',
-        description: 'Debian/Ubuntu package manager',
-        type: 'local'
-      },
-      {
-        command: 'apt-get update',
-        description: 'Update package lists',
-        type: 'local'
-      },
-      {
-        command: 'apt-get install',
-        description: 'Install packages',
-        type: 'local'
-      },
-      {
-        command: 'yum',
-        description: 'RHEL/CentOS package manager',
-        type: 'local'
-      },
-      { command: 'npm', description: 'Node.js package manager', type: 'local' },
-      {
-        command: 'npm install',
-        description: 'Install npm packages',
-        type: 'local'
-      },
-      { command: 'npm run', description: 'Run npm scripts', type: 'local' },
-      { command: 'pip', description: 'Python package manager', type: 'local' },
-
-      // 其他常用命令
-      { command: 'clear', description: 'Clear terminal screen', type: 'local' },
-      {
-        command: 'history',
-        description: 'Display command history',
-        type: 'local'
-      },
-      { command: 'man', description: 'Display manual pages', type: 'local' },
-      { command: 'vim', description: 'Text editor', type: 'local' },
-      { command: 'vi', description: 'Text editor', type: 'local' },
-      { command: 'nano', description: 'Text editor', type: 'local' },
-      { command: 'exit', description: 'Exit shell', type: 'local' }
-    ];
+    // 优化：外部命令数据库已导入，无需重复创建
 
     // 智能补全方法
     const filterSuggestions = async input => {
@@ -334,13 +118,8 @@ export default {
       const trimmedInput = input.trim().toLowerCase();
       console.log(`📝 [XTerminal] 处理输入: "${trimmedInput}"`);
 
-      // 本地命令匹配
-      const localMatches = localCommands
-        .filter(cmd => cmd.command.toLowerCase().includes(trimmedInput))
-        .map(cmd => ({
-          ...cmd,
-          confidence: cmd.command.toLowerCase().startsWith(trimmedInput) ? 0.9 : 0.6
-        }));
+      // 优化：使用外部命令搜索引擎
+      const localMatches = commandSearchEngine.search(trimmedInput);
 
       console.log(`📋 [XTerminal] 本地匹配结果: ${localMatches.length} 个`);
 
@@ -703,9 +482,7 @@ export default {
       console.log('✅ [XTerminal] 终端初始化完成，连接ID:', props.connectionId);
       console.log(`🎯 [XTerminal] 终端尺寸: ${terminal.cols}x${terminal.rows}`);
       console.log(
-        `⌨️ [XTerminal] 智能补全已配置：本地命令=${
-          localCommands.length
-        }个，AI=${aiEnabled.value ? '启用' : '禁用'}`
+        `⌨️ [XTerminal] 智能补全已配置：本地命令引擎已启用，AI=${aiEnabled.value ? '启用' : '禁用'}`
       );
     };
 

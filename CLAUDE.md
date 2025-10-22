@@ -105,11 +105,11 @@ npm run format:check   # Check code formatting with Prettier
 - **Build Process**: main.ts compiled to main.js, renderer processed by Vite
 
 #### Vue Component Architecture
-- **Modular Structure**: Organized by feature (terminal, ai-assistant, file-manager) with index.ts barrel exports
-- **Composables Pattern**: Reusable logic with useConnectionManager, useAIChat, useComponentStyles, etc.
+- **Modular Structure**: Organized by feature (terminal, ai-assistant, file-manager) with index.js barrel exports (TypeScript compiled to JavaScript)
+- **Composables Pattern**: Reusable logic with useConnectionManager, useAIChat, useSSHConnectionPool, etc.
 - **Reactive State**: Connection state management with real-time updates
 - **Event System**: Cross-component communication via lightweight event system (src/utils/eventSystem.ts)
-- **Styling System**: Dynamic component styling with useComponentStyles hook supporting theme-aware CSS variables
+- **Styling System**: SCSS-based styling with CSS variables and path aliases, but dynamic useComponentStyles hook is not implemented
 - **Type Safety**: Comprehensive TypeScript interfaces for all components, props, and events
 
 #### Development Tooling
@@ -133,8 +133,8 @@ npm run format:check   # Check code formatting with Prettier
 - **Resource Management**: Automatic cleanup of timers, connections, and file watchers on component unmount
 - **Type System**: All IPC communications are fully typed for type safety across main/renderer boundary
 - **Event System**: Uses mitt-based lightweight event system with priority handling, history tracking, and component lifecycle management
-- **Styling Architecture**: CSS variable-driven theming with useComponentStyles hook for consistent, theme-aware component styling
-- **Module Organization**: Feature-based modules with barrel exports (index.ts) for clean import paths and better code organization
+- **Styling Architecture**: CSS variable-driven theming with SCSS preprocessing, but note that `useComponentStyles` hook is not implemented in the actual codebase
+- **Module Organization**: Feature-based modules with barrel exports (index.js due to TypeScript compilation) for clean import paths and better code organization
 
 ## Development Workflow
 
@@ -144,6 +144,35 @@ npm run format:check   # Check code formatting with Prettier
 4. **Building**: Use `npm run build-electron` to create distributable packages
 5. **SSH Testing**: Ensure test environments have accessible SSH servers for connection testing
 6. **AI Features**: Configure API keys in application settings for AI functionality
+
+## Important File Extensions
+
+- **JavaScript files**: Many composables and utilities are compiled to JavaScript (.js files) in this codebase, particularly:
+  - `src/composables/useSSHConnectionPool.js` - SSH connection pooling functionality
+  - Module exports in `src/modules/*/index.js` files
+- **TypeScript files**: Most component definitions and type definitions remain as .ts files
+- **Main process**: `main.ts` and `preload.ts` compile to CommonJS for Electron
+
+## Critical Implementation Details
+
+### Module Resolution
+- The build system compiles TypeScript to JavaScript in many cases, so imports may reference .js files
+- Path aliases use `@/` mapped to `src/` for clean imports across the codebase
+
+### SSH Connection Pool Architecture
+- `useSSHConnectionPool.js`: Manages persistent SSH connections with batch command execution
+- System monitoring commands are executed in batches every second for real-time metrics
+- Connection health checks occur every 30 seconds with automatic cleanup of failed connections
+
+### Configuration Management
+- YAML-based configuration stored in `config/app.yml`
+- Backward compatibility maintained for legacy `aiChat` configuration format
+- Main process supports additional settings not available in renderer process
+
+### File Organization
+- Feature-based modules under `src/modules/` with barrel exports through `index.js` files
+- Utilities and formatters in `src/utils/` for shared functionality
+- Comprehensive type definitions in `src/types/` for all major interfaces
 
 ## Module Structure
 
@@ -166,10 +195,10 @@ The codebase is organized into feature-based modules under `src/modules/`:
 - **file-manager/**: SFTP-based file operations and browser
   - `components/`: File browser with drag-drop support and icon components
 
-Each module exports its functionality through an `index.ts` barrel export for clean import paths.
+Each module exports its functionality through an `index.js` barrel export for clean import paths (note: .js extension due to TypeScript compilation).
 
 ### Component Architecture
 - **Modular Components**: Feature-organized with clear separation of concerns
-- **Composables Pattern**: Reusable reactive logic (useConnectionManager, useAIChat, useComponentStyles, etc.)
-- **Event System**: Cross-component communication via `src/utils/eventSystem.ts` using mitt event emitter
-- **Styling System**: Dynamic component styling with `useComponentStyles` hook supporting CSS variables
+- **Composables Pattern**: Reusable reactive logic (useConnectionManager, useAIChat, useSSHConnectionPool, etc.)
+- **Event System**: Cross-component communication via `src/utils/eventSystem.ts` using mitt event emitter with comprehensive event tracking
+- **Missing Styling Hook**: Note that `useComponentStyles` is referenced in documentation but not found in the actual codebase

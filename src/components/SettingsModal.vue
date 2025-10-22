@@ -132,27 +132,7 @@
                     placeholder="输入系统提示词..."
                   ></textarea>
                 </div>
-                <div class="setting-item">
-                  <label>
-                    <input
-                      v-model="settings.aiChat.saveHistory"
-                      type="checkbox"
-                      class="setting-checkbox"
-                    />
-                    保存聊天历史
-                  </label>
                 </div>
-                <div class="setting-item">
-                  <label>历史记录保留天数</label>
-                  <input
-                    v-model="settings.aiChat.historyRetentionDays"
-                    type="number"
-                    class="setting-input"
-                    min="1"
-                    max="365"
-                  />
-                </div>
-              </div>
             </div>
 
             <!-- AI补全设置 -->
@@ -579,9 +559,7 @@ export default {
         maxTokens: 2000,
         temperature: 0.7,
         systemPromptEnabled: false,
-        systemPrompt: '你是一个专业的编程助手，请帮助用户解决编程问题。',
-        saveHistory: true,
-        historyRetentionDays: 30
+        systemPrompt: '你是一个专业的编程助手，请帮助用户解决编程问题。'
       },
       aiCompletion: {
         provider: 'openai',
@@ -946,9 +924,7 @@ export default {
           ...(savedSettings.aiChat || {}),
           customModel: savedSettings.aiChat?.customModel || '',
           systemPromptEnabled: savedSettings.aiChat?.systemPromptEnabled ?? false,
-          systemPrompt: savedSettings.aiChat?.systemPrompt || defaultSettings.aiChat.systemPrompt,
-          saveHistory: savedSettings.aiChat?.saveHistory ?? true,
-          historyRetentionDays: savedSettings.aiChat?.historyRetentionDays || 30
+          systemPrompt: savedSettings.aiChat?.systemPrompt || defaultSettings.aiChat.systemPrompt
         },
         aiCompletion: {
           ...defaultSettings.aiCompletion,
