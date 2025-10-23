@@ -18,17 +18,17 @@ export function useElectronAPI() {
   };
 }
 
-export function useSessions() {
-  const sessions = ref([]);
+export function useConnections() {
+  const connections = ref([]);
   const loading = ref(false);
 
-  const loadSessions = async () => {
+  const loadConnections = async () => {
     if (!window.electronAPI) return;
 
     loading.value = true;
     try {
-      const sessionList = await window.electronAPI.getSessions();
-      sessions.value = sessionList || [];
+      const connectionList = await window.electronAPI.getConnections();
+      connections.value = connectionList || [];
     } catch (error) {
       console.error('加载连接失败:', error);
     } finally {
@@ -36,12 +36,12 @@ export function useSessions() {
     }
   };
 
-  const saveSession = async sessionData => {
+  const saveConnection = async connectionData => {
     if (!window.electronAPI) return false;
 
     try {
-      await window.electronAPI.saveSession(sessionData);
-      await loadSessions(); // 重新加载连接列表
+      await window.electronAPI.saveConnection(connectionData);
+      await loadConnections(); // 重新加载连接列表
       return true;
     } catch (error) {
       console.error('保存连接失败:', error);
@@ -49,12 +49,12 @@ export function useSessions() {
     }
   };
 
-  const deleteSession = async sessionId => {
+  const deleteConnection = async connectionId => {
     if (!window.electronAPI) return false;
 
     try {
-      await window.electronAPI.deleteSession(sessionId);
-      await loadSessions(); // 重新加载连接列表
+      await window.electronAPI.deleteConnection(connectionId);
+      await loadConnections(); // 重新加载连接列表
       return true;
     } catch (error) {
       console.error('删除连接失败:', error);
@@ -63,28 +63,28 @@ export function useSessions() {
   };
 
   onMounted(() => {
-    loadSessions();
+    loadConnections();
   });
 
   return {
-    sessions,
+    connections,
     loading,
-    loadSessions,
-    saveSession,
-    deleteSession
+    loadConnections,
+    saveConnection,
+    deleteConnection
   };
 }
 
 export function useSSHConnection() {
-  const connections = ref(new Map());
+  const activeConnections = ref(new Map());
 
-  const connect = async sessionData => {
+  const connect = async connectionConfig => {
     if (!window.electronAPI) return null;
 
     try {
-      const connection = await window.electronAPI.sshConnect(sessionData);
+      const connection = await window.electronAPI.sshConnect(connectionConfig);
       if (connection.success) {
-        connections.value = new Map(connections.value).set(sessionData.id, connection);
+        activeConnections.value = new Map(activeConnections.value).set(connectionConfig.id, connection);
         return connection;
       }
       throw new Error(connection.error || '连接失败');
@@ -94,14 +94,14 @@ export function useSSHConnection() {
     }
   };
 
-  const disconnect = async sessionId => {
+  const disconnect = async connectionId => {
     if (!window.electronAPI) return false;
 
     try {
-      await window.electronAPI.sshDisconnect(sessionId);
-      const newMap = new Map(connections.value);
-      newMap.delete(sessionId);
-      connections.value = newMap;
+      await window.electronAPI.sshDisconnect(connectionId);
+      const newMap = new Map(activeConnections.value);
+      newMap.delete(connectionId);
+      activeConnections.value = newMap;
       return true;
     } catch (error) {
       console.error('断开连接失败:', error);
@@ -109,23 +109,23 @@ export function useSSHConnection() {
     }
   };
 
-  const executeCommand = async (sessionId, command) => {
+  const executeCommand = async (connectionId, command) => {
     if (!window.electronAPI) return null;
 
     try {
-      return await window.electronAPI.sshExecute(sessionId, command);
+      return await window.electronAPI.sshExecute(connectionId, command);
     } catch (error) {
       console.error('执行命令失败:', error);
       throw error;
     }
   };
 
-  const isConnected = sessionId => {
-    return connections.value.has(sessionId);
+  const isConnected = connectionId => {
+    return activeConnections.value.has(connectionId);
   };
 
   return {
-    connections,
+    connections: activeConnections,
     connect,
     disconnect,
     executeCommand,

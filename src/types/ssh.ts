@@ -74,23 +74,7 @@ export interface SessionData {
   initialPanel?: 'files' | 'terminal' | 'ai';
 }
 
-// Legacy types for backward compatibility
-export interface SSHConnection {
-  id: string;
-  name: string;
-  host: string;
-  port: number;
-  username: string;
-  password?: string;
-  privateKey?: string;
-  authType: 'password' | 'key';
-  connected: boolean;
-  shellStream?: import('ssh2').ClientChannel;
-  sftpClient?: SftpClient;
-  client?: Client;
-  status: 'connecting' | 'connected' | 'failed' | 'disconnected' | 'cancelled';
-  currentWorkingDirectory?: string;
-}
+// Note: Legacy SSHConnection type removed - use Connection and Session types instead
 
 // System monitoring types
 export interface SystemInfo {

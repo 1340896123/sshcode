@@ -20,10 +20,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getConfig: () => ipcRenderer.invoke('getConfig'),
   saveConfig: (config: Partial<AppConfig>) => ipcRenderer.invoke('saveConfig', config),
 
-  // Session management
-  getSessions: () => ipcRenderer.invoke('get-sessions'),
-  saveSession: (sessionData: SessionData) => ipcRenderer.invoke('save-session', sessionData),
-  deleteSession: (sessionId: string) => ipcRenderer.invoke('delete-session', sessionId),
+  // Connection management
+  getConnections: () => ipcRenderer.invoke('get-connections'),
+  saveConnection: (connectionData: SSHConnectionConfig) => ipcRenderer.invoke('save-connection', connectionData),
+  deleteConnection: (connectionId: string) => ipcRenderer.invoke('delete-connection', connectionId),
 
   // SSH connections
   sshConnect: (connectionConfig: SSHConnectionConfig) =>

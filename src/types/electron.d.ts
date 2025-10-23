@@ -16,10 +16,10 @@ export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: Partial<AppConfig>) => Promise<APIResponse>;
 
-  // Session management
-  getSessions: () => Promise<SessionData[]>;
-  saveSession: (sessionData: SessionData) => Promise<APIResponse>;
-  deleteSession: (sessionId: string) => Promise<APIResponse>;
+  // Connection management
+  getConnections: () => Promise<SSHConnectionConfig[]>;
+  saveConnection: (connectionData: SSHConnectionConfig) => Promise<APIResponse>;
+  deleteConnection: (connectionId: string) => Promise<APIResponse>;
 
   // SSH connections
   sshConnect: (connectionConfig: SSHConnectionConfig) => Promise<APIResponse>;

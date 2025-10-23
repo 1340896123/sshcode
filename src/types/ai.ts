@@ -216,5 +216,4 @@ export interface AIResponse {
   created?: number;
 }
 
-// Re-export SSHConnection for convenience
-import type { SSHConnection } from './ssh.js';
+// Note: SSH connections are managed through Connection and Session types from ssh.ts

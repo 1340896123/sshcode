@@ -51,7 +51,7 @@
       </div>
 
       <!-- 统计信息区域 -->
-      <div class="stats-section" v-if="recentSessions.length > 0">
+      <div class="stats-section" v-if="recentConnections.length > 0">
         <div class="stats-container">
           <div class="stats-header">
             <h3 class="stats-title">连接统计</h3>
@@ -63,7 +63,7 @@
                 <span class="stat-icon">🔗</span>
               </div>
               <div class="stat-content">
-                <div class="stat-value">{{ recentSessions.length }}</div>
+                <div class="stat-value">{{ recentConnections.length }}</div>
                 <div class="stat-label">已保存连接</div>
               </div>
             </div>
@@ -167,7 +167,7 @@ export default {
   data() {
     return {
       showHelp: false,
-      recentSessions: [],
+      recentConnections: [],
       features: [
         {
           icon: '🔐',
@@ -204,11 +204,11 @@ export default {
   },
   computed: {
     lastConnected() {
-      if (this.recentSessions.length === 0) return '无';
+      if (this.recentConnections.length === 0) return '无';
       const now = new Date();
-      const lastSession = this.recentSessions[0];
-      if (lastSession.lastConnected) {
-        const lastTime = new Date(lastSession.lastConnected);
+      const lastConnection = this.recentConnections[0];
+      if (lastConnection.lastConnected) {
+        const lastTime = new Date(lastConnection.lastConnected);
         const diffMs = now - lastTime;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
@@ -231,16 +231,16 @@ export default {
     }
   },
   async mounted() {
-    await this.loadRecentSessions();
+    await this.loadRecentConnections();
   },
   methods: {
-    async loadRecentSessions() {
+    async loadRecentConnections() {
       try {
-        if (window.electronAPI && window.electronAPI.getSessions) {
-          this.recentSessions = await window.electronAPI.getSessions();
+        if (window.electronAPI && window.electronAPI.getConnections) {
+          this.recentConnections = await window.electronAPI.getConnections();
         }
       } catch (error) {
-        console.warn('无法加载最近会话:', error);
+        console.warn('无法加载最近连接:', error);
       }
     }
   }

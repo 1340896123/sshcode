@@ -69,29 +69,29 @@ app.on('window-all-closed', () => {
 });
 
 // IPC handlers
-ipcMain.handle('save-session', async (event, sessionData) => {
+ipcMain.handle('save-connection', async (event, connectionData) => {
   try {
-    const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
-    const sessionsDir = path.dirname(sessionsPath);
+    const connectionsPath = path.join(__dirname, 'data', 'connections.json');
+    const connectionsDir = path.dirname(connectionsPath);
 
-    if (!fs.existsSync(sessionsDir)) {
-      fs.mkdirSync(sessionsDir, { recursive: true });
+    if (!fs.existsSync(connectionsDir)) {
+      fs.mkdirSync(connectionsDir, { recursive: true });
     }
 
-    let sessions = [];
-    if (fs.existsSync(sessionsPath)) {
-      const data = fs.readFileSync(sessionsPath, 'utf8');
-      sessions = JSON.parse(data);
+    let connections = [];
+    if (fs.existsSync(connectionsPath)) {
+      const data = fs.readFileSync(connectionsPath, 'utf8');
+      connections = JSON.parse(data);
     }
 
-    const existingIndex = sessions.findIndex(s => s.id === sessionData.id);
+    const existingIndex = connections.findIndex(c => c.id === connectionData.id);
     if (existingIndex >= 0) {
-      sessions[existingIndex] = sessionData;
+      connections[existingIndex] = connectionData;
     } else {
-      sessions.push(sessionData);
+      connections.push(connectionData);
     }
 
-    fs.writeFileSync(sessionsPath, JSON.stringify(sessions, null, 2));
+    fs.writeFileSync(connectionsPath, JSON.stringify(connections, null, 2));
 
     return { success: true };
   } catch (error) {
@@ -99,33 +99,33 @@ ipcMain.handle('save-session', async (event, sessionData) => {
   }
 });
 
-ipcMain.handle('get-sessions', async () => {
+ipcMain.handle('get-connections', async () => {
   try {
-    const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
-    console.log('读取连接文件:', sessionsPath);
+    const connectionsPath = path.join(__dirname, 'data', 'connections.json');
+    console.log('读取连接文件:', connectionsPath);
 
-    if (fs.existsSync(sessionsPath)) {
-      const data = fs.readFileSync(sessionsPath, 'utf8');
-      const sessions = JSON.parse(data);
-      console.log('读取到连接数量:', sessions.length);
-      return sessions;
+    if (fs.existsSync(connectionsPath)) {
+      const data = fs.readFileSync(connectionsPath, 'utf8');
+      const connections = JSON.parse(data);
+      console.log('读取到连接数量:', connections.length);
+      return connections;
     }
     console.log('连接文件不存在，返回空数组');
     return [];
   } catch (error) {
-    console.error('Error reading sessions:', error);
+    console.error('Error reading connections:', error);
     return [];
   }
 });
 
-ipcMain.handle('delete-session', async (event, sessionId) => {
+ipcMain.handle('delete-connection', async (event, connectionId) => {
   try {
-    const sessionsPath = path.join(__dirname, 'data', 'sessions.json');
-    if (fs.existsSync(sessionsPath)) {
-      const data = fs.readFileSync(sessionsPath, 'utf8');
-      let sessions = JSON.parse(data);
-      sessions = sessions.filter(s => s.id !== sessionId);
-      fs.writeFileSync(sessionsPath, JSON.stringify(sessions, null, 2));
+    const connectionsPath = path.join(__dirname, 'data', 'connections.json');
+    if (fs.existsSync(connectionsPath)) {
+      const data = fs.readFileSync(connectionsPath, 'utf8');
+      let connections = JSON.parse(data);
+      connections = connections.filter(c => c.id !== connectionId);
+      fs.writeFileSync(connectionsPath, JSON.stringify(connections, null, 2));
     }
     return { success: true };
   } catch (error) {

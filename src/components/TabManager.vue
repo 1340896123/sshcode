@@ -190,7 +190,7 @@ import DisconnectedState from './connection/DisconnectedState.vue';
 import SessionTabBar from './tabs/SessionTabBar.vue';
 import SessionContent from './tabs/SessionContent.vue';
 import { useConnectionManager } from '../composables/useConnectionManager';
-import { useSessionManager } from '../composables/useNewSessionManager';
+import { useSessionManager } from '../composables/useSessionManager';
 import { useTerminalManager } from '../modules/terminal/composables/useTerminalManager.js';
 import { usePanelManager } from '../composables/usePanelManager';
 import { useContextMenu } from '../composables/useContextMenu';
