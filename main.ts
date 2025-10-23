@@ -38,7 +38,7 @@ function createWindow() {
   if (isDev) {
     // 开发模式：加载 Vite 开发服务器
     console.log('开发模式：加载 Vite 开发服务器');
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('http://localhost:5174');
     mainWindow.webContents.openDevTools();
   } else {
     // 生产模式：加载本地构建文件

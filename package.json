@@ -8,7 +8,7 @@
     "start": "npm run build-main && npm run build && electron .",
     "vite": "vite",
     "debug": "concurrently \"vite --port 5173\" \"npm run build-main && wait-on http://localhost:5173 && electron . --dev --remote-debugging-port=9222\"",
-    "build": "vite build",
+    "build": "vite build && npm run build-main",
     "build-main": "tsc -p tsconfig.main.json",
     "build-electron": "npm run build-main && npm run build && electron-builder",
     "dist": "npm run build-electron",
