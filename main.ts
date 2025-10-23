@@ -6,8 +6,8 @@ import type {
   SSHConnectionConfig,
   SSH2ConnectConfig,
   SFTPConnectConfig
-} from './src/types/ssh.js';
-import type { MainAppConfig } from './src/types/config.js';
+} from './src/types/ssh';
+import type { MainAppConfig } from './src/types/config';
 import type { Client } from 'ssh2';
 import type { ClientChannel } from 'ssh2';
 

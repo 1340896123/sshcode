@@ -5,14 +5,14 @@ import type {
   SessionData,
   AppConfig,
   APIResponse
-} from './src/types/index.js';
+} from './src/types/index';
 import type {
   ShellOptions,
   FileChangedEventData,
   TerminalDataEventData,
   TerminalCloseEventData,
   TerminalErrorEventData
-} from './src/types/terminal.js';
+} from './src/types/terminal';
 
 // Expose secure API to renderer process
 contextBridge.exposeInMainWorld('electronAPI', {

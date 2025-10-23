@@ -159,6 +159,15 @@ npm run format:check   # Check code formatting with Prettier
 - The build system compiles TypeScript to JavaScript in many cases, so imports may reference .js files
 - Path aliases use `@/` mapped to `src/` for clean imports across the codebase
 
+### 模块引入规则
+- 禁止使用完整的文件路径
+```js
+import type { MainAppConfig } from './src/types/config.js' 
+```
+- 正确的引入应该是不带后缀的
+```js
+import type { MainAppConfig } from './src/types/config' 
+```
 
 ### 概念设计
 - 连接：SSH的连接信息，由用户进行配置的

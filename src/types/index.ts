@@ -6,13 +6,12 @@
 // Re-export all types from specialized modules
 export type {
   // SSH Connection types
-  SSHConnection,
   SSHConnectionConfig,
   SessionData,
   Connection,
   SystemInfo,
   NetworkHistory
-} from './ssh.js';
+} from './ssh.ts';
 
 export type {
   // AI Assistant types
@@ -37,45 +36,45 @@ export type {
   CacheEntry,
   CacheStats,
   CommandOptions
-} from './ai.js';
+} from './ai.ts';
 
 export type {
   // Configuration types
   AppConfig,
   MainAppConfig
-} from './config.js';
+} from './config.ts';
 
 export type {
   // File system types
   FileNode
-} from './file.js';
+} from './file.ts';
 
 export type {
   // Terminal types
   TerminalData,
   TerminalSession
-} from './terminal.js';
+} from './terminal.ts';
 
 export type {
   // Event system types
   AppEvent
-} from './events.js';
+} from './events.ts';
 
 export type {
   // Component props types
   ConnectionModalProps,
   FileManagerProps
-} from './components.js';
+} from './components.ts';
 
 export type {
   // API response types
   APIResponse
-} from './api.js';
+} from './api.ts';
 
 export type {
   // Electron API types
   ElectronAPI
-} from './electron.js';
+} from './electron.ts';
 
 // Additional AI constants types for convenience
 export interface QuickAction {
