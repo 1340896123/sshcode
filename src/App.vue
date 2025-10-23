@@ -123,39 +123,9 @@ export default {
       }
     };
 
-    const setupElectronAPI = () => {
-      if (typeof window !== 'undefined' && window.require) {
-        const { ipcRenderer } = window.require('electron');
-        const path = window.require('path');
-        window.ipcRenderer = ipcRenderer;
-        window.path = path;
-
-        window.electronAPI = {
-          saveSession: data => window.ipcRenderer.invoke('save-session', data),
-          getSessions: () => window.ipcRenderer.invoke('get-sessions'),
-          deleteSession: id => window.ipcRenderer.invoke('delete-session', id),
-          sshConnect: config => window.ipcRenderer.invoke('ssh-connect', config),
-          sshExecute: (id, command) => window.ipcRenderer.invoke('ssh-execute', id, command),
-          sshDisconnect: id => window.ipcRenderer.invoke('ssh-disconnect', id),
-          getFileList: (id, path) => window.ipcRenderer.invoke('get-file-list', id, path),
-          getConfig: () => window.ipcRenderer.invoke('getConfig'),
-          saveConfig: config => window.ipcRenderer.invoke('saveConfig', config),
-          readSSHKey: keyPath => window.ipcRenderer.invoke('readSSHKey', keyPath),
-          uploadFile: (id, localPath, remotePath) =>
-            window.ipcRenderer.invoke('uploadFile', id, localPath, remotePath),
-          uploadDroppedFile: (id, file, remotePath) =>
-            window.ipcRenderer.invoke('uploadDroppedFile', id, file, remotePath),
-          selectAndUploadFile: (id, remotePath) =>
-            window.ipcRenderer.invoke('selectAndUploadFile', id, remotePath),
-          downloadFile: (id, remotePath) =>
-            window.ipcRenderer.invoke('downloadFile', id, remotePath),
-          downloadAndOpenFile: (id, remotePath) =>
-            window.ipcRenderer.invoke('downloadAndOpenFile', id, remotePath),
-          startFileWatcher: (remotePath, localPath) =>
-            window.ipcRenderer.invoke('startFileWatcher', remotePath, localPath),
-          stopFileWatcher: localPath => window.ipcRenderer.invoke('stopFileWatcher', localPath)
-        };
-      }
+    const handleSessionDisconnected = (sessionId) => {
+      console.log('🔌 [APP] 处理会话断开连接:', sessionId);
+      toast.info(`会话已断开连接`);
     };
 
     const handleKeyDown = e => {
@@ -173,7 +143,6 @@ export default {
     };
 
     onMounted(() => {
-      setupElectronAPI();
       document.addEventListener('keydown', handleKeyDown);
     });
 
@@ -187,6 +156,7 @@ export default {
       toastState,
       tabManagerRef,
       handleSessionConnected,
+      handleSessionDisconnected,
       handleShowNotification,
       removeToast
     };

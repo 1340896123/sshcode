@@ -59,17 +59,17 @@
                     </button>
                     <button
                       class="action-btn connect-btn"
-                      @click="connectSession(session)"
+                      @click="connectConnection(session)"
                       title="连接"
                     >
                       🔗
                     </button>
-                    <button class="action-btn edit-btn" @click="editSession(session)" title="编辑">
+                    <button class="action-btn edit-btn" @click="editConnection(session)" title="编辑">
                       ✏️
                     </button>
                     <button
                       class="action-btn delete-btn"
-                      @click="deleteSession(session.id)"
+                      @click="deleteConnection(session.id)"
                       title="删除"
                     >
                       🗑️
@@ -95,7 +95,7 @@
                 </ul>
               </div>
 
-              <form @submit.prevent="saveSession">
+              <form @submit.prevent="saveConnection">
                 <div class="form-group" :class="{ 'has-error': !formData.name.trim() }">
                   <label for="sessionName">连接名称 *</label>
                   <input
@@ -219,13 +219,13 @@
           <div class="modal-footer">
             <!-- 连接列表页面的按钮 -->
             <div v-if="!isCreatingNew && !isEditing" class="footer-actions">
-              <button class="primary-btn" @click="createNewSession">新建连接</button>
+              <button class="primary-btn" @click="createNewConnection">新建连接</button>
               <button class="secondary-btn" @click="closeModal">关闭</button>
             </div>
 
             <!-- 表单页面的按钮 -->
             <div v-else class="footer-actions">
-              <button class="primary-btn" @click="saveSession" :disabled="!isFormValid">
+              <button class="primary-btn" @click="saveConnection" :disabled="!isFormValid">
                 {{ isEditing ? '保存修改' : '创建连接' }}
               </button>
               <button class="secondary-btn" @click="cancelForm">取消</button>
@@ -397,10 +397,10 @@ export default {
     });
 
     // 加载连接列表
-    const loadSessions = async () => {
+    const loadConnections = async () => {
       try {
         if (window.electronAPI) {
-          sessions.value = await window.electronAPI.getSessions();
+          sessions.value = await window.electronAPI.getConnections();
         }
       } catch (error) {
         console.error('加载连接失败:', error);
@@ -409,7 +409,7 @@ export default {
     };
 
     // 创建新连接
-    const createNewSession = () => {
+    const createNewConnection = () => {
       resetForm();
       isCreatingNew.value = true;
       isEditing.value = false;
@@ -417,7 +417,7 @@ export default {
     };
 
     // 编辑连接
-    const editSession = session => {
+    const editConnection = session => {
       Object.assign(formData, {
         name: session.name,
         host: session.host,
@@ -435,7 +435,7 @@ export default {
     };
 
     // 保存连接
-    const saveSession = async () => {
+    const saveConnection = async () => {
       try {
         if (!isFormValid.value) {
           emit('show-notification', '请填写所有必填字段', 'warning');
@@ -460,10 +460,10 @@ export default {
         };
 
         if (window.electronAPI) {
-          const result = await window.electronAPI.saveSession(sessionData);
+          const result = await window.electronAPI.saveConnection(sessionData);
           if (result.success) {
             emit('show-notification', isEditing.value ? '连接更新成功' : '连接创建成功', 'success');
-            await loadSessions();
+            await loadConnections();
             cancelForm();
           } else {
             emit('show-notification', `保存失败: ${result.error}`, 'error');
@@ -476,17 +476,17 @@ export default {
     };
 
     // 删除连接
-    const deleteSession = async sessionId => {
+    const deleteConnection = async sessionId => {
       if (!confirm('确定要删除这个连接吗？')) {
         return;
       }
 
       try {
         if (window.electronAPI) {
-          const result = await window.electronAPI.deleteSession(sessionId);
+          const result = await window.electronAPI.deleteConnection(sessionId);
           if (result.success) {
             emit('show-notification', '连接删除成功', 'success');
-            await loadSessions();
+            await loadConnections();
           } else {
             emit('show-notification', `删除失败: ${result.error}`, 'error');
           }
@@ -498,7 +498,7 @@ export default {
     };
 
     // 连接连接
-    const connectSession = async session => {
+    const connectConnection = async session => {
       console.log('🚀 [CONNECTION-MODAL] 用户点击连接按钮:', {
         id: session.id,
         name: session.name,
@@ -713,7 +713,7 @@ export default {
       () => props.isOpen,
       isOpen => {
         if (isOpen) {
-          loadSessions();
+          loadConnections();
         }
       }
     );
@@ -721,7 +721,7 @@ export default {
     // 组件挂载时加载连接
     onMounted(() => {
       if (props.isOpen) {
-        loadSessions();
+        loadConnections();
       }
 
       // 定期清理过期的测试结果
@@ -745,11 +745,11 @@ export default {
       keyValidationType,
       validateField,
       isValidHost,
-      createNewSession,
-      editSession,
-      saveSession,
-      deleteSession,
-      connectSession,
+      createNewConnection,
+      editConnection,
+      saveConnection,
+      deleteConnection,
+      connectConnection,
       testConnection,
       getTestResult,
       validateKeyFile,
