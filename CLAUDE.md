@@ -162,11 +162,11 @@ npm run format:check   # Check code formatting with Prettier
 ### 模块引入规则
 - 禁止使用完整的文件路径
 ```js
-import type { MainAppConfig } from './src/types/config.js' 
+import type { MainAppConfig } from '@/types/config.js' 
 ```
 - 正确的引入应该是不带后缀的
 ```js
-import type { MainAppConfig } from './src/types/config' 
+import type { MainAppConfig } from '@/types/config' 
 ```
 
 ### 概念设计
