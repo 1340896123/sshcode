@@ -2,7 +2,7 @@
  * AI助手相关常量配置
  */
 
-import type { QuickAction, ThemeConfig, SecurityConfig } from '@/types/index.js';
+import type { QuickAction, ThemeConfig, SecurityConfig } from '@/types/index';
 
 // 快捷操作配置
 export const QUICK_ACTIONS: QuickAction[] = [

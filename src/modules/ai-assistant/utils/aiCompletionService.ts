@@ -3,9 +3,9 @@
  * Provides intelligent command suggestions using AI APIs
  */
 
-import type { AIConfig, TestResult, CommandSuggestion } from '@/types/index.js';
-import type { CompletionContext, CacheEntry, CacheStats } from '@/types/ai.js';
-import type { AppConfig } from '@/types/config.js';
+import type { AIConfig, TestResult, CommandSuggestion } from '@/types/index';
+import type { CompletionContext, CacheEntry, CacheStats } from '@/types/ai';
+import type { AppConfig } from '@/types/config';
 
 class AICompletionService {
   private config: AppConfig | null = null;

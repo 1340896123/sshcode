@@ -55,7 +55,7 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { calculateVisibleItems, throttle } from '@/utils/performanceUtils.js';
+import { calculateVisibleItems, throttle } from '@/utils/performanceUtils';
 import FileListItem from './FileListItem.vue';
 
 export default {

@@ -57,7 +57,7 @@
 
 <script>
 import { computed } from 'vue';
-import { FILE_ICONS } from '../utils/fileIcons.js';
+import { FILE_ICONS } from '../utils/fileIcons';
 
 export default {
   name: 'FileListItem',

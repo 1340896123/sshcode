@@ -11,7 +11,7 @@ import type {
   TerminalInput,
   ToolCallStats,
   RetryInfo
-} from '@/types/ai.js';
+} from '@/types/ai';
 
 // Re-export ToolCallStatus as ToolCall for compatibility
 export type ToolCall = ToolCallStatus;

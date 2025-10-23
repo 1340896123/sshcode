@@ -89,7 +89,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import aiCompletionService from '../../ai-assistant/utils/aiCompletionService.js';
+import aiCompletionService from '../../ai-assistant/utils/aiCompletionService';
 
 const props = defineProps({
   isVisible: {

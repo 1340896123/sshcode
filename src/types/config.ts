@@ -2,7 +2,7 @@
  * Configuration related types
  */
 
-import type { AIConfig } from './ai.js';
+import type { AIConfig } from './ai';
 
 // 统一的配置接口，适用于主进程和渲染进程
 export interface AppConfig {

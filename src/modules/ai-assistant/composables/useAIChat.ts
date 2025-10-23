@@ -2,7 +2,7 @@ import { ref, nextTick, onUnmounted, type Ref, type SetupContext } from 'vue';
 import { callAIAPI } from '../utils/aiService';
 import type {
   ParsedResponse,
-  SSHConnection,
+  Connection,
   UseAIChatProps,
   Message,
   Action,
@@ -10,7 +10,7 @@ import type {
   AIChatEmits,
   ToolCallStatus,
   ToolCallStats
-} from '@/types/index.js';
+} from '@/types/index';
 import type {
   AIResponseEventData,
   CommandStartEventData,
@@ -18,9 +18,9 @@ import type {
   CommandErrorEventData,
   ConfigRequiredEventData,
   TerminalOutputEventData
-} from '@/types/events.js';
-import { onEvent, offEvent, EventTypes } from '@/utils/eventSystem.js';
-import { useAIStore } from '../stores/ai.js';
+} from '@/types/events';
+import { onEvent, offEvent, EventTypes } from '@/utils/eventSystem';
+import { useAIStore } from '../stores/ai';
 
 export function useAIChat(props: UseAIChatProps, emit: AIChatEmits) {
   // 状态管理

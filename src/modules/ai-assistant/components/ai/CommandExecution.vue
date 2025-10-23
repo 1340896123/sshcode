@@ -166,7 +166,7 @@ import LoaderIcon from '../../../file-manager/components/icons/LoaderIcon.vue';
 import InfoIcon from '../../../file-manager/components/icons/InfoIcon.vue';
 import CheckIcon from '../../../file-manager/components/icons/CheckIcon.vue';
 import MarkdownIt from 'markdown-it';
-import { onEvent, offEvent, EventTypes } from '@/utils/eventSystem.js';
+import { onEvent, offEvent, EventTypes } from '@/utils/eventSystem';
 
 export default {
   name: 'CommandExecution',

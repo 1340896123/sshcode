@@ -3,9 +3,9 @@
  * 使用Promise和事件系统替代复杂的消息队列
  */
 
-import { emitEvent, onEvent, EventTypes, waitForEvent } from '@/utils/eventSystem.js';
-import { useAIStore } from '../../ai-assistant/stores/ai.js';
-import { useTerminalStore } from '../stores/terminal.js';
+import { emitEvent, onEvent, EventTypes, waitForEvent } from '@/utils/eventSystem';
+import { useAIStore } from '../../ai-assistant/stores/ai';
+import { useTerminalStore } from '../stores/terminal';
 
 class SimpleCommandExecutor {
   private pendingCommands = new Map();

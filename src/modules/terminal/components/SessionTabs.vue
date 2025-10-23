@@ -188,8 +188,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { Connection } from '@/types/ssh.js';
-import { TerminalSession } from '@/types/terminal.js';
+import { Connection } from '@/types/ssh';
+import { TerminalSession } from '@/types/terminal';
 
 const props = defineProps({
   connection: {

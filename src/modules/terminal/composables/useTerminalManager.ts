@@ -1,5 +1,5 @@
 import { ref, nextTick } from 'vue';
-import type { APIResponse } from '@/types/ai.js';
+import type { APIResponse } from '@/types/ai';
 
 export function useTerminalManager(activeConnections, activeTabId, emit, ansiConvert) {
   const autocompleteRefs = ref([]);

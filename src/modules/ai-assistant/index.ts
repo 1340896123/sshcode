@@ -11,16 +11,16 @@ export { default as AIAssistant } from './components/AIAssistant.vue';
 export { default as CommandExecution } from './components/ai/CommandExecution.vue';
 
 // Composables
-export { default as useAIChat } from './composables/useAIChat.ts';
+export { default as useAIChat } from './composables/useAIChat';
 
 // Store
-export { useAIStore } from './stores/ai.js';
+export { useAIStore } from './stores/ai';
 
 // 工具函数
-export * from './utils/index.js';
+export * from './utils/index';
 
 // 常量
-export * from './constants/index.js';
+export * from './constants/index';
 
 // 样式
-export { default as AIAssistantStyles } from './styles/index.js';
+export { default as AIAssistantStyles } from './styles/index';

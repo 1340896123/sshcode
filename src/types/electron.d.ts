@@ -1,11 +1,11 @@
-import type { SSHConnectionConfig, SessionData, AppConfig, APIResponse } from './index.js';
+import type { SSHConnectionConfig, SessionData, AppConfig, APIResponse } from './index';
 import type {
   ShellOptions,
   FileChangedEventData,
   TerminalDataEventData,
   TerminalCloseEventData,
   TerminalErrorEventData
-} from './terminal.js';
+} from './terminal';
 
 /**
  * Electron Main Process API interface

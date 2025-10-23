@@ -95,7 +95,7 @@
 
 <script>
 import { computed } from 'vue';
-import { formatBytes, formatTime } from '@/utils/formatters.js';
+import { formatBytes, formatTime } from '@/utils/formatters';
 
 export default {
   name: 'SystemMonitor',

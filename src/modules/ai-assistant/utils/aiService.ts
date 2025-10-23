@@ -2,9 +2,9 @@
  * AI服务工具模块
  */
 
-import { executeAICommand } from './aiCommandExecutor.js';
-import { useAIStore } from '../stores/ai.js';
-import { emitEvent, EventTypes } from '@/utils/eventSystem.js';
+import { executeAICommand } from './aiCommandExecutor';
+import { useAIStore } from '../stores/ai';
+import { emitEvent, EventTypes } from '@/utils/eventSystem';
 import type {
   AIConfig,
   AIMessage,
@@ -14,7 +14,7 @@ import type {
   ValidationResult,
   TestResult,
   APIResponse
-} from '@/types/index.js';
+} from '@/types/index';
 
 // AI Service specific types
 export interface AIRequestData {

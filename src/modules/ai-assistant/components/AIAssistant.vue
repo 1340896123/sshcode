@@ -268,7 +268,7 @@ import { useChatExport } from '@/composables/useChatExport';
 import { QUICK_ACTIONS } from '../constants/aiConstants';
 import MarkdownIt from 'markdown-it';
 import CommandExecution from './ai/CommandExecution.vue';
-import { useAIStore } from '../stores/ai.js';
+import { useAIStore } from '../stores/ai';
 
 export default {
   name: 'AIAssistant',

@@ -118,7 +118,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue';
-import aiCompletionService from '../../ai-assistant/utils/aiCompletionService.js';
+import aiCompletionService from '../../ai-assistant/utils/aiCompletionService';
 
 // Props
 const props = defineProps({

@@ -13,9 +13,9 @@ export { default as SessionTabs } from './components/SessionTabs.vue';
 export { default as SessionTerminal } from './components/SessionTerminal.vue';
 
 // Composables
-export { useTerminalManager } from './composables/useTerminalManager.js';
+export { useTerminalManager } from './composables/useTerminalManager';
 
 // Store
-export { useTerminalStore } from './stores/terminal.js';
+export { useTerminalStore } from './stores/terminal';
 
 // 工具函数将在需要时添加

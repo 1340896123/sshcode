@@ -50,7 +50,7 @@
 </template>
 
 <script>
-import { formatBytes as formatBytesUtil, formatDuration } from '@/utils/formatters.js';
+import { formatBytes as formatBytesUtil, formatDuration } from '@/utils/formatters';
 
 export default {
   name: 'ConnectionStatusBar',

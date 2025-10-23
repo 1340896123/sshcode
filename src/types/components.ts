@@ -2,8 +2,8 @@
  * Component props and UI related types
  */
 
-import type { SSHConnectionConfig, Session } from './ssh.ts';
-import type { FileNode } from './file.ts';
+import type { SSHConnectionConfig, Session } from './ssh';
+import type { FileNode } from './file';
 
 export interface ConnectionModalProps {
   visible: boolean;

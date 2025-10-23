@@ -38,9 +38,9 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import {
   handleAITerminalData,
   completeAllAICommands
-} from '../../ai-assistant/utils/aiCommandExecutor.js';
-import aiCompletionService from '../../ai-assistant/utils/aiCompletionService.js';
-import { commandSearchEngine } from '../utils/commandDatabase.js';
+} from '../../ai-assistant/utils/aiCommandExecutor';
+import aiCompletionService from '../../ai-assistant/utils/aiCompletionService';
+import { commandSearchEngine } from '../utils/commandDatabase';
 import TerminalInputBox from './TerminalInputBox.vue';
 import TerminalInput from './TerminalInput.vue';
 import ResizeHandle from '../../../components/ui/ResizeHandle.vue';
@@ -351,7 +351,7 @@ export default {
         },
         allowTransparency: false,
         cursorBlink: true,
-        cursorStyle: 'block',
+        cursorStyle: 'underline',
         scrollback: 1000,
         tabStopWidth: 4,
         fastScrollModifier: 'alt',
@@ -934,6 +934,16 @@ export default {
   :deep(.xterm) {
     height: 100% !important;
     padding: 8px;
+
+    // 自定义圆形光标样式
+    .xterm-cursor {
+      border-radius: 50% !important;
+      width: 8px !important;
+      height: 8px !important;
+      background: #74c0fc !important;
+      transform: translate(-2px, 2px) !important;
+      box-shadow: 0 0 4px rgba(116, 192, 252, 0.6) !important;
+    }
 
     // 改善选中文本的样式
     .xterm-selection {

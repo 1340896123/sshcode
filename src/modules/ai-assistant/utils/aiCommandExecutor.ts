@@ -8,10 +8,10 @@ import {
   completeAllCommands,
   getPendingCommandsCount,
   getCommandHistory
-} from '../../terminal/utils/simpleCommandExecutor.js';
-import { emitEvent, EventTypes } from '@/utils/eventSystem.js';
-import { useAIStore } from '../stores/ai.js';
-import type { CommandOptions } from '@/types/ai.js';
+} from '../../terminal/utils/simpleCommandExecutor';
+import { emitEvent, EventTypes } from '@/utils/eventSystem';
+import { useAIStore } from '../stores/ai';
+import type { CommandOptions } from '@/types/ai';
 
 /**
  * 执行命令并等待结果（对外接口）

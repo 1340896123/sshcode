@@ -1,8 +1,8 @@
 import { ref, reactive, type Ref } from 'vue';
-import { useSSHConnectionPool } from './useSSHConnectionPool.js';
-import type { SSHConnectionConfig, Connection, SystemInfo, NetworkHistory } from '@/types/ssh.ts';
-import type { SystemDataFromPool } from '@/types/terminal.ts';
-import { formatBytes } from '@/utils/formatters.js';
+import { useSSHConnectionPool } from './useSSHConnectionPool';
+import type { SSHConnectionConfig, Connection, SystemInfo, NetworkHistory } from '@/types/ssh';
+import type { SystemDataFromPool } from '@/types/terminal';
+import { formatBytes } from '@/utils/formatters';
 
 interface ConnectionManagerEmits {
   (e: 'show-notification', message: string, type: 'info' | 'success' | 'warning' | 'error'): void;

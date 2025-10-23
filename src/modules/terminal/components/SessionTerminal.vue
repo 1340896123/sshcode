@@ -49,8 +49,8 @@
 import { ref, watch, nextTick, onMounted, onUnmounted, computed } from 'vue';
 import XTerminal from './XTerminal.vue';
 import TerminalInput from './TerminalInput.vue';
-import { Connection } from '@/types/ssh.js';
-import { TerminalSession } from '@/types/terminal.js';
+import { Connection } from '@/types/ssh';
+import { TerminalSession } from '@/types/terminal';
 
 const props = defineProps({
   connection: {

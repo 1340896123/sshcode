@@ -51,7 +51,7 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { calculateVisibleItems, throttle, MemoCache } from '@/utils/performanceUtils.js';
+import { calculateVisibleItems, throttle, MemoCache } from '@/utils/performanceUtils';
 import UserMessage from './messages/UserMessage.vue';
 import AssistantMessage from './messages/AssistantMessage.vue';
 import CommandExecution from './ai/CommandExecution.vue';

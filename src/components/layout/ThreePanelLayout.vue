@@ -119,7 +119,7 @@ import TerminalAutocomplete from '../../modules/terminal/components/TerminalAuto
 import TerminalInput from '../../modules/terminal/components/TerminalInput.vue';
 import XTerminal from '../../modules/terminal/components/XTerminal.vue';
 import SessionTerminal from '../../modules/terminal/components/SessionTerminal.vue';
-import { useAIStore } from '../../modules/ai-assistant/stores/ai.js';
+import { useAIStore } from '../../modules/ai-assistant/stores/ai';
 
 export default {
   name: 'ThreePanelLayout',

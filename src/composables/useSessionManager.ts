@@ -1,6 +1,6 @@
 import { ref, reactive, type Ref } from 'vue';
-import type { Session, SessionData } from '@/types/ssh.ts';
-import type { CreateSessionOptions } from '@/types/terminal.ts';
+import type { Session, SessionData } from '@/types/ssh';
+import type { CreateSessionOptions } from '@/types/terminal';
 
 export interface UseSessionManagerEmits {
   (e: 'session-created', session: Session): void;

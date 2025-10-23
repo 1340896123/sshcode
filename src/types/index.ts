@@ -11,7 +11,7 @@ export type {
   Connection,
   SystemInfo,
   NetworkHistory
-} from './ssh.ts';
+} from './ssh';
 
 export type {
   // AI Assistant types
@@ -36,45 +36,45 @@ export type {
   CacheEntry,
   CacheStats,
   CommandOptions
-} from './ai.ts';
+} from './ai';
 
 export type {
   // Configuration types
   AppConfig,
   MainAppConfig
-} from './config.ts';
+} from './config';
 
 export type {
   // File system types
   FileNode
-} from './file.ts';
+} from './file';
 
 export type {
   // Terminal types
   TerminalData,
   TerminalSession
-} from './terminal.ts';
+} from './terminal';
 
 export type {
   // Event system types
   AppEvent
-} from './events.ts';
+} from './events';
 
 export type {
   // Component props types
   ConnectionModalProps,
   FileManagerProps
-} from './components.ts';
+} from './components';
 
 export type {
   // API response types
   APIResponse
-} from './api.ts';
+} from './api';
 
 export type {
   // Electron API types
   ElectronAPI
-} from './electron.ts';
+} from './electron';
 
 // Additional AI constants types for convenience
 export interface QuickAction {
